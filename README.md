@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Farmer Assistance Management System (FAMS)
 
 A web-based capstone project for the **Municipal Agriculture Office (MAO)** built with **Laravel 11**, **PHP 8+**, **MySQL 8**, **Blade**, **Bootstrap 5**, and **JavaScript**.
@@ -95,3 +96,6 @@ resources/views/
 ## License
 
 MIT – Capstone academic project.
+=======
+# capstone
+>>>>>>> 99ef8e37c9dfcce739f45c1d62782b4bc81e2656
