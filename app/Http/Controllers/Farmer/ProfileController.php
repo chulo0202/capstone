@@ -37,18 +37,36 @@ class ProfileController extends Controller
             'rsbsa_status' => 'boolean',
             'rsbsa_number' => 'nullable|string|max:50',
             'association_membership' => 'boolean',
+            '4ps_membership' => 'boolean',
+            'farmer_association' => 'nullable|string|max:255',
             'valid_id' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'farmer_photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'password' => 'nullable|string|min:8|confirmed',
         ]);
 
         $validated['rsbsa_status'] = $request->boolean('rsbsa_status');
         $validated['association_membership'] = $request->boolean('association_membership');
+        $validated['4ps_membership'] = $request->boolean('4ps_membership');
 
         if ($request->hasFile('valid_id')) {
             $path = $request->file('valid_id')->store('valid-ids', 'public');
             $validated['valid_id_path'] = $path;
         }
 
+        if ($request->hasFile('farmer_photo')) {
+            $path = $request->file('farmer_photo')->store('farmer-photos', 'public');
+            $validated['farmer_photo_path'] = $path;
+        }
+
+        if (! empty($validated['password'])) {
+            $user->password = bcrypt($validated['password']);
+            $user->save();
+        }
+
         unset($validated['valid_id']);
+        unset($validated['farmer_photo']);
+        unset($validated['password']);
+        unset($validated['password_confirmation']);
 
         $farmer = Farmer::updateOrCreate(
             ['user_id' => $user->id],

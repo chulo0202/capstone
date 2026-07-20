@@ -30,6 +30,7 @@ class EligibilityRuleController extends Controller
             'max_land_size' => 'nullable|numeric|min:0',
             'requires_rsbsa' => 'boolean',
             'requires_association' => 'boolean',
+            'requires_4ps' => 'boolean',
         ]);
 
         if ($request->filled('crop_types_input')) {
@@ -40,6 +41,7 @@ class EligibilityRuleController extends Controller
 
         $validated['requires_rsbsa'] = $request->boolean('requires_rsbsa');
         $validated['requires_association'] = $request->boolean('requires_association');
+        $validated['requires_4ps'] = $request->boolean('requires_4ps');
 
         EligibilityRule::updateOrCreate(
             ['program_id' => $validated['program_id']],

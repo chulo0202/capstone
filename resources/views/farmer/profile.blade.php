@@ -65,6 +65,17 @@
             <label class="form-check-label" for="assoc">Association Member</label>
           </div>
         </div>
+        <div class="col-md-4">
+          <label class="form-label">4Ps Membership</label>
+          <select name="4ps_membership" class="form-select">
+            <option value="0" {{ old('4ps_membership', $farmer?->four_ps_membership ? 1 : 0) == 0 ? 'selected' : '' }}>No</option>
+            <option value="1" {{ old('4ps_membership', $farmer?->four_ps_membership ? 1 : 0) == 1 ? 'selected' : '' }}>Yes</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Farmer Association</label>
+          <input type="text" name="farmer_association" class="form-control" value="{{ old('farmer_association', $farmer?->farmer_association) }}" placeholder="Association name">
+        </div>
         <div class="col-12">
           <label class="form-label">Valid ID Upload</label>
           <input type="file" name="valid_id" class="form-control @error('valid_id') is-invalid @enderror" accept=".jpg,.jpeg,.png,.pdf">
@@ -72,6 +83,25 @@
           @if($farmer?->valid_id_path)
           <small class="text-muted mt-1 d-block">Current file: <a href="{{ asset('storage/'.$farmer->valid_id_path) }}" target="_blank" class="auth-link">View uploaded ID</a></small>
           @endif
+        </div>
+        <div class="col-12">
+          <label class="form-label">Farmer Photo</label>
+          <input type="file" name="farmer_photo" class="form-control @error('farmer_photo') is-invalid @enderror" accept=".jpg,.jpeg,.png">
+          @error('farmer_photo')<div class="invalid-feedback">{{ $message }}</div>@enderror
+          @if($farmer?->farmer_photo_path)
+          <small class="text-muted mt-1 d-block">Current photo available</small>
+          @endif
+        </div>
+        <div class="col-12">
+          <label class="form-label">Change Password</label>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <input type="password" name="password" class="form-control" placeholder="New password">
+            </div>
+            <div class="col-md-6">
+              <input type="password" name="password_confirmation" class="form-control" placeholder="Confirm password">
+            </div>
+          </div>
         </div>
       </div>
       <div class="mt-4 pt-3 border-top">

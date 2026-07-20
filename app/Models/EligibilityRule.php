@@ -17,6 +17,7 @@ class EligibilityRule extends Model
         'max_land_size',
         'requires_rsbsa',
         'requires_association',
+        'requires_4ps',
     ];
 
     protected function casts(): array
@@ -27,6 +28,7 @@ class EligibilityRule extends Model
             'max_land_size' => 'decimal:2',
             'requires_rsbsa' => 'boolean',
             'requires_association' => 'boolean',
+            'requires_4ps' => 'boolean',
         ];
     }
 

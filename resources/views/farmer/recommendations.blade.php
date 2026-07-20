@@ -22,6 +22,12 @@
           </span>
         </td>
         <td><small>{{ $rec->missing_requirements ? implode('; ', $rec->missing_requirements) : 'None' }}</small></td>
+        <td>
+          <form method="POST" action="{{ route('farmer.applications.store', $rec->program) }}">
+            @csrf
+            <button class="btn btn-sm btn-fams">Apply</button>
+          </form>
+        </td>
       </tr>
       @empty
       <tr><td colspan="4" class="text-center text-muted py-4">No recommendations available</td></tr>

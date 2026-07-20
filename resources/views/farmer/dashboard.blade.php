@@ -86,4 +86,42 @@
     </div>
   </div>
 </div>
+
+<div class="row g-3 mt-1">
+  <div class="col-lg-6">
+    <div class="fams-card">
+      <div class="fams-card-header">
+        <h6><i class="bi bi-file-earmark-check me-2 text-fams"></i>Recent Applications</h6>
+        <a href="{{ route('farmer.applications.index') }}" class="auth-link small">View all</a>
+      </div>
+      <div class="fams-card-body p-0">
+        @forelse($applications as $application)
+        <div class="fams-list-item d-flex justify-content-between align-items-center">
+          <span><strong>{{ $application->program->name }}</strong></span>
+          <span class="badge bg-{{ $application->status === 'approved' ? 'success' : ($application->status === 'rejected' ? 'danger' : 'warning') }} fams-badge">{{ ucfirst($application->status) }}</span>
+        </div>
+        @empty
+        <div class="fams-empty"><i class="bi bi-file-earmark-plus"></i>No applications yet</div>
+        @endforelse
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="fams-card">
+      <div class="fams-card-header">
+        <h6><i class="bi bi-cloud-sun me-2 text-fams"></i>Weather Update</h6>
+        <a href="{{ route('farmer.notifications.index') }}" class="auth-link small">View alerts</a>
+      </div>
+      <div class="fams-card-body">
+        @if($weather)
+        <p class="mb-1"><strong>{{ ucfirst($weather->description) }}</strong></p>
+        <p class="mb-1 text-muted">Temperature: {{ $weather->temperature }}°C</p>
+        <p class="mb-0 text-muted">Humidity: {{ $weather->humidity }}%</p>
+        @else
+        <p class="text-muted mb-0">No weather data available.</p>
+        @endif
+      </div>
+    </div>
+  </div>
+</div>
 @endsection

@@ -39,4 +39,9 @@ class Program extends Model
     {
         return $this->hasMany(Distribution::class);
     }
+
+    public function applications(): HasMany
+    {
+        return $this->hasMany(Application::class);
+    }
 }

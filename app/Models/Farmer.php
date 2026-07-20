@@ -23,7 +23,10 @@ class Farmer extends Model
         'rsbsa_status',
         'rsbsa_number',
         'association_membership',
+        'four_ps_membership',
+        'farmer_association',
         'valid_id_path',
+        'farmer_photo_path',
         'qr_code_path',
         'qr_code_token',
         'profile_completed',
@@ -36,6 +39,7 @@ class Farmer extends Model
             'land_size' => 'decimal:2',
             'rsbsa_status' => 'boolean',
             'association_membership' => 'boolean',
+            'four_ps_membership' => 'boolean',
             'profile_completed' => 'boolean',
         ];
     }
@@ -58,5 +62,10 @@ class Farmer extends Model
     public function smsNotifications(): HasMany
     {
         return $this->hasMany(SmsNotification::class);
+    }
+
+    public function applications(): HasMany
+    {
+        return $this->hasMany(Application::class);
     }
 }
