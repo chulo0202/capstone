@@ -30,5 +30,17 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-
+ 
+    /*
+    |--------------------------------------------------------------------------
+    | OpenWeather Configuration
+    |--------------------------------------------------------------------------
+    */
+    'openweather' => [
+        'api_key' => env('OPENWEATHER_API_KEY'),
+        'base_url' => env('OPENWEATHER_BASE_URL'),
+        'location' => env('WEATHER_LOCATION', 'Sorsogon,PH'),
+        'units' => env('WEATHER_UNITS', 'metric'),
+        'language' => env('WEATHER_LANGUAGE', 'en'),
+    ],
 ];

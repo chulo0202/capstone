@@ -107,21 +107,136 @@
     </div>
   </div>
   <div class="col-lg-6">
+
     <div class="fams-card">
-      <div class="fams-card-header">
-        <h6><i class="bi bi-cloud-sun me-2 text-fams"></i>Weather Update</h6>
-        <a href="{{ route('farmer.notifications.index') }}" class="auth-link small">View alerts</a>
-      </div>
-      <div class="fams-card-body">
-        @if($weather)
-        <p class="mb-1"><strong>{{ ucfirst($weather->description) }}</strong></p>
-        <p class="mb-1 text-muted">Temperature: {{ $weather->temperature }}°C</p>
-        <p class="mb-0 text-muted">Humidity: {{ $weather->humidity }}%</p>
-        @else
-        <p class="text-muted mb-0">No weather data available.</p>
-        @endif
-      </div>
+
+        <div class="fams-card-header">
+
+            <h6>
+                <i class="bi bi-cloud-sun me-2 text-fams"></i>
+                Current Weather
+            </h6>
+
+        </div>
+
+        <div class="fams-card-body">
+
+            @if($weather)
+
+                <div class="text-center mb-3">
+
+                    @if($weather->weather_icon)
+                        <img
+                            src="https://openweathermap.org/img/wn/{{ $weather->weather_icon }}@2x.png"
+                            width="80">
+                    @endif
+
+                    <h3 class="mb-1">
+                        {{ $weather->temperature }}°C
+                    </h3>
+
+                    <strong>
+                        {{ ucfirst($weather->description) }}
+                    </strong>
+
+                </div>
+
+                <div class="row text-center">
+
+                    <div class="col-6 mb-3">
+
+                        <small class="text-muted">
+                            Humidity
+                        </small>
+
+                        <h5>
+                            {{ $weather->humidity }}%
+                        </h5>
+
+                    </div>
+
+                    <div class="col-6 mb-3">
+
+                        <small class="text-muted">
+                            Wind Speed
+                        </small>
+
+                        <h5>
+                            {{ $weather->wind_speed }} m/s
+                        </h5>
+
+                    </div>
+
+                    <div class="col-6">
+
+                        <small class="text-muted">
+                            Pressure
+                        </small>
+
+                        <h5>
+                            {{ $weather->pressure }} hPa
+                        </h5>
+
+                    </div>
+
+                    <div class="col-6">
+
+                        <small class="text-muted">
+                            Rainfall
+                        </small>
+
+                        <h5>
+                            {{ $weather->rainfall }} mm
+                        </h5>
+
+                    </div>
+
+                </div>
+
+                @php
+
+                    $badge = match($weather->alert_level){
+
+                        'Storm Warning' => 'danger',
+
+                        'Rain Alert' => 'warning',
+
+                        'Extreme Heat' => 'danger',
+
+                        'Strong Wind' => 'primary',
+
+                        default => 'success',
+
+                    };
+
+                @endphp
+
+                <hr>
+
+                <div class="text-center">
+
+                    <span class="badge bg-{{ $badge }} fs-6">
+
+                        {{ $weather->alert_level }}
+
+                    </span>
+
+                </div>
+
+            @else
+
+                <p class="text-muted text-center">
+
+                    No weather data available.
+
+                </p>
+
+            @endif
+
+        </div>
+
     </div>
-  </div>
+
+</div>
 </div>
 @endsection

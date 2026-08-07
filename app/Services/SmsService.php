@@ -39,10 +39,20 @@ class SmsService
             ]);
 
             $notification->update([
-                'status' => $response->successful() ? 'sent' : 'failed',
-                'response_data' => $response->json(),
-                'sent_at' => $response->successful() ? now() : null,
-            ]);
+    'status' => $response->successful() ? 'sent' : 'failed',
+
+    'response_data' => [
+        'http_status' => $response->status(),
+        'response_body' => $response->body(),
+    ],
+
+    'sent_at' => $response->successful() ? now() : null,
+]);
+
+Log::info('Semaphore Response', [
+    'status' => $response->status(),
+    'body' => $response->body(),
+]);
         } catch (\Exception $e) {
             Log::error('SMS send failed: '.$e->getMessage());
             $notification->update([

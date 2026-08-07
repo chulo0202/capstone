@@ -16,6 +16,15 @@ class WeatherPrediction extends Model
         'description',
         'weather_main',
         'wind_speed',
+
+        // New Weather Monitoring Fields
+        'pressure',
+        'rainfall',
+        'clouds',
+        'weather_icon',
+        'alert_level',
+
+        // Existing Fields
         'rain_alert',
         'storm_alert',
         'advisory',
@@ -27,8 +36,14 @@ class WeatherPrediction extends Model
         return [
             'temperature' => 'decimal:2',
             'wind_speed' => 'decimal:2',
+            'pressure' => 'decimal:2',
+            'rainfall' => 'decimal:2',
+
+            'clouds' => 'integer',
+
             'rain_alert' => 'boolean',
             'storm_alert' => 'boolean',
+
             'fetched_at' => 'datetime',
         ];
     }

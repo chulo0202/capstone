@@ -29,7 +29,7 @@ Route::get('/', function () {
             : redirect()->route('farmer.dashboard');
     }
 
-    return redirect()->route('login');
+    return view('home');
 });
 
 Route::middleware(['auth'])->group(function () {
@@ -93,6 +93,16 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::get('/announcements', [FarmerAnnouncementController::class, 'index'])->name('announcements');
     });
+    });
+
+Route::get('/weather-test', function () {
+    return response()->json([
+        'api_key' => config('services.openweather.api_key'),
+        'base_url' => config('services.openweather.base_url'),
+        'location' => config('services.openweather.location'),
+        'units' => config('services.openweather.units'),
+        'language' => config('services.openweather.language'),
+    ]);
 });
 
 require __DIR__.'/auth.php';

@@ -10,48 +10,80 @@ class WeatherService
 {
     public function fetchAndStore(): ?WeatherPrediction
     {
-        $apiKey = config('openweather.api_key');
-        $location = config('openweather.location');
+        $apiKey = config('services.openweather.api_key');
+        $location = config('services.openweather.location');
 
         if (! $apiKey) {
             return $this->createDemoPrediction($location);
         }
 
         try {
-            $response = Http::get('https://api.openweathermap.org/data/2.5/weather', [
+            $response = Http::get(config('services.openweather.base_url') . '/weather', [
                 'q' => $location,
                 'appid' => $apiKey,
-                'units' => config('openweather.units', 'metric'),
+                'units' => config('services.openweather.units', 'metric'),
+                'lang' => config('services.openweather.language', 'en'),
             ]);
 
             if (! $response->successful()) {
-                Log::warning('OpenWeather API failed', ['body' => $response->body()]);
+                Log::warning('OpenWeather API failed', [
+                    'body' => $response->body()
+                ]);
 
                 return $this->createDemoPrediction($location);
             }
 
             $data = $response->json();
-            $weatherMain = strtolower($data['weather'][0]['main'] ?? '');
-            $description = $data['weather'][0]['description'] ?? '';
-            $windSpeed = $data['wind']['speed'] ?? 0;
 
-            $rainAlert = in_array($weatherMain, ['rain', 'drizzle', 'thunderstorm'], true);
-            $stormAlert = $weatherMain === 'thunderstorm' || $windSpeed > 10;
+            $temperature = $data['main']['temp'] ?? null;
+            $humidity = $data['main']['humidity'] ?? null;
+            $pressure = $data['main']['pressure'] ?? null;
+            $windSpeed = $data['wind']['speed'] ?? 0;
+            $clouds = $data['clouds']['all'] ?? 0;
+            $rainfall = $data['rain']['1h'] ?? 0;
+
+            $weatherMain = $data['weather'][0]['main'] ?? '';
+            $description = $data['weather'][0]['description'] ?? '';
+            $icon = $data['weather'][0]['icon'] ?? '';
+
+            $alertLevel = $this->determineAlertLevel(
+                $temperature,
+                $windSpeed,
+                $rainfall,
+                $weatherMain
+            );
 
             return WeatherPrediction::create([
                 'location' => $data['name'] ?? $location,
-                'temperature' => $data['main']['temp'] ?? null,
-                'humidity' => $data['main']['humidity'] ?? null,
+
+                'temperature' => $temperature,
+                'humidity' => $humidity,
+                'pressure' => $pressure,
+                'rainfall' => $rainfall,
+                'clouds' => $clouds,
+
                 'description' => $description,
-                'weather_main' => $data['weather'][0]['main'] ?? null,
+                'weather_main' => $weatherMain,
+                'weather_icon' => $icon,
+
                 'wind_speed' => $windSpeed,
-                'rain_alert' => $rainAlert,
-                'storm_alert' => $stormAlert,
-                'advisory' => $this->generateAdvisory($rainAlert, $stormAlert, $description),
+
+                'rain_alert' => in_array(strtolower($weatherMain), [
+                    'rain',
+                    'drizzle',
+                    'thunderstorm'
+                ]),
+
+                'storm_alert' => strtolower($weatherMain) === 'thunderstorm',
+
+                'alert_level' => $alertLevel,
+
+                'advisory' => $this->generateAdvisory($alertLevel),
+
                 'fetched_at' => now(),
             ]);
         } catch (\Exception $e) {
-            Log::error('Weather fetch failed: '.$e->getMessage());
+            Log::error($e->getMessage());
 
             return $this->createDemoPrediction($location);
         }
@@ -62,31 +94,80 @@ class WeatherService
         return WeatherPrediction::latest('fetched_at')->first();
     }
 
-    protected function generateAdvisory(bool $rainAlert, bool $stormAlert, string $description): string
+    protected function determineAlertLevel(
+        $temperature,
+        $wind,
+        $rainfall,
+        $weatherMain
+    ): string {
+
+        $weatherMain = strtolower($weatherMain);
+
+        if ($weatherMain === 'thunderstorm') {
+            return 'Storm Warning';
+        }
+
+        if ($temperature >= 35) {
+            return 'Extreme Heat';
+        }
+
+        if ($wind >= 10) {
+            return 'Strong Wind';
+        }
+
+        if ($rainfall >= 5 || $weatherMain === 'rain') {
+            return 'Rain Alert';
+        }
+
+        return 'Normal';
+    }
+
+    protected function generateAdvisory(string $alertLevel): string
     {
-        if ($stormAlert) {
-            return 'Storm alert: Secure crops, livestock, and farm equipment. Avoid field work until conditions improve.';
-        }
+        return match ($alertLevel) {
 
-        if ($rainAlert) {
-            return 'Rain expected: Delay fertilizer application. Ensure proper drainage in rice paddies and vegetable plots.';
-        }
+            'Storm Warning' =>
+                'Secure crops and farm equipment. Avoid field work until the storm passes.',
 
-        return 'Favorable conditions: Good time for land preparation, planting, and scheduled farm activities.';
+            'Rain Alert' =>
+                'Delay fertilizer application and ensure proper drainage.',
+
+            'Extreme Heat' =>
+                'Increase irrigation and avoid planting during peak heat.',
+
+            'Strong Wind' =>
+                'Avoid spraying pesticides and secure lightweight structures.',
+
+            default =>
+                'Weather conditions are favorable for normal farming activities.',
+        };
     }
 
     protected function createDemoPrediction(string $location): WeatherPrediction
     {
         return WeatherPrediction::create([
+
             'location' => $location,
-            'temperature' => 28.5,
-            'humidity' => 75,
-            'description' => 'partly cloudy (demo data - configure OPENWEATHER_API_KEY)',
+
+            'temperature' => 29,
+            'humidity' => 78,
+            'pressure' => 1012,
+            'rainfall' => 0,
+            'clouds' => 40,
+
+            'description' => 'Partly cloudy (Demo)',
             'weather_main' => 'Clouds',
-            'wind_speed' => 3.5,
+            'weather_icon' => '02d',
+
+            'wind_speed' => 3,
+
             'rain_alert' => false,
             'storm_alert' => false,
-            'advisory' => 'Configure OPENWEATHER_API_KEY in .env for live weather data.',
+
+            'alert_level' => 'Normal',
+
+            'advisory' => 'Configure OPENWEATHER_API_KEY to receive live weather updates.',
+
             'fetched_at' => now(),
         ]);
     }
