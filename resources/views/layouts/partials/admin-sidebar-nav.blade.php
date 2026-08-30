@@ -10,6 +10,9 @@
 <a class="fams-nav-link {{ request()->routeIs('admin.farmers.*') ? 'active' : '' }}" href="{{ route('admin.farmers.index') }}">
     <i class="bi bi-people-fill"></i> Farmers
 </a>
+<a class="fams-nav-link {{ request()->routeIs('admin.applications.*') ? 'active' : '' }}" href="{{ route('admin.applications.index') }}">
+    <i class="bi bi-file-earmark-text-fill"></i> Applications
+</a>
 <a class="fams-nav-link {{ request()->routeIs('admin.programs.*') ? 'active' : '' }}" href="{{ route('admin.programs.index') }}">
     <i class="bi bi-journal-bookmark-fill"></i> Programs
 </a>

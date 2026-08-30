@@ -38,12 +38,27 @@
             </div>
 
             <div class="fams-user-chip d-none d-sm-flex">
-                <div class="fams-user-avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</div>
-                <div>
-                    <div class="fams-user-name">{{ auth()->user()->name }}</div>
-                    <div class="fams-user-role">{{ auth()->user()->role }}</div>
-                </div>
-            </div>
+    @php
+        $farmer = auth()->user()->farmer;
+    @endphp
+
+    <div class="fams-user-avatar">
+        @if($farmer?->farmer_photo_path)
+            <img
+                src="{{ asset('storage/' . $farmer->farmer_photo_path) }}"
+                alt="Profile Photo"
+                style="width:100%; height:100%; object-fit:cover; border-radius:50%;"
+            >
+        @else
+            {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+        @endif
+    </div>
+
+    <div>
+        <div class="fams-user-name">{{ auth()->user()->name }}</div>
+        <div class="fams-user-role">{{ auth()->user()->role }}</div>
+    </div>
+</div>
 
             <form method="POST" action="{{ route('logout') }}">
                 @csrf

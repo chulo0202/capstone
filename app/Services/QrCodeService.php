@@ -12,7 +12,9 @@ class QrCodeService
     public function generateForFarmer(Farmer $farmer): void
     {
         $token = $farmer->qr_code_token ?? Str::uuid()->toString();
-        $path = "qr-codes/farmer-{$farmer->id}.png";
+
+        // SVG instead of PNG para hindi kailangan ng Imagick
+        $path = "qr-codes/farmer-{$farmer->id}.svg";
 
         $qrContent = json_encode([
             'farmer_id' => $farmer->id,
@@ -20,12 +22,12 @@ class QrCodeService
             'name' => $farmer->full_name,
         ]);
 
-        $png = QrCode::format('png')
+        $svg = QrCode::format('svg')
             ->size(300)
             ->margin(2)
             ->generate($qrContent);
 
-        Storage::disk('public')->put($path, $png);
+        Storage::disk('public')->put($path, $svg);
 
         $farmer->update([
             'qr_code_token' => $token,

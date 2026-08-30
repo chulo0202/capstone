@@ -21,17 +21,37 @@ class EligibilityService
             ];
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Crop Type
+        |--------------------------------------------------------------------------
+        */
         if ($rule->crop_types) {
             $total++;
-            if (in_array($farmer->crop_type, $rule->crop_types, true)) {
+
+            $farmerCrop = strtolower(trim($farmer->crop_type ?? ''));
+
+            $allowedCrops = collect($rule->crop_types)
+                ->map(fn ($crop) => strtolower(trim($crop)))
+                ->filter()
+                ->values()
+                ->toArray();
+
+            if (in_array($farmerCrop, $allowedCrops, true)) {
                 $met++;
             } else {
-                $missing[] = 'Crop type must be: '.implode(', ', $rule->crop_types);
+                $missing[] = 'Crop type must be: ' . implode(', ', $rule->crop_types);
             }
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Minimum Land Size
+        |--------------------------------------------------------------------------
+        */
         if ($rule->min_land_size !== null) {
             $total++;
+
             if ($farmer->land_size >= $rule->min_land_size) {
                 $met++;
             } else {
@@ -39,8 +59,14 @@ class EligibilityService
             }
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Maximum Land Size
+        |--------------------------------------------------------------------------
+        */
         if ($rule->max_land_size !== null) {
             $total++;
+
             if ($farmer->land_size <= $rule->max_land_size) {
                 $met++;
             } else {
@@ -48,8 +74,14 @@ class EligibilityService
             }
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | RSBSA
+        |--------------------------------------------------------------------------
+        */
         if ($rule->requires_rsbsa) {
             $total++;
+
             if ($farmer->rsbsa_status) {
                 $met++;
             } else {
@@ -57,8 +89,14 @@ class EligibilityService
             }
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Farmers Association
+        |--------------------------------------------------------------------------
+        */
         if ($rule->requires_association) {
             $total++;
+
             if ($farmer->association_membership) {
                 $met++;
             } else {
@@ -66,6 +104,26 @@ class EligibilityService
             }
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | 4Ps
+        |--------------------------------------------------------------------------
+        */
+        if ($rule->requires_4ps) {
+            $total++;
+
+            if ($farmer->four_ps_membership) {
+                $met++;
+            } else {
+                $missing[] = '4Ps beneficiary status required';
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Determine Eligibility Status
+        |--------------------------------------------------------------------------
+        */
         if ($total === 0) {
             $status = 'eligible';
         } elseif ($met === $total) {

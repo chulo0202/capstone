@@ -19,17 +19,52 @@ use App\Http\Controllers\Farmer\EligibilityController;
 use App\Http\Controllers\Farmer\NotificationController;
 use App\Http\Controllers\Farmer\ProfileController as FarmerProfileController;
 use App\Http\Controllers\Farmer\RecommendationController;
+use App\Models\Farmer;
+use App\Models\Program;
+use App\Models\Distribution;
+use App\Models\WeatherPrediction;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
+
     if (Auth::check()) {
         return Auth::user()->isAdmin()
             ? redirect()->route('admin.dashboard')
             : redirect()->route('farmer.dashboard');
     }
 
-    return view('home');
+    $stats = [
+        [
+            'icon' => 'bi-people-fill',
+            'value' => Farmer::count(),
+            'suffix' => '+',
+            'label' => 'Registered Farmers',
+        ],
+
+        [
+            'icon' => 'bi-clipboard2-check',
+            'value' => Program::where('is_active', 1)->count(),
+            'suffix' => '',
+            'label' => 'Active Programs',
+        ],
+
+        [
+            'icon' => 'bi-exclamation-triangle',
+            'value' => WeatherPrediction::where('alert_level', '!=', 'Normal')->count(),
+            'suffix' => '',
+            'label' => 'Weather Alerts Issued',
+        ],
+
+        [
+            'icon' => 'bi-box-seam',
+            'value' => Distribution::whereNotNull('distributed_at')->count(),
+            'suffix' => '+',
+            'label' => 'Completed Distributions',
+        ],
+    ];
+
+    return view('home', compact('stats'));
 });
 
 Route::middleware(['auth'])->group(function () {
@@ -41,6 +76,14 @@ Route::middleware(['auth'])->group(function () {
 
     Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/applications', [\App\Http\Controllers\Admin\ApplicationController::class, 'index'])
+    ->name('applications.index');
+
+Route::patch('/applications/{application}/approve', [\App\Http\Controllers\Admin\ApplicationController::class, 'approve'])
+    ->name('applications.approve');
+
+Route::patch('/applications/{application}/reject', [\App\Http\Controllers\Admin\ApplicationController::class, 'reject'])
+    ->name('applications.reject');
         Route::get('/farmers', [AdminFarmerController::class, 'index'])->name('farmers.index');
         Route::get('/farmers/create', [AdminFarmerController::class, 'create'])->name('farmers.create');
         Route::post('/farmers', [AdminFarmerController::class, 'store'])->name('farmers.store');

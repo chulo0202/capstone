@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Farmer;
 
 use App\Http\Controllers\Controller;
+use App\Models\Application;
+use App\Models\Distribution;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -16,6 +18,23 @@ class RecommendationController extends Controller
             ? $farmer->recommendations()->with('program')->latest()->get()
             : collect();
 
-        return view('farmer.recommendations', compact('recommendations', 'farmer'));
+        $applications = $farmer
+            ? Application::where('farmer_id', $farmer->id)
+                ->get()
+                ->keyBy('program_id')
+            : collect();
+
+        $distributions = $farmer
+            ? Distribution::where('farmer_id', $farmer->id)
+                ->get()
+                ->keyBy('program_id')
+            : collect();
+
+        return view('farmer.recommendations', compact(
+            'recommendations',
+            'farmer',
+            'applications',
+            'distributions'
+        ));
     }
 }

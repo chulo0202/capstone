@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Application;
 use App\Models\Distribution;
 use App\Models\Farmer;
 use App\Models\Program;
@@ -19,7 +20,10 @@ class DistributionController extends Controller
             'distributions' => Distribution::with(['farmer', 'program', 'releasedBy'])
                 ->latest('distributed_at')
                 ->paginate(10),
-            'programs' => Program::where('is_active', true)->orderBy('name')->get(),
+
+            'programs' => Program::where('is_active', true)
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
@@ -28,8 +32,11 @@ class DistributionController extends Controller
         return view('admin.distributions-scan');
     }
 
-    public function verify(Request $request, EligibilityService $eligibilityService): View|RedirectResponse
-    {
+    public function verify(
+        Request $request,
+        EligibilityService $eligibilityService
+    ): View|RedirectResponse {
+
         $request->validate([
             'qr_data' => 'required|string',
         ]);
@@ -43,51 +50,143 @@ class DistributionController extends Controller
         $farmer = Farmer::with('user')->find($data['farmer_id']);
 
         if (! $farmer || $farmer->qr_code_token !== $data['token']) {
-            return back()->with('error', 'Farmer verification failed. QR code is invalid or expired.');
+            return back()->with(
+                'error',
+                'Farmer verification failed. QR code is invalid or expired.'
+            );
         }
 
-        $programs = Program::where('is_active', true)->get()->map(function ($program) use ($farmer, $eligibilityService) {
-            $evaluation = $eligibilityService->evaluate($farmer, $program);
-            $alreadyReleased = Distribution::where('farmer_id', $farmer->id)
-                ->where('program_id', $program->id)
-                ->exists();
+        $programs = Program::where('is_active', true)
+            ->get()
+            ->map(function ($program) use ($farmer, $eligibilityService) {
 
-            return [
-                'program' => $program,
-                'status' => $evaluation['status'],
-                'missing' => $evaluation['missing_requirements'],
-                'already_released' => $alreadyReleased,
-            ];
-        });
+                /*
+                 * 1. Check eligibility
+                 */
+                $evaluation = $eligibilityService->evaluate(
+                    $farmer,
+                    $program
+                );
 
-        return view('admin.distributions-verify', compact('farmer', 'programs'));
+                /*
+                 * 2. Check farmer application
+                 */
+                $application = Application::where('farmer_id', $farmer->id)
+                    ->where('program_id', $program->id)
+                    ->latest('applied_at')
+                    ->first();
+
+                /*
+                 * 3. Check if benefit was already released
+                 */
+                $alreadyReleased = Distribution::where('farmer_id', $farmer->id)
+                    ->where('program_id', $program->id)
+                    ->exists();
+
+                return [
+                    'program' => $program,
+
+                    'status' => $evaluation['status'],
+
+                    'missing' => $evaluation['missing_requirements'],
+
+                    'application' => $application,
+
+                    'application_status' => $application?->status,
+
+                    'already_released' => $alreadyReleased,
+                ];
+            });
+
+        return view(
+            'admin.distributions-verify',
+            compact('farmer', 'programs')
+        );
     }
 
-    public function release(Request $request): RedirectResponse
-    {
+    public function release(
+        Request $request,
+        EligibilityService $eligibilityService
+    ): RedirectResponse {
+
         $validated = $request->validate([
             'farmer_id' => 'required|exists:farmers,id',
             'program_id' => 'required|exists:programs,id',
             'notes' => 'nullable|string|max:500',
         ]);
 
-        $exists = Distribution::where('farmer_id', $validated['farmer_id'])
-            ->where('program_id', $validated['program_id'])
+        /*
+         * Find farmer
+         */
+        $farmer = Farmer::findOrFail($validated['farmer_id']);
+
+        /*
+         * Find program
+         */
+        $program = Program::findOrFail($validated['program_id']);
+
+        /*
+         * Check eligibility again before releasing.
+         * This prevents bypassing the UI.
+         */
+        $evaluation = $eligibilityService->evaluate(
+            $farmer,
+            $program
+        );
+
+        if ($evaluation['status'] !== 'eligible') {
+            return back()->with(
+                'error',
+                'Benefit cannot be released because the farmer is not eligible.'
+            );
+        }
+
+        /*
+         * Check approved application
+         */
+        $application = Application::where('farmer_id', $farmer->id)
+            ->where('program_id', $program->id)
+            ->where('status', 'approved')
+            ->latest('applied_at')
+            ->first();
+
+        if (! $application) {
+            return back()->with(
+                'error',
+                'Benefit cannot be released because the farmer does not have an approved application.'
+            );
+        }
+
+        /*
+         * Prevent duplicate distribution
+         */
+        $exists = Distribution::where('farmer_id', $farmer->id)
+            ->where('program_id', $program->id)
             ->exists();
 
         if ($exists) {
-            return back()->with('error', 'Benefit already released for this farmer and program.');
+            return back()->with(
+                'error',
+                'Benefit already released for this farmer and program.'
+            );
         }
 
+        /*
+         * Create distribution record
+         */
         Distribution::create([
-            'farmer_id' => $validated['farmer_id'],
-            'program_id' => $validated['program_id'],
+            'farmer_id' => $farmer->id,
+            'program_id' => $program->id,
             'released_by' => $request->user()->id,
             'distributed_at' => now(),
             'notes' => $validated['notes'] ?? null,
         ]);
 
-        return redirect()->route('admin.distributions.index')
-            ->with('success', 'Benefit released successfully.');
+        return redirect()
+            ->route('admin.distributions.index')
+            ->with(
+                'success',
+                'Benefit released successfully.'
+            );
     }
 }
