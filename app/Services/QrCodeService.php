@@ -16,10 +16,19 @@ class QrCodeService
         // SVG instead of PNG para hindi kailangan ng Imagick
         $path = "qr-codes/farmer-{$farmer->id}.svg";
 
+        /*
+        |--------------------------------------------------------------------------
+        | Secure QR Payload
+        |--------------------------------------------------------------------------
+        |
+        | Token lang ang nasa QR code.
+        | Walang farmer_id at walang full name para hindi ma-expose
+        | ang personal information ng farmer.
+        |
+        */
+
         $qrContent = json_encode([
-            'farmer_id' => $farmer->id,
             'token' => $token,
-            'name' => $farmer->full_name,
         ]);
 
         $svg = QrCode::format('svg')

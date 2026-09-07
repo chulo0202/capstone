@@ -19,6 +19,15 @@
           <dt class="col-sm-4">RSBSA</dt><dd class="col-sm-8">{{ $farmer->rsbsa_status ? 'Yes ('.$farmer->rsbsa_number.')' : 'No' }}</dd>
           <dt class="col-sm-4">Association</dt><dd class="col-sm-8">{{ $farmer->association_membership ? 'Member' : 'Non-member' }}</dd>
         </dl>
+        @if($farmer->valid_id_path)
+<div class="mt-3">
+    <a href="{{ route('admin.farmers.valid-id', $farmer) }}"
+       target="_blank"
+       class="btn btn-sm btn-primary">
+        <i class="bi bi-eye"></i> View Valid ID
+    </a>
+</div>
+@endif
         @if($farmer->qr_code_path)
         <img src="{{ asset('storage/'.$farmer->qr_code_path) }}" alt="QR Code" class="mt-3" style="max-width:150px;">
         @endif

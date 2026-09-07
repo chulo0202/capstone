@@ -82,7 +82,7 @@ class FarmerController extends Controller
 
     if ($request->hasFile('valid_id')) {
         $validIdPath = $request->file('valid_id')
-            ->store('farmer-valid-ids', 'public');
+            ->store('farmer-valid-ids', 'private');
     }
 
     // Upload Farmer Photo
@@ -217,4 +217,18 @@ class FarmerController extends Controller
         return redirect()->route('admin.farmers.index')
             ->with('success', 'Farmer record deleted successfully.');
     }
+    public function viewValidId(Farmer $farmer)
+{
+    if (! $farmer->valid_id_path) {
+        abort(404, 'Valid ID not found.');
+    }
+
+    if (! Storage::disk('private')->exists($farmer->valid_id_path)) {
+        abort(404, 'Valid ID file not found.');
+    }
+
+    return Storage::disk('private')->response(
+        $farmer->valid_id_path
+    );
+}
 }

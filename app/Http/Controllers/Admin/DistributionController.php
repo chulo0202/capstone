@@ -33,76 +33,83 @@ class DistributionController extends Controller
     }
 
     public function verify(
-        Request $request,
-        EligibilityService $eligibilityService
-    ): View|RedirectResponse {
+    Request $request,
+    EligibilityService $eligibilityService
+): View|RedirectResponse {
 
-        $request->validate([
-            'qr_data' => 'required|string',
-        ]);
+    $request->validate([
+        'qr_data' => 'required|string',
+    ]);
 
-        $data = json_decode($request->qr_data, true);
+    $data = json_decode($request->qr_data, true);
 
-        if (! $data || ! isset($data['farmer_id'], $data['token'])) {
-            return back()->with('error', 'Invalid QR code data.');
-        }
+    /*
+     * Validate QR payload.
+     * The QR code now contains only the secure token.
+     */
+    if (! $data || ! isset($data['token'])) {
+        return back()->with('error', 'Invalid QR code data.');
+    }
 
-        $farmer = Farmer::with('user')->find($data['farmer_id']);
+    /*
+     * Find the farmer using the QR token.
+     */
+    $farmer = Farmer::with('user')
+        ->where('qr_code_token', $data['token'])
+        ->first();
 
-        if (! $farmer || $farmer->qr_code_token !== $data['token']) {
-            return back()->with(
-                'error',
-                'Farmer verification failed. QR code is invalid or expired.'
-            );
-        }
-
-        $programs = Program::where('is_active', true)
-            ->get()
-            ->map(function ($program) use ($farmer, $eligibilityService) {
-
-                /*
-                 * 1. Check eligibility
-                 */
-                $evaluation = $eligibilityService->evaluate(
-                    $farmer,
-                    $program
-                );
-
-                /*
-                 * 2. Check farmer application
-                 */
-                $application = Application::where('farmer_id', $farmer->id)
-                    ->where('program_id', $program->id)
-                    ->latest('applied_at')
-                    ->first();
-
-                /*
-                 * 3. Check if benefit was already released
-                 */
-                $alreadyReleased = Distribution::where('farmer_id', $farmer->id)
-                    ->where('program_id', $program->id)
-                    ->exists();
-
-                return [
-                    'program' => $program,
-
-                    'status' => $evaluation['status'],
-
-                    'missing' => $evaluation['missing_requirements'],
-
-                    'application' => $application,
-
-                    'application_status' => $application?->status,
-
-                    'already_released' => $alreadyReleased,
-                ];
-            });
-
-        return view(
-            'admin.distributions-verify',
-            compact('farmer', 'programs')
+    /*
+     * Verify farmer.
+     */
+    if (! $farmer) {
+        return back()->with(
+            'error',
+            'Farmer verification failed. QR code is invalid.'
         );
     }
+
+    $programs = Program::where('is_active', true)
+        ->get()
+        ->map(function ($program) use ($farmer, $eligibilityService) {
+
+            /*
+             * 1. Check eligibility
+             */
+            $evaluation = $eligibilityService->evaluate(
+                $farmer,
+                $program
+            );
+
+            /*
+             * 2. Check farmer application
+             */
+            $application = Application::where('farmer_id', $farmer->id)
+                ->where('program_id', $program->id)
+                ->latest('applied_at')
+                ->first();
+
+            /*
+             * 3. Check if benefit was already released
+             */
+            $alreadyReleased = Distribution::where('farmer_id', $farmer->id)
+                ->where('program_id', $program->id)
+                ->exists();
+
+            return [
+                'program' => $program,
+                'status' => $evaluation['status'],
+                'missing' => $evaluation['missing_requirements'],
+                'application' => $application,
+                'application_status' => $application?->status,
+                'already_released' => $alreadyReleased,
+            ];
+        });
+
+    return view(
+        'admin.distributions-verify',
+        compact('farmer', 'programs')
+    );
+}
 
     public function release(
         Request $request,

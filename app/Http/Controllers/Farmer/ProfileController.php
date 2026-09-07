@@ -49,9 +49,9 @@ class ProfileController extends Controller
         $validated['4ps_membership'] = $request->boolean('4ps_membership');
 
         if ($request->hasFile('valid_id')) {
-            $path = $request->file('valid_id')->store('valid-ids', 'public');
-            $validated['valid_id_path'] = $path;
-        }
+    $path = $request->file('valid_id')->store('valid-ids', 'private');
+    $validated['valid_id_path'] = $path;
+}
 
         if ($request->hasFile('farmer_photo')) {
             $path = $request->file('farmer_photo')->store('farmer-photos', 'public');
@@ -73,13 +73,11 @@ class ProfileController extends Controller
             array_merge($validated, ['profile_completed' => true])
         );
 
-        if (! $farmer->qr_code_path) {
-            try {
-                $qrCodeService->generateForFarmer($farmer);
-            } catch (\Exception $e) {
-                // QR generation requires GD extension
-            }
-        }
+        try {
+    $qrCodeService->generateForFarmer($farmer);
+} catch (\Exception $e) {
+    // QR generation failed
+}
 
         $recommendationService->generateForFarmer($farmer->fresh());
 

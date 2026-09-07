@@ -5,6 +5,17 @@
 
 @section('main')
 
+@if ($errors->any())
+    <div class="alert alert-danger">
+        <strong>Please fix the following errors:</strong>
+        <ul class="mb-0 mt-2">
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
 @php
 // ---- Derived display values (view-only logic, no schema/route changes) ----
 $farmerName   = $farmer?->full_name ?? auth()->user()->name;

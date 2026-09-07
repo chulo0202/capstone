@@ -54,7 +54,7 @@ Visit: http://localhost:8000
 
 | Role   | Email              | Password  |
 |--------|--------------------|-----------|
-| Admin  | admin@fams.local   | password  |
+| Admin  | admin@fams.local   | admin@fams.local  |
 | Farmer | farmer1@fams.local | password  |
 
 ## API Configuration

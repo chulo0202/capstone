@@ -90,6 +90,8 @@ Route::patch('/applications/{application}/reject', [\App\Http\Controllers\Admin\
         Route::get('/farmers/{farmer}/edit', [AdminFarmerController::class, 'edit'])->name('farmers.edit');
         Route::put('/farmers/{farmer}', [AdminFarmerController::class, 'update'])->name('farmers.update');
         Route::patch('/farmers/{farmer}/verify', [AdminFarmerController::class, 'verify'])->name('farmers.verify');
+        Route::get('/farmers/{farmer}/valid-id', [AdminFarmerController::class, 'viewValidId'])
+    ->name('farmers.valid-id');
         Route::get('/farmers/{farmer}', [AdminFarmerController::class, 'show'])->name('farmers.show');
         Route::delete('/farmers/{farmer}', [AdminFarmerController::class, 'destroy'])->name('farmers.destroy');
         Route::get('/programs', [ProgramController::class, 'index'])->name('programs.index');
@@ -123,7 +125,7 @@ Route::patch('/applications/{application}/reject', [\App\Http\Controllers\Admin\
         Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
     });
 
-    Route::prefix('farmer')->name('farmer.')->middleware('farmer')->group(function () {
+    Route::prefix('farmer')->name('farmer.')->middleware(['farmer', 'verified'])->group(function () {
         Route::get('/dashboard', [FarmerDashboardController::class, 'index'])->name('dashboard');
         Route::get('/profile', [FarmerProfileController::class, 'show'])->name('profile');
         Route::put('/profile', [FarmerProfileController::class, 'update'])->name('profile.update');
@@ -137,15 +139,5 @@ Route::patch('/applications/{application}/reject', [\App\Http\Controllers\Admin\
         Route::get('/announcements', [FarmerAnnouncementController::class, 'index'])->name('announcements');
     });
     });
-
-Route::get('/weather-test', function () {
-    return response()->json([
-        'api_key' => config('services.openweather.api_key'),
-        'base_url' => config('services.openweather.base_url'),
-        'location' => config('services.openweather.location'),
-        'units' => config('services.openweather.units'),
-        'language' => config('services.openweather.language'),
-    ]);
-});
 
 require __DIR__.'/auth.php';
