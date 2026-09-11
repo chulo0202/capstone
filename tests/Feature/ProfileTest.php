@@ -34,11 +34,12 @@ class ProfileTest extends TestCase
             ->put('/farmer/profile', [
                 'full_name' => 'Test Farmer',
                 'address' => 'Bulan, Sorsogon',
-                'barangay' => 'Zone 1',
+                'barangay' => 'Zone I Pob.',
                 'contact_number' => '09123456789',
                 'birthdate' => '2000-01-01',
                 'crop_type' => 'Rice',
                 'land_size' => 1.5,
+                'rsbsa_status' => true,
             ]);
 
         $response

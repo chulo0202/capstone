@@ -4,62 +4,116 @@
 
 @section('main')
 
-<div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white">
-        <h6 class="mb-0">Farmer Verified</h6>
+{{-- BACK TO SCANNER --}}
+<div class="mb-3">
+    <a href="{{ route('admin.distributions.scan') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>
+        Back to Scanner
+    </a>
+</div>
+
+
+{{-- FARMER VERIFIED --}}
+<div class="fams-card mb-4">
+    <div class="fams-card-header">
+        <h6>
+            <i class="bi bi-person-check me-2 text-fams"></i>
+            Farmer Verified
+        </h6>
     </div>
 
-    <div class="card-body">
-        <dl class="row mb-0">
+    <div class="fams-card-body">
+        <div class="row g-4">
 
-            <dt class="col-sm-3">Name</dt>
-            <dd class="col-sm-9">
-                {{ $farmer->full_name }}
-            </dd>
+            <div class="col-md-6">
+                <div class="verify-info">
+                    <div class="verify-info-label">
+                        <i class="bi bi-person me-1"></i>
+                        Name
+                    </div>
 
-            <dt class="col-sm-3">Barangay</dt>
-            <dd class="col-sm-9">
-                {{ $farmer->barangay }}
-            </dd>
+                    <div class="verify-info-value">
+                        {{ $farmer->full_name }}
+                    </div>
+                </div>
+            </div>
 
-            <dt class="col-sm-3">Crop</dt>
-            <dd class="col-sm-9">
-                {{ $farmer->crop_type }}
-            </dd>
+            <div class="col-md-6">
+                <div class="verify-info">
+                    <div class="verify-info-label">
+                        <i class="bi bi-geo-alt me-1"></i>
+                        Barangay
+                    </div>
 
-            <dt class="col-sm-3">Contact</dt>
-            <dd class="col-sm-9">
-                {{ $farmer->contact_number }}
-            </dd>
+                    <div class="verify-info-value">
+                        {{ $farmer->barangay }}
+                    </div>
+                </div>
+            </div>
 
-        </dl>
+            <div class="col-md-6">
+                <div class="verify-info">
+                    <div class="verify-info-label">
+                        <i class="bi bi-flower1 me-1"></i>
+                        Crop
+                    </div>
+
+                    <div class="verify-info-value">
+                        {{ $farmer->crop_type }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="verify-info">
+                    <div class="verify-info-label">
+                        <i class="bi bi-telephone me-1"></i>
+                        Contact
+                    </div>
+
+                    <div class="verify-info-value">
+                        {{ $farmer->contact_number }}
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
 </div>
 
 
-<div class="card border-0 shadow-sm">
+{{-- PROGRAM ELIGIBILITY & RELEASE --}}
+<div class="fams-card">
 
-    <div class="card-header bg-white">
-        <h6 class="mb-0">
+    <div class="fams-card-header verify-program-header">
+        <h6>
+            <i class="bi bi-box-seam me-2 text-fams"></i>
             Program Eligibility & Release
         </h6>
+
+        <span class="program-count">
+            <i class="bi bi-layers me-1"></i>
+            {{ $programs->count() }} Programs
+        </span>
     </div>
 
-    <div class="card-body p-0">
 
-        <div class="table-responsive">
+    <div class="fams-card-body p-0">
 
-            <table class="table table-hover mb-0">
+        <div class="table-responsive verify-table-wrapper">
 
-                <thead class="table-light">
+            <table class="table fams-table verify-program-table mb-0">
+
+                <thead>
                     <tr>
-                        <th>Program</th>
-                        <th>Eligibility</th>
-                        <th>Application</th>
-                        <th>Missing Requirements</th>
-                        <th>Action</th>
+                        <th class="program-column">Program</th>
+                        <th class="status-column">Eligibility</th>
+                        <th class="application-column">Application</th>
+                        <th class="requirements-column">Missing Requirements</th>
+                        <th class="action-column">Action</th>
                     </tr>
                 </thead>
+
 
                 <tbody>
 
@@ -68,31 +122,42 @@
                         <tr>
 
                             {{-- PROGRAM --}}
-                            <td>
-                                <strong>
+                            <td class="program-cell">
+
+                                <div class="program-name">
                                     {{ $item['program']->name }}
-                                </strong>
+                                </div>
+
+                                @if($item['program']->description)
+                                    <div class="program-description">
+                                        {{ $item['program']->description }}
+                                    </div>
+                                @endif
+
                             </td>
 
 
                             {{-- ELIGIBILITY --}}
-                            <td>
+                            <td class="status-cell">
 
                                 @if($item['status'] === 'eligible')
 
-                                    <span class="badge bg-success">
+                                    <span class="badge bg-success status-badge">
+                                        <i class="bi bi-check-circle me-1"></i>
                                         Eligible
                                     </span>
 
                                 @elseif($item['status'] === 'partially_eligible')
 
-                                    <span class="badge bg-warning text-dark">
+                                    <span class="badge bg-warning text-dark status-badge">
+                                        <i class="bi bi-exclamation-circle me-1"></i>
                                         Partially Eligible
                                     </span>
 
                                 @else
 
-                                    <span class="badge bg-danger">
+                                    <span class="badge bg-danger status-badge">
+                                        <i class="bi bi-x-circle me-1"></i>
                                         Not Eligible
                                     </span>
 
@@ -102,35 +167,40 @@
 
 
                             {{-- APPLICATION --}}
-                            <td>
+                            <td class="status-cell">
 
                                 @if(!$item['application'])
 
-                                    <span class="badge bg-secondary">
+                                    <span class="badge bg-secondary status-badge">
+                                        <i class="bi bi-dash-circle me-1"></i>
                                         Not Applied
                                     </span>
 
                                 @elseif($item['application_status'] === 'pending')
 
-                                    <span class="badge bg-warning text-dark">
+                                    <span class="badge bg-warning text-dark status-badge">
+                                        <i class="bi bi-clock me-1"></i>
                                         Pending
                                     </span>
 
                                 @elseif($item['application_status'] === 'approved')
 
-                                    <span class="badge bg-success">
+                                    <span class="badge bg-success status-badge">
+                                        <i class="bi bi-check-circle me-1"></i>
                                         Approved
                                     </span>
 
                                 @elseif($item['application_status'] === 'rejected')
 
-                                    <span class="badge bg-danger">
+                                    <span class="badge bg-danger status-badge">
+                                        <i class="bi bi-x-circle me-1"></i>
                                         Rejected
                                     </span>
 
                                 @else
 
-                                    <span class="badge bg-secondary">
+                                    <span class="badge bg-secondary status-badge">
+                                        <i class="bi bi-info-circle me-1"></i>
                                         {{ ucfirst($item['application_status']) }}
                                     </span>
 
@@ -140,19 +210,21 @@
 
 
                             {{-- MISSING REQUIREMENTS --}}
-                            <td>
+                            <td class="requirements-cell">
 
                                 @if($item['missing'])
 
-                                    <small>
+                                    <div class="requirement-missing">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>
                                         {{ implode('; ', $item['missing']) }}
-                                    </small>
+                                    </div>
 
                                 @else
 
-                                    <small class="text-success">
+                                    <div class="requirement-none">
+                                        <i class="bi bi-check2-circle me-1"></i>
                                         None
-                                    </small>
+                                    </div>
 
                                 @endif
 
@@ -160,87 +232,73 @@
 
 
                             {{-- ACTION --}}
-                            <td>
+                            <td class="action-cell">
 
-                                {{-- ALREADY RELEASED --}}
                                 @if($item['already_released'])
 
-                                    <span class="badge bg-secondary">
+                                    <span class="badge bg-secondary status-badge">
+                                        <i class="bi bi-check-circle me-1"></i>
                                         Released
                                     </span>
 
 
-                                {{-- ELIGIBLE + APPROVED --}}
-                                @elseif(
-                                    $item['status'] === 'eligible'
-                                    && $item['application_status'] === 'approved'
-                                )
+                                @elseif($item['status'] === 'eligible' && $item['application_status'] === 'approved')
 
-                                    <form
-                                        method="POST"
-                                        action="{{ route('admin.distributions.release') }}"
-                                        class="d-inline"
-                                    >
+                                    <form method="POST"
+                                          action="{{ route('admin.distributions.release') }}"
+                                          class="d-inline">
 
                                         @csrf
 
-                                        <input
-                                            type="hidden"
-                                            name="farmer_id"
-                                            value="{{ $farmer->id }}"
-                                        >
+                                        <input type="hidden"
+                                               name="farmer_id"
+                                               value="{{ $farmer->id }}">
 
-                                        <input
-                                            type="hidden"
-                                            name="program_id"
-                                            value="{{ $item['program']->id }}"
-                                        >
+                                        <input type="hidden"
+                                               name="program_id"
+                                               value="{{ $item['program']->id }}">
 
-                                        <button
-                                            type="submit"
-                                            class="btn btn-sm btn-fams"
-                                            onclick="return confirm('Release this benefit to this farmer?')"
-                                        >
+                                        <button type="submit"
+                                                class="btn btn-sm btn-fams release-btn"
+                                                onclick="return confirm('Release this benefit to this farmer?')">
+
                                             <i class="bi bi-box-seam me-1"></i>
                                             Release Benefit
+
                                         </button>
 
                                     </form>
 
 
-                                {{-- ELIGIBLE BUT NOT APPROVED --}}
-                                @elseif($item['status'] === 'eligible'
-                                    && $item['application_status'] === 'pending'
-                                )
+                                @elseif($item['status'] === 'eligible' && $item['application_status'] === 'pending')
 
-                                    <span class="badge bg-warning text-dark">
+                                    <span class="badge bg-warning text-dark status-badge">
+                                        <i class="bi bi-clock me-1"></i>
                                         Waiting for Approval
                                     </span>
 
 
-                                {{-- ELIGIBLE BUT NOT APPLIED --}}
-                                @elseif($item['status'] === 'eligible'
-                                    && !$item['application']
-                                )
+                                @elseif($item['status'] === 'eligible' && !$item['application'])
 
-                                    <span class="text-muted small">
+                                    <span class="action-muted">
+                                        <i class="bi bi-info-circle me-1"></i>
                                         Not Applied
                                     </span>
 
 
-                                {{-- REJECTED APPLICATION --}}
                                 @elseif($item['application_status'] === 'rejected')
 
-                                    <span class="text-danger small">
+                                    <span class="action-danger">
+                                        <i class="bi bi-x-circle me-1"></i>
                                         Application Rejected
                                     </span>
 
 
-                                {{-- PARTIALLY / NOT ELIGIBLE --}}
                                 @else
 
-                                    <span class="text-muted small">
-                                        Not eligible
+                                    <span class="action-muted">
+                                        <i class="bi bi-slash-circle me-1"></i>
+                                        Not Eligible
                                     </span>
 
                                 @endif
@@ -249,11 +307,26 @@
 
                         </tr>
 
+
                     @empty
 
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">
-                                No active programs available.
+                            <td colspan="5" class="text-center py-5">
+
+                                <div class="empty-programs">
+
+                                    <i class="bi bi-box-seam"></i>
+
+                                    <div class="fw-semibold">
+                                        No Active Programs
+                                    </div>
+
+                                    <small>
+                                        No active programs are currently available.
+                                    </small>
+
+                                </div>
+
                             </td>
                         </tr>
 

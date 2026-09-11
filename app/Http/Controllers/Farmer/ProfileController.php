@@ -29,16 +29,28 @@ class ProfileController extends Controller
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
             'address' => 'required|string',
-            'barangay' => 'required|string|max:255',
-            'contact_number' => 'required|string|max:20',
+            'barangay' => [
+                  'required',
+                  'in:A. Bonifacio,Abad Santos,Aguinaldo,Antipolo,Beguin,Bical,Bonga,Butag,Cadandanan,Calomagon,Calpi,Cocok-Cabitan,Daganas,Danao,Dolos,E. Quirino,Fabrica,Gate,Benigno S. Aquino,Inararan,J. Gerona,J.P. Laurel,Jamorawon,Lajong,Libertad,Magsaysay,Managanaga,Marinab,Nasuje,Montecalvario,N. Roque,Namo,Obrero,Osmeña,Otavi,Padre Diaz,Palale,Quezon,R. Gerona,Recto,M. Roxas,Sagrada,San Francisco,San Isidro,San Juan Bag-o,San Juan Daan,San Rafael,San Ramon,San Vicente,Santa Remedios,Santa Teresita,Sigad,Somagongsong,G. Del Pilar,Taromata,Zone I Pob.,Zone II Pob.,Zone III Pob.,Zone IV Pob.,Zone V Pob.,Zone VI Pob.,Zone VII Pob.,Zone VIII Pob.',
+                 ],
+            'contact_number' => [
+                  'required',
+                  'regex:/^09\d{9}$/',
+                  ],
             'birthdate' => 'required|date|before:today',
-            'crop_type' => 'required|string|max:255',
-            'land_size' => 'required|numeric|min:0',
-            'rsbsa_status' => 'boolean',
+            'crop_type' => [
+                 'required',
+                 'in:Rice,Corn,Vegetables,Fruits,Coconut,Other',
+                  ],
+            'land_size' => 'required|numeric|min:0.01',
+
+            'rsbsa_status' => ['required', 'accepted'],
             'rsbsa_number' => 'nullable|string|max:50',
+
             'association_membership' => 'boolean',
-            '4ps_membership' => 'boolean',
+            'four_ps_membership' => 'boolean',
             'farmer_association' => 'nullable|string|max:255',
+
             'valid_id' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'farmer_photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             'password' => 'nullable|string|min:8|confirmed',
@@ -46,7 +58,7 @@ class ProfileController extends Controller
 
         $validated['rsbsa_status'] = $request->boolean('rsbsa_status');
         $validated['association_membership'] = $request->boolean('association_membership');
-        $validated['4ps_membership'] = $request->boolean('4ps_membership');
+        $validated['four_ps_membership'] = $request->boolean('four_ps_membership');
 
         if ($request->hasFile('valid_id')) {
     $path = $request->file('valid_id')->store('valid-ids', 'private');

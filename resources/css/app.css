@@ -1,3 +1,768 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+.weather-card {
+    border-radius: 14px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.weather-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1.2rem rgba(0, 0, 0, 0.08) !important;
+}
+
+.weather-icon-box {
+    width: 62px;
+    height: 62px;
+    border-radius: 14px;
+    background: #f3f8f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.weather-metric-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #edf7f1;
+    color: #176b48;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.section-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: #edf7f1;
+    color: #176b48;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.section-icon-danger {
+    background: #fff1f1;
+    color: #dc3545;
+}
+
+.advisory-box {
+    border-radius: 12px;
+    background: #f5faf7;
+    border: 1px solid #dcefe4;
+    padding: 18px 20px;
+    color: #234b39;
+    line-height: 1.6;
+}
+
+.weather-table thead th {
+    background: #f7f9fb;
+    color: #667085;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    padding-top: 14px;
+    padding-bottom: 14px;
+}
+
+.weather-table tbody td {
+    padding-top: 15px;
+    padding-bottom: 15px;
+    border-color: #edf0f2;
+}
+
+.weather-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.farmer-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #eaf5ef;
+    color: #176b48;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.empty-weather-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: #f1f4f6;
+    color: #8b98a7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    font-size: 32px;
+}
+
+/* =========================================================
+   WEATHER HISTORY
+========================================================= */
+
+.weather-history-card {
+    overflow: hidden;
+}
+
+.weather-history-count {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    background: var(--fams-accent-soft);
+    color: var(--fams-accent);
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+
+/* TABLE */
+
+.weather-history-table {
+    min-width: 950px;
+}
+
+.weather-history-table thead th {
+    padding: 0.85rem 1rem;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--fams-border);
+}
+
+.weather-history-table tbody td {
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--fams-border);
+}
+
+.weather-history-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.weather-history-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.weather-history-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+
+/* DATE */
+
+.history-date {
+    color: var(--fams-text);
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.history-time {
+    color: var(--fams-muted);
+    font-size: 0.76rem;
+    margin-top: 0.1rem;
+}
+
+
+/* LOCATION */
+
+.history-location {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: #64748b;
+    font-size: 0.86rem;
+}
+
+.history-location i {
+    color: var(--fams-accent);
+}
+
+
+/* VALUES */
+
+.history-temperature {
+    color: var(--fams-text);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.history-value {
+    color: var(--fams-text);
+    font-size: 0.86rem;
+}
+
+
+/* ALERT */
+
+.history-alert-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.38rem 0.65rem;
+    border-radius: 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+
+/* FOOTER */
+
+.weather-history-footer {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid var(--fams-border);
+    background: #fafbfc;
+    color: var(--fams-muted);
+    font-size: 0.78rem;
+}
+
+
+/* EMPTY */
+
+.weather-history-empty {
+    color: var(--fams-muted);
+}
+
+.weather-history-empty>i {
+    display: block;
+    margin-bottom: 0.7rem;
+    font-size: 2.2rem;
+}
+
+.weather-history-empty .fw-semibold {
+    color: var(--fams-text);
+    margin-bottom: 0.2rem;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 768px) {
+
+    .weather-history-count {
+        font-size: 0.72rem;
+    }
+
+    .weather-history-table {
+        min-width: 850px;
+    }
+
+    .weather-history-table thead th,
+    .weather-history-table tbody td {
+        padding: 0.75rem;
+    }
+
+}
+
+/* =========================================================
+   ADMIN QR SCANNER
+========================================================= */
+
+.qr-step-icon {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+}
+
+.qr-scanner-icon {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+}
+
+.qr-reader-wrapper {
+    background: #f8fafc;
+    border: 1px solid var(--fams-border);
+    border-radius: var(--fams-radius-sm);
+    padding: 1rem;
+}
+
+.qr-reader {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.qr-security-note {
+    border-left: 4px solid var(--fams-accent);
+}
+
+/* =========================================================
+   ADMIN VERIFY & RELEASE BENEFIT
+========================================================= */
+
+.verify-info {
+    padding: 0.25rem 0;
+}
+
+.verify-info-label {
+    color: var(--fams-muted);
+    font-size: 0.85rem;
+    margin-bottom: 0.35rem;
+}
+
+.verify-info-label i {
+    color: var(--fams-accent);
+}
+
+.verify-info-value {
+    color: var(--fams-text);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+
+/* PROGRAM HEADER */
+
+.verify-program-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.program-count {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    background: var(--fams-accent-soft);
+    color: var(--fams-accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+
+/* PROGRAM TABLE */
+
+.verify-table-wrapper {
+    overflow-x: auto;
+}
+
+.verify-program-table {
+    min-width: 1050px;
+}
+
+.verify-program-table thead th {
+    padding: 0.9rem 1rem;
+    background: #f8fafc;
+    color: var(--fams-text);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--fams-border);
+}
+
+.verify-program-table tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--fams-border);
+}
+
+.verify-program-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.verify-program-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.verify-program-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+
+/* COLUMN WIDTHS */
+
+.verify-program-table .program-column {
+    width: 36%;
+}
+
+.verify-program-table .status-column {
+    width: 14%;
+}
+
+.verify-program-table .application-column {
+    width: 15%;
+}
+
+.verify-program-table .requirements-column {
+    width: 20%;
+}
+
+.verify-program-table .action-column {
+    width: 15%;
+}
+
+
+/* PROGRAM CONTENT */
+
+.program-cell {
+    min-width: 300px;
+}
+
+.program-name {
+    color: var(--fams-text);
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 0.3rem;
+}
+
+.program-description {
+    color: var(--fams-muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    max-width: 520px;
+}
+
+
+/* STATUS */
+
+.status-cell {
+    white-space: nowrap;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.45rem 0.65rem;
+}
+
+
+/* REQUIREMENTS */
+
+.requirements-cell {
+    min-width: 190px;
+}
+
+.requirement-missing {
+    color: #dc3545;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.requirement-none {
+    color: #198754;
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
+
+/* ACTION */
+
+.action-cell {
+    min-width: 150px;
+    white-space: nowrap;
+}
+
+.release-btn {
+    min-width: 135px;
+    font-weight: 600;
+}
+
+.action-muted {
+    color: var(--fams-muted);
+    font-size: 0.82rem;
+}
+
+.action-danger {
+    color: #dc3545;
+    font-size: 0.82rem;
+}
+
+
+/* EMPTY STATE */
+
+.empty-programs {
+    color: var(--fams-muted);
+}
+
+.empty-programs>i {
+    display: block;
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.empty-programs .fw-semibold {
+    color: var(--fams-text);
+    margin-bottom: 0.25rem;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 768px) {
+
+    .verify-program-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .program-count {
+        font-size: 0.75rem;
+    }
+
+    .verify-program-table {
+        min-width: 950px;
+    }
+
+    .verify-program-table thead th,
+    .verify-program-table tbody td {
+        padding: 0.8rem;
+    }
+
+}
+
+/* =========================================================
+   ADMIN RECOMMENDATION ENGINE
+========================================================= */
+
+.recommendation-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.recommendation-header h6 {
+    color: var(--fams-text);
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.recommendation-count {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.45rem 0.8rem;
+    border-radius: 999px;
+    background: var(--fams-accent-soft);
+    color: var(--fams-accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+
+/* TABLE */
+
+.recommendation-table-wrapper {
+    overflow-x: auto;
+}
+
+.recommendation-table {
+    min-width: 900px;
+}
+
+.recommendation-table thead th {
+    padding: 0.9rem 1rem;
+    background: #f8fafc;
+    color: var(--fams-text);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    vertical-align: middle;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--fams-border);
+}
+
+.recommendation-table tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--fams-border);
+}
+
+.recommendation-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.recommendation-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.recommendation-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+
+/* COLUMN WIDTHS */
+
+.recommendation-table .farmer-column {
+    width: 22%;
+}
+
+.recommendation-table .program-column {
+    width: 30%;
+}
+
+.recommendation-table .status-column {
+    width: 18%;
+}
+
+.recommendation-table .reason-column {
+    width: 30%;
+}
+
+
+/* FARMER */
+
+.farmer-cell {
+    min-width: 180px;
+}
+
+.farmer-name {
+    display: flex;
+    align-items: center;
+    color: var(--fams-text);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.farmer-name i {
+    color: var(--fams-accent);
+    font-size: 1.2rem;
+}
+
+
+/* PROGRAM */
+
+.program-cell {
+    min-width: 250px;
+}
+
+.recommendation-program {
+    display: flex;
+    align-items: flex-start;
+    color: var(--fams-text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.recommendation-program i {
+    flex-shrink: 0;
+    color: var(--fams-accent);
+    margin-top: 0.1rem;
+}
+
+
+/* STATUS */
+
+.status-cell {
+    white-space: nowrap;
+}
+
+.recommendation-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+
+/* REASON */
+
+.reason-cell {
+    min-width: 250px;
+}
+
+.recommendation-warning {
+    display: flex;
+    align-items: flex-start;
+    color: #dc3545;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.recommendation-warning i {
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+}
+
+.recommendation-success {
+    display: flex;
+    align-items: center;
+    color: #198754;
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
+.recommendation-success i {
+    flex-shrink: 0;
+}
+
+
+/* EMPTY STATE */
+
+.recommendation-empty {
+    color: var(--fams-muted);
+}
+
+.recommendation-empty>i {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-size: 2.5rem;
+}
+
+.recommendation-empty .fw-semibold {
+    color: var(--fams-text);
+    margin-bottom: 0.25rem;
+}
+
+
+/* PAGINATION */
+
+.recommendation-footer {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--fams-border);
+    background: #fff;
+}
+
+.recommendation-footer .pagination {
+    margin-bottom: 0;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 768px) {
+
+    .recommendation-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .recommendation-count {
+        font-size: 0.75rem;
+    }
+
+    .recommendation-table {
+        min-width: 850px;
+    }
+
+    .recommendation-table thead th,
+    .recommendation-table tbody td {
+        padding: 0.8rem;
+    }
+
+}

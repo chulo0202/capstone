@@ -3,26 +3,193 @@
 @section('page-title', 'Recommendation Engine')
 
 @section('main')
-<div class="card border-0 shadow-sm">
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover mb-0">
-        <thead class="table-light"><tr><th>Farmer</th><th>Program</th><th>Status</th><th>Reason</th></tr></thead>
-        <tbody>
-          @forelse($recommendations as $recommendation)
-          <tr>
-            <td>{{ $recommendation->farmer->full_name }}</td>
-            <td>{{ $recommendation->program->name }}</td>
-            <td><span class="badge bg-{{ $recommendation->eligibility_status === 'eligible' ? 'success' : ($recommendation->eligibility_status === 'partially_eligible' ? 'warning text-dark' : 'danger') }}">{{ str_replace('_', ' ', ucfirst($recommendation->eligibility_status)) }}</span></td>
-            <td>{{ $recommendation->missing_requirements ? implode(', ', $recommendation->missing_requirements) : 'All requirements met' }}</td>
-          </tr>
-          @empty
-          <tr><td colspan="4" class="text-center text-muted py-4">No recommendations available</td></tr>
-          @endforelse
-        </tbody>
-      </table>
+
+<div class="fams-card">
+
+    {{-- HEADER --}}
+    <div class="fams-card-header recommendation-header">
+        <div>
+            <h6 class="mb-1">
+                <i class="bi bi-lightbulb me-2 text-fams"></i>
+                Recommendation Engine
+            </h6>
+
+            <small class="text-muted">
+                Review farmer program recommendations and eligibility status.
+            </small>
+        </div>
+
+        <div class="recommendation-count">
+            <i class="bi bi-list-check me-1"></i>
+            {{ $recommendations->total() }} Recommendations
+        </div>
     </div>
-  </div>
-  @if($recommendations->hasPages())<div class="card-footer bg-white">{{ $recommendations->links() }}</div>@endif
+
+
+    {{-- TABLE --}}
+    <div class="fams-card-body p-0">
+
+        <div class="table-responsive recommendation-table-wrapper">
+
+            <table class="table fams-table recommendation-table mb-0">
+
+                <thead>
+                    <tr>
+                        <th class="farmer-column">
+                            <i class="bi bi-person me-1"></i>
+                            Farmer
+                        </th>
+
+                        <th class="program-column">
+                            <i class="bi bi-box-seam me-1"></i>
+                            Program
+                        </th>
+
+                        <th class="status-column">
+                            <i class="bi bi-shield-check me-1"></i>
+                            Status
+                        </th>
+
+                        <th class="reason-column">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Reason
+                        </th>
+                    </tr>
+                </thead>
+
+
+                <tbody>
+
+                    @forelse($recommendations as $recommendation)
+
+                        <tr>
+
+                            {{-- FARMER --}}
+                            <td class="farmer-cell">
+
+                                <div class="farmer-name">
+                                    <i class="bi bi-person-circle me-2"></i>
+                                    {{ $recommendation->farmer->full_name }}
+                                </div>
+
+                            </td>
+
+
+                            {{-- PROGRAM --}}
+                            <td class="program-cell">
+
+                                <div class="recommendation-program">
+                                    <i class="bi bi-box-seam me-2"></i>
+
+                                    <span>
+                                        {{ $recommendation->program->name }}
+                                    </span>
+                                </div>
+
+                            </td>
+
+
+                            {{-- STATUS --}}
+                            <td class="status-cell">
+
+                                @if($recommendation->eligibility_status === 'eligible')
+
+                                    <span class="badge bg-success recommendation-badge">
+                                        <i class="bi bi-check-circle me-1"></i>
+                                        Eligible
+                                    </span>
+
+                                @elseif($recommendation->eligibility_status === 'partially_eligible')
+
+                                    <span class="badge bg-warning text-dark recommendation-badge">
+                                        <i class="bi bi-exclamation-circle me-1"></i>
+                                        Partially Eligible
+                                    </span>
+
+                                @else
+
+                                    <span class="badge bg-danger recommendation-badge">
+                                        <i class="bi bi-x-circle me-1"></i>
+                                        Not Eligible
+                                    </span>
+
+                                @endif
+
+                            </td>
+
+
+                            {{-- REASON --}}
+                            <td class="reason-cell">
+
+                                @if($recommendation->missing_requirements)
+
+                                    <div class="recommendation-warning">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+
+                                        <span>
+                                            {{ implode(', ', $recommendation->missing_requirements) }}
+                                        </span>
+                                    </div>
+
+                                @else
+
+                                    <div class="recommendation-success">
+                                        <i class="bi bi-check2-circle me-2"></i>
+
+                                        <span>
+                                            All requirements met
+                                        </span>
+                                    </div>
+
+                                @endif
+
+                            </td>
+
+                        </tr>
+
+
+                    @empty
+
+                        <tr>
+                            <td colspan="4" class="text-center py-5">
+
+                                <div class="recommendation-empty">
+
+                                    <i class="bi bi-lightbulb"></i>
+
+                                    <div class="fw-semibold">
+                                        No Recommendations Available
+                                    </div>
+
+                                    <small>
+                                        There are currently no farmer recommendations to display.
+                                    </small>
+
+                                </div>
+
+                            </td>
+                        </tr>
+
+                    @endforelse
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    {{-- PAGINATION --}}
+    @if($recommendations->hasPages())
+
+        <div class="recommendation-footer">
+            {{ $recommendations->links() }}
+        </div>
+
+    @endif
+
 </div>
+
 @endsection
