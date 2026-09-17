@@ -87,7 +87,7 @@
 
                             {{-- Program --}}
                             <td>
-                                {{ $application->program?->title ?? 'Unknown Program' }}
+                                {{ $application->program?->name ?? 'Unknown Program' }}
                             </td>
 
                             {{-- Applied Date --}}

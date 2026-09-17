@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Application;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -44,14 +45,21 @@ class ApplicationController extends Controller
      * Approve a farmer application.
      */
     public function approve(
-        Application $application,
-        Request $request
+    Application $application,
+    Request $request,
+    AuditLogService $auditLogService
     ): RedirectResponse {
         $application->update([
             'status' => 'approved',
             'reviewed_at' => now(),
             'remarks' => 'Application approved by admin.',
         ]);
+
+        $auditLogService->log(
+            'APPLICATION_APPROVED',
+            $application,
+            'Farmer application approved by admin.'
+        );
 
         return back()->with(
             'success',

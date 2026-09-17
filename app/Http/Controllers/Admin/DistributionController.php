@@ -8,6 +8,7 @@ use App\Models\Distribution;
 use App\Models\Farmer;
 use App\Models\Program;
 use App\Services\EligibilityService;
+use App\Services\AuditLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -113,7 +114,8 @@ class DistributionController extends Controller
 
     public function release(
         Request $request,
-        EligibilityService $eligibilityService
+        EligibilityService $eligibilityService,
+        AuditLogService $auditLogService
     ): RedirectResponse {
 
         $validated = $request->validate([
@@ -181,13 +183,19 @@ class DistributionController extends Controller
         /*
          * Create distribution record
          */
-        Distribution::create([
+        $distribution = Distribution::create([
             'farmer_id' => $farmer->id,
             'program_id' => $program->id,
             'released_by' => $request->user()->id,
             'distributed_at' => now(),
             'notes' => $validated['notes'] ?? null,
         ]);
+
+        $auditLogService->log(
+            'BENEFIT_RELEASED',
+            $distribution,
+            'Benefit released to farmer for program.'
+        );
 
         return redirect()
             ->route('admin.distributions.index')

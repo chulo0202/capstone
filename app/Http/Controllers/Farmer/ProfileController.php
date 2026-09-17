@@ -45,7 +45,11 @@ class ProfileController extends Controller
             'land_size' => 'required|numeric|min:0.01',
 
             'rsbsa_status' => ['required', 'accepted'],
-            'rsbsa_number' => 'nullable|string|max:50',
+            'rsbsa_number' => [
+                'required_if:rsbsa_status,1',
+                'string',
+                'max:50',
+            ],
 
             'association_membership' => 'boolean',
             'four_ps_membership' => 'boolean',
