@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\RsbsaFarmer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,9 +19,17 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register(): void
     {
+        RsbsaFarmer::create([
+            'rsbsa_number' => 'RSBSA-TEST-REG-001',
+            'full_name' => 'Test User',
+            'barangay' => 'Gate',
+            'crop_type' => 'Rice',
+            'land_size' => 2.50,
+        ]);
+
         $response = $this->post('/register', [
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            'rsbsa_number' => 'RSBSA-TEST-REG-001',
+            'email' => 'testregistration@gmail.com',
             'password' => 'password',
             'password_confirmation' => 'password',
         ]);

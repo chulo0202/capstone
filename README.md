@@ -163,8 +163,10 @@ The following accounts are used for local development and testing:
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | admin@gmail.com | admin12345 |
+| Admin | admin@gmail.com | Admin@12345 |
 | Farmer | testfarmer@gmail.com | farmer12345 |
+
+http://192.168.8.34:8000
 
 > These credentials are for local development/testing only and should not be used for production deployment.
 
@@ -753,3 +755,173 @@ exit
 ```
 
 These commands are intended for database inspection and testing and do not modify existing records.
+
+FAMS QR Scanner — Phone Opening Flow
+                    FAMS SYSTEM
+                         │
+                         ▼
+              ┌─────────────────────┐
+              │  Laravel FAMS PC    │
+              │  192.168.8.34:8000  │
+              └──────────┬──────────┘
+                         │
+              Same Wi-Fi network
+                         │
+                         ▼
+              ┌─────────────────────┐
+              │   Android Phone     │
+              │                     │
+              │  FAMS QR Scanner    │
+              │       App           │
+              └──────────┬──────────┘
+                         │
+                         ▼
+                  Scan Farmer QR
+                         │
+                         ▼
+                 Verify Farmer
+                         │
+                         ▼
+              Show Approved Programs
+                         │
+                         ▼
+                 Release Benefit
+                         │
+                         ▼
+              Laravel API / Database
+1. Start Laravel FAMS sa PC
+
+Sa VS Code terminal:
+
+cd C:\Users\chulogentogao\OneDrive\Desktop\capstone\fams
+
+Then:
+
+php artisan serve --host=0.0.0.0 --port=8000
+
+Dapat makita:
+
+INFO  Server running on [http://0.0.0.0:8000].
+
+Huwag isara ang terminal na ito.
+
+2. Siguraduhin ang PC IP
+
+Run:
+
+ipconfig
+
+Hanapin ang:
+
+IPv4 Address
+
+Sa current setup mo:
+
+192.168.8.34
+
+Kaya ang Flutter API ay:
+
+http://192.168.8.34:8000/api/qr/verify
+
+at:
+
+http://192.168.8.34:8000/api/qr/release
+3. Connect ang phone sa parehong Wi-Fi
+
+PC:
+
+Wi-Fi
+192.168.8.34
+
+Phone:
+
+Same Wi-Fi
+
+Importante ito dahil ang Flutter app ay kumokonekta sa Laravel gamit ang:
+
+192.168.8.34:8000
+4. Open ang Flutter QR Scanner
+
+Punta sa Flutter project:
+
+cd C:\Users\chulogentogao\OneDrive\Desktop\capstone\fams_qr_app
+
+Then:
+
+flutter devices
+
+Hanapin ang phone, halimbawa:
+
+24090RA29G • Android 16
+
+Then:
+
+flutter run -d 24090RA29G
+
+Papapasok nito ang FAMS QR Scanner sa phone.
+
+5. Para sa actual demo
+
+Ang sequence mo ay:
+
+PC
+Start XAMPP/required services
+        ↓
+Open VS Code
+        ↓
+Open FAMS project
+        ↓
+php artisan serve --host=0.0.0.0 --port=8000
+Phone
+Connect to same Wi-Fi
+        ↓
+Open FAMS QR Scanner
+        ↓
+Camera opens
+        ↓
+Scan farmer QR
+Example
+Antonio Reyes QR
+       ↓
+Farmer Verified
+       ↓
+PCIC Crop Insurance
+       ↓
+Approved
+       ↓
+Release Benefit
+       ↓
+Benefit released successfully
+       ↓
+Database Distribution created
+
+Then kapag bumalik ka sa My Applications:
+
+PCIC Crop Insurance
+Approved
+Benefit already released
+Important: Hindi mo kailangang gamitin ang flutter run every time
+
+Currently, flutter run ang ginagamit natin habang development/testing.
+
+Kapag final na ang QR Scanner app, mas magandang gumawa tayo ng APK:
+
+flutter build apk --release
+
+Then magiging APK ang app na puwedeng i-install sa Android phone.
+
+Ang magiging final demo flow:
+
+Install FAMS QR Scanner APK
+          ↓
+Tap FAMS QR Scanner
+          ↓
+QR Scanner opens
+          ↓
+Scan Farmer QR
+          ↓
+Verify
+          ↓
+Release Benefit
+
+Ito ang magandang next step pagkatapos nating ma-confirm na stable ang current QR Scanner: gumawa tayo ng release APK para hindi mo na kailangang patakbuhin ang flutter run sa bawat demo.

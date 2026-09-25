@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Farmer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -14,6 +15,20 @@ class ProfileTest extends TestCase
     {
         $user = User::factory()->create([
             'role' => 'farmer',
+        ]);
+
+        Farmer::create([
+            'user_id' => $user->id,
+            'full_name' => 'Test Farmer',
+            'address' => 'Bulan, Sorsogon',
+            'barangay' => 'Zone I Pob.',
+            'contact_number' => '09123456789',
+            'birthdate' => '2000-01-01',
+            'crop_type' => 'Rice',
+            'land_size' => 1.5,
+            'rsbsa_status' => true,
+            'rsbsa_number' => 'RSBSA-TEST-PROFILE-001',
+            'profile_completed' => true,
         ]);
 
         $response = $this
@@ -29,6 +44,20 @@ class ProfileTest extends TestCase
             'role' => 'farmer',
         ]);
 
+        Farmer::create([
+            'user_id' => $user->id,
+            'full_name' => 'Old Farmer Name',
+            'address' => 'Old Address',
+            'barangay' => 'Zone I Pob.',
+            'contact_number' => '09123456789',
+            'birthdate' => '2000-01-01',
+            'crop_type' => 'Rice',
+            'land_size' => 1.5,
+            'rsbsa_status' => true,
+            'rsbsa_number' => 'RSBSA-TEST-PROFILE-002',
+            'profile_completed' => true,
+        ]);
+
         $response = $this
             ->actingAs($user)
             ->put('/farmer/profile', [
@@ -40,10 +69,10 @@ class ProfileTest extends TestCase
                 'crop_type' => 'Rice',
                 'land_size' => 1.5,
                 'rsbsa_status' => true,
+                'rsbsa_number' => 'RSBSA-TEST-PROFILE-002',
             ]);
 
-        $response
-            ->assertSessionHasNoErrors();
+        $response->assertSessionHasNoErrors();
 
         $response->assertRedirect();
     }

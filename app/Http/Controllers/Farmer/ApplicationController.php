@@ -16,10 +16,25 @@ class ApplicationController extends Controller
         $farmer = Auth::user()->farmer;
 
         $applications = $farmer
-            ? Application::with('program')->where('farmer_id', $farmer->id)->latest('applied_at')->get()
+            ? Application::with('program')
+                ->where('farmer_id', $farmer->id)
+                ->whereHas('program', function ($query) {
+                    $now = now();
+
+                    $query->where('is_active', true)
+                        ->whereNotNull('start_at')
+                        ->whereNotNull('end_at')
+                        ->where('start_at', '<=', $now)
+                        ->where('end_at', '>=', $now);
+                })
+                ->latest('applied_at')
+                ->get()
             : collect();
 
-        return view('farmer.applications', compact('applications', 'farmer'));
+        return view('farmer.applications', compact(
+            'applications',
+            'farmer'
+        ));
     }
 
     public function store(Program $program): RedirectResponse

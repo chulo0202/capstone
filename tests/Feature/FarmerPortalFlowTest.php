@@ -25,6 +25,7 @@ class FarmerPortalFlowTest extends TestCase
             'birthdate' => '1990-01-01',
             'crop_type' => 'Rice',
             'land_size' => 1.5,
+            'rsbsa_number' => 'RSBSA-TEST-PORTAL-001',
             'profile_completed' => true,
         ]);
 

@@ -13,7 +13,15 @@ class EligibilityController extends Controller
     public function index(EligibilityService $eligibilityService): View
     {
         $farmer = Auth::user()->farmer;
-        $programs = Program::where('is_active', true)->with('eligibilityRule')->get();
+       $now = now();
+
+        $programs = Program::where('is_active', true)
+            ->whereNotNull('start_at')
+            ->whereNotNull('end_at')
+            ->where('start_at', '<=', $now)
+            ->where('end_at', '>=', $now)
+            ->with('eligibilityRule')
+            ->get();
 
         $results = $programs->map(function ($program) use ($farmer, $eligibilityService) {
             $evaluation = $farmer

@@ -7,6 +7,7 @@
 @if(!$farmer || !$farmer->profile_completed)
 
     <div class="alert alert-warning border-0 shadow-sm">
+
         <i class="bi bi-exclamation-circle me-2"></i>
 
         Complete your
@@ -14,6 +15,7 @@
             profile
         </a>
         to get program recommendations.
+
     </div>
 
 @else
@@ -30,8 +32,6 @@
         $notEligibleCount = $recommendations
             ->where('eligibility_status', 'not_eligible')
             ->count();
-
-        $receivedCount = $distributions->count();
     @endphp
 
 
@@ -43,6 +43,7 @@
                 mb-4">
 
         <div>
+
             <h4 class="mb-1 fw-bold">
                 Program Recommendations
             </h4>
@@ -50,6 +51,7 @@
             <p class="text-muted mb-0">
                 Agricultural assistance programs matched to your farm profile.
             </p>
+
         </div>
 
     </div>
@@ -207,7 +209,7 @@
         </div>
 
 
-        {{-- BENEFITS RECEIVED --}}
+        {{-- ACTIVE RECOMMENDATIONS --}}
         <div class="col-md-6 col-xl-3">
 
             <div class="card border-0 shadow-sm h-100">
@@ -221,15 +223,15 @@
                         <div>
 
                             <div class="text-muted small mb-1">
-                                Benefits Received
+                                Recommendations
                             </div>
 
                             <h3 class="fw-bold text-primary mb-0">
-                                {{ $receivedCount }}
+                                {{ $recommendations->count() }}
                             </h3>
 
                             <small class="text-muted">
-                                Total received
+                                Available to apply
                             </small>
 
                         </div>
@@ -242,7 +244,7 @@
                             style="width:50px;height:50px;"
                         >
 
-                            <i class="bi bi-gift
+                            <i class="bi bi-lightbulb
                                       text-primary fs-4"></i>
 
                         </div>
@@ -272,35 +274,50 @@
                     class="btn btn-sm btn-fams recommendation-filter active"
                     data-filter="all"
                 >
+
                     <i class="bi bi-grid me-1"></i>
+
                     All Programs
+
                 </button>
+
 
                 <button
                     type="button"
                     class="btn btn-sm btn-outline-success recommendation-filter"
                     data-filter="eligible"
                 >
+
                     <i class="bi bi-check-circle me-1"></i>
+
                     Eligible
+
                 </button>
+
 
                 <button
                     type="button"
                     class="btn btn-sm btn-outline-warning recommendation-filter"
                     data-filter="partially_eligible"
                 >
+
                     <i class="bi bi-exclamation-circle me-1"></i>
+
                     Partially Eligible
+
                 </button>
+
 
                 <button
                     type="button"
                     class="btn btn-sm btn-outline-danger recommendation-filter"
                     data-filter="not_eligible"
                 >
+
                     <i class="bi bi-x-circle me-1"></i>
+
                     Not Eligible
+
                 </button>
 
             </div>
@@ -324,8 +341,11 @@
                 <div>
 
                     <h6 class="fw-bold mb-1">
+
                         <i class="bi bi-lightbulb me-2"></i>
+
                         Recommended Programs
+
                     </h6>
 
                     <small class="text-muted">
@@ -334,8 +354,11 @@
 
                 </div>
 
+
                 <span class="badge bg-light text-dark">
+
                     {{ $recommendations->count() }} program(s)
+
                 </span>
 
             </div>
@@ -382,22 +405,10 @@
 
                         @forelse($recommendations as $rec)
 
-                            @php
-
-                                $programId = $rec->program->id;
-
-                                $application = $applications->get($programId);
-
-                                $distribution = $distributions->get($programId);
-
-                            @endphp
-
-
                             <tr
                                 class="recommendation-row"
                                 data-status="{{ $rec->eligibility_status }}"
                             >
-
 
                                 {{-- PROGRAM --}}
                                 <td class="px-4">
@@ -437,6 +448,7 @@
                                         <span class="badge bg-success px-3 py-2">
 
                                             <i class="bi bi-check-circle-fill me-1"></i>
+
                                             Eligible
 
                                         </span>
@@ -448,16 +460,8 @@
                                         >
 
                                             <i class="bi bi-exclamation-circle-fill me-1"></i>
+
                                             Partially Eligible
-
-                                        </span>
-
-                                    @else
-
-                                        <span class="badge bg-danger px-3 py-2">
-
-                                            <i class="bi bi-x-circle-fill me-1"></i>
-                                            Not Eligible
 
                                         </span>
 
@@ -509,128 +513,47 @@
                                 {{-- APPLICATION --}}
                                 <td class="text-center">
 
-                                    {{-- BENEFIT RECEIVED --}}
-                                    @if($distribution)
+                                    <form
+                                        method="POST"
+                                        action="{{ route(
+                                            'farmer.applications.store',
+                                            $rec->program
+                                        ) }}"
+                                    >
 
-                                        <span class="badge bg-success px-3 py-2">
+                                        @csrf
 
-                                            <i class="bi bi-gift-fill me-1"></i>
-
-                                            Benefit Received
-
-                                        </span>
-
-
-                                    {{-- APPLICATION EXISTS --}}
-                                    @elseif($application)
-
-                                        @if($application->status === 'pending')
-
-                                            <span
-                                                class="badge bg-warning text-dark px-3 py-2"
-                                            >
-
-                                                <i class="bi bi-clock me-1"></i>
-
-                                                Pending
-
-                                            </span>
-
-
-                                        @elseif($application->status === 'approved')
-
-                                            <span
-                                                class="badge bg-primary px-3 py-2"
-                                            >
-
-                                                <i class="bi bi-check-circle me-1"></i>
-
-                                                Approved
-
-                                            </span>
-
-                                            <div class="small text-muted mt-1">
-                                                Ready for distribution
-                                            </div>
-
-
-                                        @elseif($application->status === 'rejected')
-
-                                            <span
-                                                class="badge bg-danger px-3 py-2"
-                                            >
-
-                                                <i class="bi bi-x-circle me-1"></i>
-
-                                                Rejected
-
-                                            </span>
-
-
-                                        @else
-
-                                            <span
-                                                class="badge bg-secondary px-3 py-2"
-                                            >
-
-                                                {{ ucfirst($application->status) }}
-
-                                            </span>
-
-                                        @endif
-
-
-                                    {{-- NO APPLICATION --}}
-                                    @elseif($rec->eligibility_status === 'eligible')
-
-                                        <form
-                                            method="POST"
-                                            action="{{ route(
-                                                'farmer.applications.store',
-                                                $rec->program
-                                            ) }}"
+                                        <button
+                                            type="submit"
+                                            class="btn btn-sm
+                                                   {{ $rec->eligibility_status === 'eligible'
+                                                       ? 'btn-fams'
+                                                       : 'btn-outline-warning'
+                                                   }}
+                                                   px-3"
                                         >
 
-                                            @csrf
+                                            <i class="bi bi-send me-1"></i>
 
-                                            <button
-                                                type="submit"
-                                                class="btn btn-sm btn-fams px-3"
-                                            >
+                                            Apply Now
 
-                                                <i class="bi bi-send me-1"></i>
+                                        </button>
 
-                                                Apply Now
-
-                                            </button>
-
-                                        </form>
+                                    </form>
 
 
-                                    {{-- PARTIALLY ELIGIBLE --}}
-                                    @elseif($rec->eligibility_status === 'partially_eligible')
+                                    @if(
+                                        $rec->eligibility_status ===
+                                        'partially_eligible'
+                                        &&
+                                        $rec->missing_requirements
+                                    )
 
-                                        <span
-                                            class="badge bg-warning text-dark px-3 py-2"
-                                        >
+                                        <div class="small text-muted mt-1">
 
-                                            <i class="bi bi-lock me-1"></i>
+                                            Some requirements are still missing.
 
-                                            Complete Requirements
-
-                                        </span>
-
-
-                                    {{-- NOT ELIGIBLE --}}
-                                    @else
-
-                                        <span
-                                            class="badge bg-light text-danger border px-3 py-2"
-                                        >
-
-                                            Not Available
-
-                                        </span>
+                                        </div>
 
                                     @endif
 
@@ -658,8 +581,10 @@
                                     </h6>
 
                                     <p class="text-muted small mb-0">
-                                        Complete your profile to receive
-                                        program recommendations.
+
+                                        There are currently no active
+                                        programs matching your eligibility.
+
                                     </p>
 
                                 </td>

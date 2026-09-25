@@ -16,18 +16,33 @@ class Program extends Model
         'description',
         'eligibility_criteria',
         'is_active',
+        'start_at',
+        'end_at',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'start_at' => 'datetime',
+            'end_at' => 'datetime',
         ];
     }
 
     public function eligibilityRule(): HasOne
     {
-        return $this->hasOne(EligibilityRule::class);
+        return $this->hasOne(EligibilityRule::class)
+            ->whereNull('program_benefit_id');
+    }
+
+    public function eligibilityRules(): HasMany
+    {
+        return $this->hasMany(EligibilityRule::class);
+    }
+
+    public function benefits(): HasMany
+    {
+        return $this->hasMany(ProgramBenefit::class);
     }
 
     public function recommendations(): HasMany

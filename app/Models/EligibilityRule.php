@@ -12,6 +12,7 @@ class EligibilityRule extends Model
 
     protected $fillable = [
         'program_id',
+        'program_benefit_id',
         'crop_types',
         'min_land_size',
         'max_land_size',
@@ -35,5 +36,10 @@ class EligibilityRule extends Model
     public function program(): BelongsTo
     {
         return $this->belongsTo(Program::class);
+    }
+
+    public function benefit(): BelongsTo
+    {
+        return $this->belongsTo(ProgramBenefit::class, 'program_benefit_id');
     }
 }
