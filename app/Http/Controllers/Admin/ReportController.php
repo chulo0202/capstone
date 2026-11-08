@@ -7,6 +7,8 @@ use App\Models\Distribution;
 use App\Models\Farmer;
 use App\Models\Program;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Exports\ReportsExport;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
 
@@ -37,33 +39,11 @@ class ReportController extends Controller
         );
     }
 
-    public function exportExcel(): Response
+    public function exportExcel()
     {
-        $filename = 'fams-report-' . now()->format('YmdHis') . '.csv';
-
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ];
-
-        $callback = function () {
-            $handle = fopen('php://output', 'w');
-
-            fputcsv($handle, [
-                'Farmers',
-                'Programs',
-                'Distributions',
-            ]);
-
-            fputcsv($handle, [
-                Farmer::count(),
-                Program::count(),
-                Distribution::count(),
-            ]);
-
-            fclose($handle);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return Excel::download(
+            new ReportsExport(),
+            'fams-report-' . now()->format('YmdHis') . '.xlsx'
+        );
     }
 }

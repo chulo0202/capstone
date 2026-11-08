@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('farmers', function (Blueprint $table) {
-            $table->boolean('four_ps_membership')->default(false)->after('association_membership');
-            $table->string('farmer_association')->nullable()->after('four_ps_membership');
-            $table->string('farmer_photo_path')->nullable()->after('valid_id_path');
+            $table->boolean('four_ps_membership')->default(false);
+            $table->string('farmer_association')->nullable();
+            $table->string('farmer_photo_path')->nullable();
         });
     }
 

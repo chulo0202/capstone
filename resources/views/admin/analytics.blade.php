@@ -872,259 +872,6 @@
 
     </div>
 
-
-    {{-- =========================================================
-     PROGRAM PERFORMANCE SUMMARY
-    ========================================================= --}}
-
-    <div class="analytics-card performance-card">
-
-        <div class="card-header-row">
-            <div>
-                <h2>Program Performance Summary</h2>
-                <p class="card-description">
-                    Overview of program applications, eligible farmers,
-                    and benefit distributions for
-                    {{ str_replace('-', '–', $selectedAcademicYear) }}.
-                </p>
-            </div>
-
-            <div class="card-header-icon">
-                <span></span>
-            </div>
-        </div>
-
-        <div class="performance-table-wrapper">
-
-            <table class="performance-table">
-
-                <thead>
-                    <tr>
-                        <th>Program</th>
-                        <th>Applications</th>
-                        <th>Eligible</th>
-                        <th>Eligible %</th>
-                        <th>Distributions</th>
-                        <th>Completion Rate</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-
-                    @forelse($programPerformanceSummary as $item)
-
-                        @php
-                            $applications = (int) $item->applications_count;
-                            $eligible = (int) $item->eligible_count;
-                            $distributions = (int) $item->distributions_count;
-
-                            /*
-                            * Eligible percentage is based on the total
-                            * farmers included in the selected period.
-                            */
-                            $eligiblePercentage = $totalFarmers > 0
-                                ? round(($eligible / $totalFarmers) * 100, 2)
-                                : 0;
-
-                            /*
-                            * Program completion:
-                            * distributed benefits compared with eligible
-                            * farmers for this program.
-                            */
-                            $completionRate = $eligible > 0
-                                ? round(($distributions / $eligible) * 100, 2)
-                                : 0;
-
-                            /*
-                            * Prevent the progress bar from visually
-                            * exceeding 100%.
-                            */
-                            $progressWidth = min($completionRate, 100);
-                        @endphp
-
-                        <tr>
-
-                            {{-- PROGRAM --}}
-                            <td>
-                                <div class="program-name">
-                                    {{ optional($item->program)->name ?? 'N/A' }}
-                                </div>
-                            </td>
-
-                            {{-- APPLICATIONS --}}
-                            <td>
-                                <span class="stat-number">
-                                    {{ number_format($applications) }}
-                                </span>
-                            </td>
-
-                            {{-- ELIGIBLE --}}
-                            <td>
-                                <span class="stat-number">
-                                    {{ number_format($eligible) }}
-                                </span>
-                            </td>
-
-                            {{-- ELIGIBLE % --}}
-                            <td>
-                                <span class="percentage-badge">
-                                    {{ number_format($eligiblePercentage, 2) }}%
-                                </span>
-                            </td>
-
-                            {{-- DISTRIBUTIONS --}}
-                            <td>
-                                <span class="stat-number">
-                                    {{ number_format($distributions) }}
-                                </span>
-                            </td>
-
-                            {{-- COMPLETION RATE --}}
-                            <td>
-                                <div class="completion-wrapper">
-
-                                    <div class="completion-header">
-
-                                        <span class="completion-percent">
-                                            {{ number_format($completionRate, 2) }}%
-                                        </span>
-
-                                        <span class="stat-muted">
-                                            {{ $distributions }}/{{ $eligible }}
-                                        </span>
-
-                                    </div>
-
-                                    <div class="progress-track">
-
-                                        <div
-                                            class="progress-bar"
-                                            style="width: {{ $progressWidth }}%; background: {{ $completionRate >= 100 ? '#16a34a' : ($completionRate >= 50 ? '#f59e0b' : '#3b82f6') }};"
-                                        ></div>
-
-                                    </div>
-
-                                </div>
-                            </td>
-
-                        </tr>
-
-                    @empty
-
-                        <tr>
-                            <td colspan="6" style="text-align:center; padding:30px;">
-                                <div style="font-size:30px; margin-bottom:8px;">
-                                    📊
-                                </div>
-
-                                <strong>No program performance data</strong>
-
-                                <div class="stat-muted">
-                                    There are no records for the selected period.
-                                </div>
-                            </td>
-                        </tr>
-
-                    @endforelse
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-    </div>
-
-
-    {{-- RECENT DISTRIBUTION LOGS --}}
-
-    <div class="card mb-4">
-
-        <div class="card-body">
-
-            <div class="chart-title mb-3">
-                Recent Distribution Logs
-            </div>
-
-            <div class="table-responsive">
-
-                <table class="table table-sm table-hover align-middle mb-0">
-
-                    <thead>
-
-                        <tr>
-                            <th>Farmer</th>
-                            <th>Program</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                        </tr>
-
-                    </thead>
-
-                    <tbody>
-
-                        @forelse($distributionLogs as $distribution)
-
-                            <tr>
-
-                                <td>
-                                    {{ $distribution->farmer->full_name ?? 'N/A' }}
-                                </td>
-
-                                <td>
-                                    {{ $distribution->program->name ?? 'N/A' }}
-                                </td>
-
-                                <td>
-                                    {{ optional($distribution->created_at)->format('M d, Y') }}
-                                </td>
-
-                                <td>
-
-                                    @if($distribution->distributed_at)
-
-                                        <span class="badge bg-success">
-                                            Completed
-                                        </span>
-
-                                    @else
-
-                                        <span class="badge bg-warning text-dark">
-                                            Pending
-                                        </span>
-
-                                    @endif
-
-                                </td>
-
-                            </tr>
-
-                        @empty
-
-                            <tr>
-
-                                <td
-                                    colspan="4"
-                                    class="text-center text-muted py-3"
-                                >
-                                    No recent distribution logs.
-                                </td>
-
-                            </tr>
-
-                        @endforelse
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
     {{-- =========================================================
          04 PREDICTIVE FARMER NEEDS
     ========================================================== --}}
@@ -1419,6 +1166,255 @@
 
     </div>
 
+    {{-- =========================================================
+     PROGRAM PERFORMANCE SUMMARY
+    ========================================================= --}}
+
+    <div class="analytics-card performance-card">
+
+        <div class="card-header-row">
+            <div>
+                <h2>Program Performance Summary</h2>
+                <p class="card-description">
+                    Overview of program applications, eligible farmers,
+                    and benefit distributions for
+                    {{ str_replace('-', '–', $selectedAcademicYear) }}.
+                </p>
+            </div>
+
+            <div class="card-header-icon">
+                <span></span>
+            </div>
+        </div>
+
+        <div class="performance-table-wrapper">
+
+            <table class="performance-table">
+
+                <thead>
+                    <tr>
+                        <th>Program</th>
+                        <th>Applications</th>
+                        <th>Eligible</th>
+                        <th>Eligible %</th>
+                        <th>Distributions</th>
+                        <th>Completion Rate</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @forelse($programPerformanceSummary as $item)
+
+                        @php
+                            $applications = (int) $item->applications_count;
+                            $eligible = (int) $item->eligible_count;
+                            $distributions = (int) $item->distributions_count;
+
+                            /*
+                            * Eligible percentage is based on the total
+                            * farmers included in the selected period.
+                            */
+                            $eligiblePercentage = $totalFarmers > 0
+                                ? round(($eligible / $totalFarmers) * 100, 2)
+                                : 0;
+
+                            /*
+                            * Program completion:
+                            * distributed benefits compared with eligible
+                            * farmers for this program.
+                            */
+                            $completionRate = $eligible > 0
+                                ? round(($distributions / $eligible) * 100, 2)
+                                : 0;
+
+                            /*
+                            * Prevent the progress bar from visually
+                            * exceeding 100%.
+                            */
+                            $progressWidth = min($completionRate, 100);
+                        @endphp
+
+                        <tr>
+
+                            {{-- PROGRAM --}}
+                            <td>
+                                <div class="program-name">
+                                    {{ optional($item->program)->name ?? 'N/A' }}
+                                </div>
+                            </td>
+
+                            {{-- APPLICATIONS --}}
+                            <td>
+                                <span class="stat-number">
+                                    {{ number_format($applications) }}
+                                </span>
+                            </td>
+
+                            {{-- ELIGIBLE --}}
+                            <td>
+                                <span class="stat-number">
+                                    {{ number_format($eligible) }}
+                                </span>
+                            </td>
+
+                            {{-- ELIGIBLE % --}}
+                            <td>
+                                <span class="percentage-badge">
+                                    {{ number_format($eligiblePercentage, 2) }}%
+                                </span>
+                            </td>
+
+                            {{-- DISTRIBUTIONS --}}
+                            <td>
+                                <span class="stat-number">
+                                    {{ number_format($distributions) }}
+                                </span>
+                            </td>
+
+                            {{-- COMPLETION RATE --}}
+                            <td>
+                                <div class="completion-wrapper">
+
+                                    <div class="completion-header">
+
+                                        <span class="completion-percent">
+                                            {{ number_format($completionRate, 2) }}%
+                                        </span>
+
+                                        <span class="stat-muted">
+                                            {{ $distributions }}/{{ $eligible }}
+                                        </span>
+
+                                    </div>
+
+                                    <div class="progress-track">
+
+                                        <div
+                                            class="progress-bar"
+                                            style="width: {{ $progressWidth }}%; background: {{ $completionRate >= 100 ? '#16a34a' : ($completionRate >= 50 ? '#f59e0b' : '#3b82f6') }};"
+                                        ></div>
+
+                                    </div>
+
+                                </div>
+                            </td>
+
+                        </tr>
+
+                    @empty
+
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:30px;">
+                                <div style="font-size:30px; margin-bottom:8px;">
+                                    📊
+                                </div>
+
+                                <strong>No program performance data</strong>
+
+                                <div class="stat-muted">
+                                    There are no records for the selected period.
+                                </div>
+                            </td>
+                        </tr>
+
+                    @endforelse
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    {{-- RECENT DISTRIBUTION LOGS --}}
+
+    <div class="card mb-4">
+
+        <div class="card-body">
+
+            <div class="chart-title mb-3">
+                Recent Distribution Logs
+            </div>
+
+            <div class="table-responsive">
+
+                <table class="table table-sm table-hover align-middle mb-0">
+
+                    <thead>
+
+                        <tr>
+                            <th>Farmer</th>
+                            <th>Program</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @forelse($distributionLogs as $distribution)
+
+                            <tr>
+
+                                <td>
+                                    {{ $distribution->farmer->full_name ?? 'N/A' }}
+                                </td>
+
+                                <td>
+                                    {{ $distribution->program->name ?? 'N/A' }}
+                                </td>
+
+                                <td>
+                                    {{ optional($distribution->created_at)->format('M d, Y') }}
+                                </td>
+
+                                <td>
+
+                                    @if($distribution->distributed_at)
+
+                                        <span class="badge bg-success">
+                                            Completed
+                                        </span>
+
+                                    @else
+
+                                        <span class="badge bg-warning text-dark">
+                                            Pending
+                                        </span>
+
+                                    @endif
+
+                                </td>
+
+                            </tr>
+
+                        @empty
+
+                            <tr>
+
+                                <td
+                                    colspan="4"
+                                    class="text-center text-muted py-3"
+                                >
+                                    No recent distribution logs.
+                                </td>
+
+                            </tr>
+
+                        @endforelse
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
 
     {{-- =========================================================
          05 DESCRIPTIVE ANALYTICS & TRENDS
@@ -1474,62 +1470,6 @@
 
                     <div class="chart-wrapper">
                         <canvas id="distributionTrendChart"></canvas>
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-    {{-- CROP + BARANGAY DISTRIBUTION --}}
-
-    <div class="row g-3 mb-4">
-
-        <div class="col-lg-6">
-
-            <div class="card chart-card">
-
-                <div class="card-body">
-
-                    <div class="chart-title">
-                        Crop Distribution
-                    </div>
-
-                    <div class="chart-description">
-                        Farmer distribution by crop type
-                    </div>
-
-                    <div class="chart-wrapper">
-                        <canvas id="cropDistributionChart"></canvas>
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="col-lg-6">
-
-            <div class="card chart-card">
-
-                <div class="card-body">
-
-                    <div class="chart-title">
-                        Barangay Distribution
-                    </div>
-
-                    <div class="chart-description">
-                        Farmer distribution by barangay
-                    </div>
-
-                    <div class="chart-wrapper">
-                        <canvas id="barangayDistributionChart"></canvas>
                     </div>
 
                 </div>

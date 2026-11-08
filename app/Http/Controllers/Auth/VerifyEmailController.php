@@ -15,11 +15,29 @@ class VerifyEmailController extends Controller
     public function __invoke(EmailVerificationRequest $request): RedirectResponse
     {
         if ($request->user()->hasVerifiedEmail()) {
+            if (
+                $request->user()->role === 'admin'
+                && $request->user()->admin_registration_status === 'pending'
+            ) {
+                return redirect()
+                    ->route('verification.notice')
+                    ->with('status', 'admin-registration-pending');
+            }
+
             return redirect()->intended(route('dashboard', absolute: false).'?verified=1');
         }
 
         if ($request->user()->markEmailAsVerified()) {
             event(new Verified($request->user()));
+        }
+
+        if (
+            $request->user()->role === 'admin'
+            && $request->user()->admin_registration_status === 'pending'
+        ) {
+            return redirect()
+                ->route('verification.notice')
+                ->with('status', 'admin-registration-pending');
         }
 
         return redirect()->intended(route('dashboard', absolute: false).'?verified=1');

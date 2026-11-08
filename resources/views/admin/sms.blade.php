@@ -14,7 +14,20 @@
           <tr>
             <td>{{ $sms->recipient }}</td>
             <td><small>{{ Str::limit($sms->message, 60) }}</small></td>
-            <td><span class="badge bg-{{ $sms->status === 'sent' ? 'success' : ($sms->status === 'pending' ? 'warning' : 'danger') }}">{{ ucfirst($sms->status) }}</span></td>
+            <td>
+                @php
+                    $statusColor = match ($sms->status) {
+                        'sent' => 'success',
+                        'queued', 'pending' => 'warning',
+                        'failed', 'refunded' => 'danger',
+                        default => 'secondary',
+                    };
+                @endphp
+
+                <span class="badge bg-{{ $statusColor }}">
+                    {{ ucfirst($sms->status) }}
+                </span>
+            </td>
             <td>{{ $sms->sent_at?->format('M d, Y h:i A') ?? '-' }}</td>
             <td>{{ $sms->announcement?->title ?? '-' }}</td>
           </tr>

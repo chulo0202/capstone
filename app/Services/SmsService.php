@@ -31,28 +31,43 @@ class SmsService
         }
 
         try {
-            $response = Http::asForm()->post('https://api.semaphore.co/api/v4/messages', [
+            $response = Http::asForm()->post(
+                rtrim(config('semaphore.base_url'), '/') . '/messages',
+            [
                 'apikey' => $apiKey,
                 'number' => $notification->recipient,
                 'message' => $message,
                 'sendername' => config('semaphore.sender_name'),
             ]);
 
+            $body = $response->json();
+
+            $messageData = is_array($body) && isset($body[0]) && is_array($body[0])
+                ? $body[0]
+                : (is_array($body) ? $body : []);
+
+            $apiStatus = strtolower($messageData['status'] ?? '');
+
+            $allowedStatuses = ['queued', 'pending', 'sent', 'failed', 'refunded'];
+
+            $status = $response->successful() && in_array($apiStatus, $allowedStatuses, true)
+                ? $apiStatus
+                : 'failed';
+
             $notification->update([
-    'status' => $response->successful() ? 'sent' : 'failed',
-
-    'response_data' => [
-        'http_status' => $response->status(),
-        'response_body' => $response->body(),
-    ],
-
-    'sent_at' => $response->successful() ? now() : null,
-]);
+                'status' => $status,
+                'response_data' => [
+                    'http_status' => $response->status(),
+                    'response_body' => $body ?? $response->body(),
+                ],
+                'sent_at' => $status === 'sent' ? now() : null,
+            ]);
 
 Log::info('Semaphore Response', [
     'status' => $response->status(),
-    'body' => $response->body(),
+    'api_status' => $apiStatus,
 ]);
+
         } catch (\Exception $e) {
             Log::error('SMS send failed: '.$e->getMessage());
             $notification->update([

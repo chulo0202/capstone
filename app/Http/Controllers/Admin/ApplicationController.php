@@ -23,10 +23,10 @@ class ApplicationController extends Controller
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
                 $q->whereHas('farmer', function ($farmerQuery) use ($search) {
-                    $farmerQuery->where('full_name', 'like', "%{$search}%");
+                    $farmerQuery->whereLike('full_name', "%{$search}%");
                 })
                 ->orWhereHas('program', function ($programQuery) use ($search) {
-                    $programQuery->where('title', 'like', "%{$search}%");
+                    $programQuery->whereLike('title', "%{$search}%");
                 });
             });
         }

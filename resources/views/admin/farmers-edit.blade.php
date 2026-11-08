@@ -218,7 +218,7 @@
                         <small class="text-muted d-block mt-2">
                             Current Valid ID:
                             <a
-                                href="{{ asset('storage/' . $farmer->valid_id_path) }}"
+                                href="{{ route('admin.farmers.valid-id', $farmer) }}"
                                 target="_blank"
                             >
                                 View ID

@@ -22,6 +22,21 @@ class ProfileController extends Controller
         return view('farmer.profile', compact('farmer'));
     }
 
+    public function viewValidId(): StreamedResponse
+    {
+        $farmer = Auth::user()->farmer;
+
+        if (! $farmer || ! $farmer->valid_id_path) {
+            abort(404, 'Valid ID not found.');
+        }
+
+        if (! Storage::disk('private')->exists($farmer->valid_id_path)) {
+            abort(404, 'Valid ID file not found.');
+        }
+
+        return Storage::disk('private')->response($farmer->valid_id_path);
+    }
+
     public function update(Request $request, QrCodeService $qrCodeService, RecommendationService $recommendationService): RedirectResponse
     {
         $user = Auth::user();
@@ -65,7 +80,7 @@ class ProfileController extends Controller
         $validated['four_ps_membership'] = $request->boolean('four_ps_membership');
 
         if ($request->hasFile('valid_id')) {
-    $path = $request->file('valid_id')->store('valid-ids', 'private');
+    $path = $request->file('valid_id')->store('farmer-valid-ids', 'private');
     $validated['valid_id_path'] = $path;
 }
 

@@ -3,6 +3,11 @@
 @section('title', 'Verify Email')
 
 @section('content')
+@php
+    $pendingAdmin = auth()->check()
+        && auth()->user()->role === 'admin'
+        && auth()->user()->admin_registration_status === 'pending';
+@endphp
 <div class="auth-page">
 
     {{-- LEFT BRAND PANEL --}}
@@ -16,19 +21,23 @@
             <h2>Verify Your Email</h2>
 
             <p>
-                You're almost ready to use FAMS. Please verify your
-                email address to activate your farmer account.
+                @if($pendingAdmin)
+                    Verify your email address while your administrator registration is reviewed.
+                @else
+                    You're almost ready to use FAMS. Please verify your
+                    email address to activate your farmer account.
+                @endif
             </p>
 
             <ul class="auth-brand-features">
                 <li>
                     <i class="bi bi-check-circle-fill"></i>
-                    Access farmer assistance programs
+                    {{ $pendingAdmin ? 'Complete administrator registration verification' : 'Access farmer assistance programs' }}
                 </li>
 
                 <li>
                     <i class="bi bi-check-circle-fill"></i>
-                    View your eligibility and recommendations
+                    {{ $pendingAdmin ? 'Wait for approval from an existing administrator' : 'View your eligibility and recommendations' }}
                 </li>
 
                 <li>
@@ -91,11 +100,20 @@
                     ></i>
 
                     <div>
-                        Thanks for signing up!
+                        @if($pendingAdmin)
+                            Your administrator registration is pending approval.
+                            @if(! auth()->user()->hasVerifiedEmail())
+                                Please verify your email address by clicking the verification link we sent to your email.
+                            @else
+                                Your email is verified. Administrator approval is still required before you can access admin pages.
+                            @endif
+                        @else
+                            Thanks for signing up!
 
-                        Before you can access your FAMS farmer account,
-                        please verify your email address by clicking
-                        the verification link we sent to your email.
+                            Before you can access your FAMS farmer account,
+                            please verify your email address by clicking
+                            the verification link we sent to your email.
+                        @endif
                     </div>
 
                 </div>

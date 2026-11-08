@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 .weather-card {
     border-radius: 14px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -170,7 +174,7 @@
 }
 
 .history-time {
-    color: var(--fams-muted);
+    color: var(--fams-text-muted);
     font-size: 0.76rem;
     margin-top: 0.1rem;
 }
@@ -226,7 +230,7 @@
     padding: 0.75rem 1.25rem;
     border-top: 1px solid var(--fams-border);
     background: #fafbfc;
-    color: var(--fams-muted);
+    color: var(--fams-text-muted);
     font-size: 0.78rem;
 }
 
@@ -234,7 +238,7 @@
 /* EMPTY */
 
 .weather-history-empty {
-    color: var(--fams-muted);
+    color: var(--fams-text-muted);
 }
 
 .weather-history-empty>i {
@@ -309,7 +313,7 @@
 }
 
 .verify-info-label {
-    color: var(--fams-muted);
+    color: var(--fams-text-muted);
     font-size: 0.85rem;
     margin-bottom: 0.35rem;
 }
@@ -426,7 +430,7 @@
 }
 
 .program-description {
-    color: var(--fams-muted);
+    color: var(--fams-text-muted);
     font-size: 0.82rem;
     line-height: 1.5;
     max-width: 520px;
@@ -480,7 +484,7 @@
 }
 
 .action-muted {
-    color: var(--fams-muted);
+    color: var(--fams-text-muted);
     font-size: 0.82rem;
 }
 
@@ -493,7 +497,7 @@
 /* EMPTY STATE */
 
 .empty-programs {
-    color: var(--fams-muted);
+    color: var(--fams-text-muted);
 }
 
 .empty-programs>i {
@@ -715,7 +719,7 @@
 /* EMPTY STATE */
 
 .recommendation-empty {
-    color: var(--fams-muted);
+    color: var(--fams-text-muted);
 }
 
 .recommendation-empty>i {

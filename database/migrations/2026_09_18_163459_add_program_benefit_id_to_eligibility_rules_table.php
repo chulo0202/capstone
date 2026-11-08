@@ -11,7 +11,6 @@ return new class extends Migration
         Schema::table('eligibility_rules', function (Blueprint $table) {
             $table->foreignId('program_benefit_id')
                 ->nullable()
-                ->after('program_id')
                 ->constrained('program_benefits')
                 ->nullOnDelete();
         });

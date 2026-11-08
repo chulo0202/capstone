@@ -17,3 +17,15 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+.env.migration
+
+
+# Local database and backups
+*.sqlite
+*.sqlite3
+*.sql
+
+# Local Composer backups
+composer.json.backup
+composer.lock.backup

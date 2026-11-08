@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('programs', function (Blueprint $table) {
-            $table->dateTime('start_at')->nullable()->after('is_active');
-            $table->dateTime('end_at')->nullable()->after('start_at');
+            $table->dateTime('start_at')->nullable();
+            $table->dateTime('end_at')->nullable();
         });
     }
 

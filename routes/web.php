@@ -12,6 +12,8 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SmsNotificationController;
 use App\Http\Controllers\Admin\WeatherController;
+use App\Http\Controllers\Admin\AdminRegistrationController;
+use App\Http\Controllers\Auth\AdminRegistrationController as AuthAdminRegistrationController;
 use App\Http\Controllers\Auth\RsbsaRegistrationController;
 use App\Http\Controllers\Farmer\AnnouncementController as FarmerAnnouncementController;
 use App\Http\Controllers\Farmer\ApplicationController;
@@ -68,6 +70,13 @@ Route::get('/', function () {
     return view('home', compact('stats'));
 });
 
+Route::get('/admin/register', [AuthAdminRegistrationController::class, 'create'])
+    ->name('admin.register');
+
+Route::post('/admin/register', [AuthAdminRegistrationController::class, 'store'])
+    ->name('admin.register.store')
+    ->middleware('throttle:5,1');
+
 Route::middleware(['auth'])->group(function () {
 
     Route::get('/dashboard', function () {
@@ -76,16 +85,31 @@ Route::middleware(['auth'])->group(function () {
             : redirect()->route('farmer.dashboard');
     })->name('dashboard');
 
+
     /*
     |--------------------------------------------------------------------------
     | Admin Routes
     |--------------------------------------------------------------------------
     */
 
-    Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware(['admin', 'verified'])->group(function () {
 
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])
             ->name('dashboard');
+         Route::get('/admin-registrations', [
+            AdminRegistrationController::class,
+            'index'
+        ])->name('admin-registrations.index');
+
+        Route::patch('/admin-registrations/{user}/approve', [
+            AdminRegistrationController::class,
+            'approve'
+        ])->name('admin-registrations.approve');
+
+        Route::patch('/admin-registrations/{user}/decline', [
+            AdminRegistrationController::class,
+            'decline'
+        ])->name('admin-registrations.decline');
 
         Route::get('/applications', [\App\Http\Controllers\Admin\ApplicationController::class, 'index'])
             ->name('applications.index');
@@ -140,9 +164,6 @@ Route::middleware(['auth'])->group(function () {
 
         Route::put('/programs/{program}', [ProgramController::class, 'update'])
             ->name('programs.update');
-
-        Route::delete('/programs/{program}', [ProgramController::class, 'destroy'])
-            ->name('programs.destroy');
 
         Route::delete('/programs/{program}', [ProgramController::class, 'destroy'])
             ->name('programs.destroy');
@@ -236,6 +257,9 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/profile', [FarmerProfileController::class, 'show'])
             ->name('profile');
+
+        Route::get('/profile/valid-id', [FarmerProfileController::class, 'viewValidId'])
+            ->name('profile.valid-id');
 
         Route::put('/profile', [FarmerProfileController::class, 'update'])
             ->name('profile.update');

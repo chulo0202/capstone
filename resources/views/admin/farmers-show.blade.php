@@ -29,7 +29,7 @@
 </div>
 @endif
         @if($farmer->qr_code_path)
-        <img src="{{ asset('storage/'.$farmer->qr_code_path) }}" alt="QR Code" class="mt-3" style="max-width:150px;">
+        <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($farmer->qr_code_path) }}" alt="QR Code" class="mt-3" style="max-width:150px;">
         @endif
       </div>
     </div>

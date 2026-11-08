@@ -18,6 +18,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'role',
+        'admin_registration_status',
     ];
 
     protected $hidden = [
@@ -40,7 +41,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->role === 'admin'
+            && $this->admin_registration_status === 'approved';
     }
 
     public function isFarmer(): bool

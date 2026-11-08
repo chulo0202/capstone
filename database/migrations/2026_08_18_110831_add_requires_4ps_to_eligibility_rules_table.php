@@ -9,12 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('eligibility_rules', function (Blueprint $table) {
-            $table->boolean('requires_4ps')
-                ->default(false)
-                ->after('requires_association');
+            $table->boolean('requires_4ps')->default(false);
         });
     }
-
     public function down(): void
     {
         Schema::table('eligibility_rules', function (Blueprint $table) {

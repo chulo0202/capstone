@@ -45,7 +45,7 @@
     <div class="fams-user-avatar">
         @if($farmer?->farmer_photo_path)
             <img
-                src="{{ asset('storage/' . $farmer->farmer_photo_path) }}"
+                src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($farmer->farmer_photo_path) }}"
                 alt="Profile Photo"
                 style="width:100%; height:100%; object-fit:cover; border-radius:50%;"
             >

@@ -14,9 +14,9 @@
         <h5 class="fw-bold mb-1">{{ $farmer->full_name }}</h5>
         <p class="text-muted small mb-4">Farmer ID #{{ str_pad($farmer->id, 5, '0', STR_PAD_LEFT) }}</p>
 
-        @if($farmer->qr_code_path && file_exists(public_path('storage/'.$farmer->qr_code_path)))
+        @if($farmer->qr_code_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($farmer->qr_code_path))
         <div class="p-3 bg-white border rounded-3 d-inline-block mb-4" style="box-shadow:var(--fams-shadow);">
-          <img src="{{ asset('storage/'.$farmer->qr_code_path) }}" alt="QR Code" class="img-fluid" style="max-width:240px;">
+          <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($farmer->qr_code_path) }}" alt="QR Code" class="img-fluid" style="max-width:240px;">
         </div>
         @else
         <div class="alert fams-alert fams-alert-warning mb-4">

@@ -20,9 +20,9 @@ class FarmerController extends Controller
 
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
-                $q->where('full_name', 'like', "%{$search}%")
-                    ->orWhere('barangay', 'like', "%{$search}%")
-                    ->orWhere('crop_type', 'like', "%{$search}%");
+                $q->whereLike('full_name', "%{$search}%")
+                    ->orWhereLike('barangay', "%{$search}%")
+                    ->orWhereLike('crop_type', "%{$search}%");
             });
         }
 

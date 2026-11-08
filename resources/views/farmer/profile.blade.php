@@ -22,8 +22,9 @@ $farmerName   = $farmer?->full_name ?? auth()->user()->name;
 $initial      = strtoupper(substr($farmerName ?? 'F', 0, 1));
 $hasPhoto     = (bool) ($farmer?->farmer_photo_path);
 $hasValidId   = (bool) ($farmer?->valid_id_path);
-$photoUrl     = $hasPhoto ? asset('storage/' . $farmer->farmer_photo_path) : null;
-$validIdUrl   = $hasValidId ? asset('storage/' . $farmer->valid_id_path) : null;
+$photoUrl = $hasPhoto
+    ? \Illuminate\Support\Facades\Storage::disk('public')->url($farmer->farmer_photo_path)
+    : null;
 
 // Confirmed against app/Models/Farmer.php: the real, cast boolean
 // attribute is "four_ps_membership" ($fillable + casts()). Note: the
@@ -410,7 +411,7 @@ READ-ONLY VIEW
             </div>
         </div>
         @if($hasValidId)
-            <a href="{{ $validIdUrl }}" target="_blank" rel="noopener" class="btn-view-id">
+            <a href="{{ route('farmer.profile.valid-id') }}" target="_blank" rel="noopener" class="btn-view-id">
                 <i class="bi bi-box-arrow-up-right me-1"></i> View Valid ID
             </a>
         @endif
@@ -630,7 +631,7 @@ preserved exactly as-is)
                         <input type="file" name="valid_id" class="form-control @error('valid_id') is-invalid @enderror" accept=".jpg,.jpeg,.png,.pdf">
                         @error('valid_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         @if($farmer?->valid_id_path)
-                        <small class="text-muted mt-1 d-block">Current file: <a href="{{ asset('storage/'.$farmer->valid_id_path) }}" target="_blank" class="auth-link">View uploaded ID</a></small>
+                        <small class="text-muted mt-1 d-block">Current file: <a href="{{ route('farmer.profile.valid-id') }}" target="_blank" class="auth-link">View uploaded ID</a></small>
                         @endif
                     </div>
                     <div class="col-12">

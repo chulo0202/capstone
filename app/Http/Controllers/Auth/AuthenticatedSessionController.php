@@ -30,6 +30,18 @@ class AuthenticatedSessionController extends Controller
 
         $user = $request->user();
 
+        if (
+            $user->role === 'admin'
+            && $user->admin_registration_status === 'pending'
+        ) {
+            return redirect()
+                ->route('verification.notice')
+                ->with(
+                    'status',
+                    'Your admin registration is pending approval. You will receive access after an existing administrator approves your account.'
+                );
+        }
+
         return redirect()->intended(
             $user->isAdmin() ? route('admin.dashboard') : route('farmer.dashboard')
         );

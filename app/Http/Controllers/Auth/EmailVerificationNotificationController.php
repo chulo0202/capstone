@@ -14,6 +14,15 @@ class EmailVerificationNotificationController extends Controller
     public function store(Request $request): RedirectResponse
     {
         if ($request->user()->hasVerifiedEmail()) {
+            if (
+                $request->user()->role === 'admin'
+                && $request->user()->admin_registration_status === 'pending'
+            ) {
+                return redirect()
+                    ->route('verification.notice')
+                    ->with('status', 'admin-registration-pending');
+            }
+
             return redirect()->intended(route('dashboard', absolute: false));
         }
 

@@ -23,6 +23,11 @@
     <i class="bi bi-file-earmark-text-fill"></i> Applications
 </a>
 
+<a class="fams-nav-link {{ request()->routeIs('admin.admin-registrations.*') ? 'active' : '' }}"
+   href="{{ route('admin.admin-registrations.index') }}">
+    <i class="bi bi-person-gear"></i> Admin Console
+</a>
+
 <a class="fams-nav-link {{ request()->routeIs('admin.programs.create') ? 'active' : '' }}"
    href="{{ route('admin.programs.create') }}">
     <i class="bi bi-journal-plus"></i> Program
@@ -32,6 +37,7 @@
    href="{{ route('admin.programs.index') }}">
     <i class="bi bi-list-ul"></i> Program List
 </a>
+
 
 <div class="fams-nav-label">Operations</div>
 
@@ -54,4 +60,3 @@
    href="{{ route('admin.weather.index') }}">
     <i class="bi bi-cloud-sun-fill"></i> Weather
 </a>
-
