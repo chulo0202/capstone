@@ -26,7 +26,7 @@ class ApplicationController extends Controller
                     $farmerQuery->whereLike('full_name', "%{$search}%");
                 })
                 ->orWhereHas('program', function ($programQuery) use ($search) {
-                    $programQuery->whereLike('title', "%{$search}%");
+                    $programQuery->whereLike('name', "%{$search}%");
                 });
             });
         }
