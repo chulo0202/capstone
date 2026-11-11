@@ -513,33 +513,50 @@
                                 {{-- APPLICATION --}}
                                 <td class="text-center">
 
-                                    <form
-                                        method="POST"
-                                        action="{{ route(
-                                            'farmer.applications.store',
-                                            $rec->program
-                                        ) }}"
-                                    >
+                                    @php
+                                        $applicationStatus = $applicationStatuses[$rec->program->id] ?? null;
+                                    @endphp
 
-                                        @csrf
+                                    @if ($applicationStatus === 'rejected')
 
-                                        <button
-                                            type="submit"
-                                            class="btn btn-sm
-                                                   {{ $rec->eligibility_status === 'eligible'
-                                                       ? 'btn-fams'
-                                                       : 'btn-outline-warning'
-                                                   }}
-                                                   px-3"
-                                        >
-
-                                            <i class="bi bi-send me-1"></i>
-
-                                            Apply Now
-
+                                        <button type="button" class="btn btn-sm btn-outline-danger px-3" disabled>
+                                            <i class="bi bi-x-circle me-1"></i>
+                                            Rejected
                                         </button>
 
-                                    </form>
+                                    @elseif ($applicationStatus !== null)
+
+                                        <button type="button" class="btn btn-sm btn-outline-secondary px-3" disabled>
+                                            <i class="bi bi-check-circle me-1"></i>
+                                            Already applied
+                                        </button>
+
+                                    @else
+
+                                        <form
+                                            method="POST"
+                                            action="{{ route(
+                                                'farmer.applications.store',
+                                                $rec->program
+                                            ) }}"
+                                        >
+                                            @csrf
+
+                                            <button
+                                                type="submit"
+                                                class="btn btn-sm
+                                                       {{ $rec->eligibility_status === 'eligible'
+                                                           ? 'btn-fams'
+                                                           : 'btn-outline-warning'
+                                                       }}
+                                                       px-3"
+                                            >
+                                                <i class="bi bi-send me-1"></i>
+                                                Apply Now
+                                            </button>
+                                        </form>
+
+                                    @endif
 
 
                                     @if(

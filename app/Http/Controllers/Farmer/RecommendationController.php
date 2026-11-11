@@ -17,6 +17,7 @@ class RecommendationController extends Controller
         $farmer = Auth::user()->farmer;
 
         $recommendations = collect();
+        $applicationStatuses = collect();
 
         if ($farmer) {
 
@@ -78,40 +79,17 @@ class RecommendationController extends Controller
 
                 ->values();
 
-            /*
-            |--------------------------------------------------------------------------
-            | Remove Programs With Approved Applications
-            |--------------------------------------------------------------------------
-            |
-            | Once the farmer's application is approved,
-            | the program should no longer appear in Recommendations.
-            |
-            */
-            $approvedProgramIds = Application::where(
+            $applicationStatuses = Application::where(
                     'farmer_id',
                     $farmer->id
                 )
-                ->where('status', 'approved')
-                ->pluck('program_id')
-                ->toArray();
-
-            $recommendations = $recommendations
-                ->reject(function ($recommendation) use (
-                    $approvedProgramIds
-                ) {
-
-                    return in_array(
-                        $recommendation->program->id,
-                        $approvedProgramIds,
-                        true
-                    );
-                })
-                ->values();
+                ->pluck('status', 'program_id');
         }
 
         return view('farmer.recommendations', compact(
             'recommendations',
-            'farmer'
+            'farmer',
+            'applicationStatuses'
         ));
     }
 }
