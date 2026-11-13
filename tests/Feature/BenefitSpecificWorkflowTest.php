@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\EligibilityService;
 use App\Services\RecommendationService;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -49,6 +50,7 @@ class BenefitSpecificWorkflowTest extends TestCase
             ->postJson('/api/qr/verify', ['token' => $farmer->qr_code_token])
             ->assertOk();
     }
+
     public function test_benefit_eligibility_combines_program_rules_without_leaking_benefit_rules(): void
     {
         [, $farmer] = $this->createFarmer();
@@ -93,17 +95,23 @@ class BenefitSpecificWorkflowTest extends TestCase
             'applied_at' => now()->subDays(3),
         ]);
 
+        DB::statement('SAVEPOINT legacy_application_constraint');
+
         try {
             Application::create([
                 'farmer_id' => $farmer->id,
                 'program_id' => $program->id,
                 'status' => 'pending',
             ]);
+
+            DB::statement('RELEASE SAVEPOINT legacy_application_constraint');
             $this->fail('The legacy null-benefit scope must remain unique.');
         } catch (QueryException) {
+            DB::statement('ROLLBACK TO SAVEPOINT legacy_application_constraint');
+            DB::statement('RELEASE SAVEPOINT legacy_application_constraint');
+
             $this->assertSame(1, Application::whereNull('program_benefit_id')->count());
         }
-
         $this->actingAs($user)
             ->post(route('farmer.applications.store', $program), [
                 'program_benefit_id' => $firstBenefit->id,
@@ -466,6 +474,7 @@ class BenefitSpecificWorkflowTest extends TestCase
 
         $this->assertDatabaseCount('distributions', 2);
     }
+
     public function test_program_archive_is_durable_and_historical_program_rows_block_physical_deletion(): void
     {
         $admin = $this->createAdmin();
@@ -493,10 +502,17 @@ class BenefitSpecificWorkflowTest extends TestCase
             ->assertOk()
             ->assertSee('Archived');
 
+        DB::statement('SAVEPOINT program_delete_constraint');
+
         try {
             $program->delete();
+
+            DB::statement('RELEASE SAVEPOINT program_delete_constraint');
             $this->fail('A program with historical applications should not be physically deletable.');
         } catch (QueryException) {
+            DB::statement('ROLLBACK TO SAVEPOINT program_delete_constraint');
+            DB::statement('RELEASE SAVEPOINT program_delete_constraint');
+
             $this->assertDatabaseHas('applications', ['id' => $application->id]);
             $this->assertDatabaseHas('programs', ['id' => $program->id]);
         }
@@ -559,10 +575,17 @@ class BenefitSpecificWorkflowTest extends TestCase
             'action' => 'updated',
         ]);
 
+        DB::statement('SAVEPOINT benefit_delete_constraint');
+
         try {
             $archivedBenefit->delete();
+
+            DB::statement('RELEASE SAVEPOINT benefit_delete_constraint');
             $this->fail('A benefit referenced by an eligibility rule should be protected from deletion.');
         } catch (QueryException) {
+            DB::statement('ROLLBACK TO SAVEPOINT benefit_delete_constraint');
+            DB::statement('RELEASE SAVEPOINT benefit_delete_constraint');
+
             $this->assertDatabaseHas('program_benefits', ['id' => $archivedBenefit->id]);
             $this->assertSame($archivedBenefit->id, $rule->fresh()->program_benefit_id);
         }
