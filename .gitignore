@@ -29,3 +29,12 @@ yarn-error.log
 # Local Composer backups
 composer.json.backup
 composer.lock.backup
+
+# Local Docker build output
+/docker-build.log
+
+# Local correction backups
+correction-backup-*/
+*.bak-before-mariadb-fix
+
+*.bak-before-cleanup

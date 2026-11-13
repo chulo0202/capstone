@@ -25,6 +25,7 @@
                     <tr>
                         <th>Farmer</th>
                         <th>Program</th>
+                        <th>Benefit</th>
                         <th>Date</th>
                         <th>Released By</th>
                         <th>Notes</th>
@@ -47,6 +48,10 @@
                             </td>
 
                             <td>
+                                {{ $dist->benefit?->name ?? 'Legacy distribution' }}
+                            </td>
+
+                            <td>
                                 {{ $dist->distributed_at->format('M d, Y h:i A') }}
                             </td>
 
@@ -65,7 +70,7 @@
                         <tr>
 
                             <td
-                                colspan="5"
+                                colspan="6"
                                 class="text-center text-muted py-4"
                             >
                                 No distribution records

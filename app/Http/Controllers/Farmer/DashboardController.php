@@ -25,13 +25,13 @@ class DashboardController extends Controller
                 ->take(3)
                 ->get(),
             'distributions' => $farmer
-                ? Distribution::with('program')->where('farmer_id', $farmer->id)->latest()->take(5)->get()
+                ? Distribution::with(['program', 'benefit'])->where('farmer_id', $farmer->id)->latest()->take(5)->get()
                 : collect(),
             'applications' => $farmer
-                ? Application::with('program')->where('farmer_id', $farmer->id)->latest('applied_at')->take(5)->get()
+                ? Application::with(['program', 'benefit'])->where('farmer_id', $farmer->id)->latest('applied_at')->take(5)->get()
                 : collect(),
             'recommendations' => $farmer
-                ? Recommendation::with('program')->where('farmer_id', $farmer->id)->latest()->take(5)->get()
+                ? Recommendation::with(['program', 'benefit'])->where('farmer_id', $farmer->id)->latest()->take(5)->get()
                 : collect(),
             'weather' => WeatherPrediction::latest('fetched_at')->first(),
         ]);

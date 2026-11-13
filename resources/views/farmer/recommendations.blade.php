@@ -377,7 +377,7 @@
                         <tr>
 
                             <th class="px-4 py-3">
-                                Program
+                                Program / Benefit
                             </th>
 
                             <th class="py-3">
@@ -417,6 +417,9 @@
 
                                         {{ $rec->program->name }}
 
+                                    </div>
+                                    <div class="small text-muted">
+                                        {{ $rec->benefit->name }}
                                     </div>
 
                                 </td>
@@ -514,7 +517,7 @@
                                 <td class="text-center">
 
                                     @php
-                                        $applicationStatus = $applicationStatuses[$rec->program->id] ?? null;
+                                        $applicationStatus = $applicationStatuses["{$rec->program->id}:{$rec->benefit->id}"] ?? null;
                                     @endphp
 
                                     @if ($applicationStatus === 'rejected')
@@ -541,6 +544,11 @@
                                             ) }}"
                                         >
                                             @csrf
+                                            <input
+                                                type="hidden"
+                                                name="program_benefit_id"
+                                                value="{{ $rec->benefit->id }}"
+                                            >
 
                                             <button
                                                 type="submit"

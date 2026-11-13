@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProfileController extends Controller
@@ -18,6 +19,7 @@ class ProfileController extends Controller
     public function show(): View
     {
         $farmer = Auth::user()->farmer;
+        $farmer?->loadMissing('user');
 
         return view('farmer.profile', compact('farmer'));
     }
@@ -40,9 +42,9 @@ class ProfileController extends Controller
     public function update(Request $request, QrCodeService $qrCodeService, RecommendationService $recommendationService): RedirectResponse
     {
         $user = Auth::user();
+        $isAssociationMember = $request->boolean('association_membership');
 
         $validated = $request->validate([
-            'full_name' => 'required|string|max:255',
             'address' => 'required|string',
             'barangay' => [
                   'required',
@@ -53,30 +55,28 @@ class ProfileController extends Controller
                   'regex:/^09\d{9}$/',
                   ],
             'birthdate' => 'required|date|before:today',
-            'crop_type' => [
-                 'required',
-                 'in:Rice,Corn,Vegetables,Fruits,Coconut,Other',
-                  ],
             'land_size' => 'required|numeric|min:0.01',
-
-            'rsbsa_status' => ['required', 'accepted'],
-            'rsbsa_number' => [
-                'required_if:rsbsa_status,1',
-                'string',
-                'max:50',
-            ],
 
             'association_membership' => 'boolean',
             'four_ps_membership' => 'boolean',
-            'farmer_association' => 'nullable|string|max:255',
+            'farmer_association' => $isAssociationMember
+                ? [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::in(config('farmer_associations', [])),
+                ]
+                : 'nullable',
 
             'valid_id' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'farmer_photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             'password' => 'nullable|string|min:8|confirmed',
         ]);
 
-        $validated['rsbsa_status'] = $request->boolean('rsbsa_status');
-        $validated['association_membership'] = $request->boolean('association_membership');
+        $validated['association_membership'] = $isAssociationMember;
+        $validated['farmer_association'] = $isAssociationMember
+            ? $validated['farmer_association']
+            : null;
         $validated['four_ps_membership'] = $request->boolean('four_ps_membership');
 
         if ($request->hasFile('valid_id')) {

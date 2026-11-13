@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Farmer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Application;
-use App\Models\Distribution;
 use App\Models\Program;
 use App\Services\EligibilityService;
 use Illuminate\Support\Facades\Auth;
@@ -15,75 +14,47 @@ class RecommendationController extends Controller
     public function index(EligibilityService $eligibilityService): View
     {
         $farmer = Auth::user()->farmer;
-
         $recommendations = collect();
         $applicationStatuses = collect();
 
-        if ($farmer) {
-
+        if ($farmer && $farmer->profile_completed && $farmer->is_active) {
             $now = now();
-
-            /*
-            |--------------------------------------------------------------------------
-            | Get Currently Active Programs
-            |--------------------------------------------------------------------------
-            */
-            $programs = Program::where('is_active', true)
+            $programs = Program::available()
                 ->whereNotNull('start_at')
                 ->whereNotNull('end_at')
                 ->where('start_at', '<=', $now)
                 ->where('end_at', '>=', $now)
-                ->with('eligibilityRule')
+                ->whereHas('activeBenefits')
+                ->with(['eligibilityRule', 'activeBenefits'])
                 ->get();
 
-            /*
-            |--------------------------------------------------------------------------
-            | Evaluate Farmer Eligibility
-            |--------------------------------------------------------------------------
-            */
             $recommendations = $programs
-                ->map(function ($program) use (
-                    $farmer,
-                    $eligibilityService
-                ) {
+                ->flatMap(function ($program) use ($farmer, $eligibilityService) {
+                    return $program->activeBenefits
+                        ->filter(fn ($benefit) => $benefit->eligibility_configured_at !== null)
+                        ->map(function ($benefit) use ($program, $farmer, $eligibilityService) {
+                            $evaluation = $eligibilityService->evaluate($farmer, $program, $benefit);
 
-                    $evaluation = $eligibilityService->evaluate(
-                        $farmer,
-                        $program
-                    );
-
-                    return (object) [
-                        'program' => $program,
-                        'eligibility_status' => $evaluation['status'],
-                        'missing_requirements' =>
-                            $evaluation['missing_requirements'],
-                    ];
+                            return (object) [
+                                'program' => $program,
+                                'benefit' => $benefit,
+                                'eligibility_status' => $evaluation['status'],
+                                'missing_requirements' => $evaluation['missing_requirements'],
+                            ];
+                        });
                 })
-
-                /*
-                |--------------------------------------------------------------------------
-                | Only Eligible and Partially Eligible
-                |--------------------------------------------------------------------------
-                */
-                ->filter(function ($recommendation) {
-
-                    return in_array(
-                        $recommendation->eligibility_status,
-                        [
-                            'eligible',
-                            'partially_eligible',
-                        ],
-                        true
-                    );
-                })
-
+                ->filter(fn ($recommendation) => in_array(
+                    $recommendation->eligibility_status,
+                    ['eligible', 'partially_eligible'],
+                    true
+                ))
                 ->values();
 
-            $applicationStatuses = Application::where(
-                    'farmer_id',
-                    $farmer->id
-                )
-                ->pluck('status', 'program_id');
+            $applicationStatuses = Application::where('farmer_id', $farmer->id)
+                ->get(['program_id', 'program_benefit_id', 'status'])
+                ->mapWithKeys(fn (Application $application) => [
+                    "{$application->program_id}:{$application->program_benefit_id}" => $application->status,
+                ]);
         }
 
         return view('farmer.recommendations', compact(

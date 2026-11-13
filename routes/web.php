@@ -144,8 +144,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/farmers/{farmer}', [AdminFarmerController::class, 'show'])
             ->name('farmers.show');
 
-        Route::delete('/farmers/{farmer}', [AdminFarmerController::class, 'destroy'])
-            ->name('farmers.destroy');
+        Route::post('/farmers/{farmer}/deactivate', [AdminFarmerController::class, 'deactivate'])
+            ->name('farmers.deactivate');
+
+        Route::post('/farmers/{farmer}/reactivate', [AdminFarmerController::class, 'reactivate'])
+            ->name('farmers.reactivate');
 
        Route::get('/programs', [ProgramController::class, 'index'])
             ->name('programs.index');

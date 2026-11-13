@@ -13,27 +13,42 @@ class EligibilityController extends Controller
     public function index(EligibilityService $eligibilityService): View
     {
         $farmer = Auth::user()->farmer;
-       $now = now();
+        $now = now();
 
-        $programs = Program::where('is_active', true)
+        $programs = Program::available()
             ->whereNotNull('start_at')
             ->whereNotNull('end_at')
             ->where('start_at', '<=', $now)
             ->where('end_at', '>=', $now)
-            ->with('eligibilityRule')
+            ->whereHas('activeBenefits')
+            ->with(['eligibilityRule', 'activeBenefits.eligibilityRules'])
             ->get();
 
-        $results = $programs->map(function ($program) use ($farmer, $eligibilityService) {
-            $evaluation = $farmer
-                ? $eligibilityService->evaluate($farmer, $program)
-                : ['status' => 'not_eligible', 'missing_requirements' => ['Complete your profile first']];
+        $results = $programs->flatMap(function ($program) use ($farmer, $eligibilityService) {
+            return $program->activeBenefits->map(function ($benefit) use (
+                $program,
+                $farmer,
+                $eligibilityService
+            ) {
+                $evaluation = $farmer
+                    ? $eligibilityService->evaluate($farmer, $program, $benefit)
+                    : [
+                        'status' => 'not_eligible',
+                        'missing_requirements' => ['Complete your profile first'],
+                        'global' => ['status' => 'not_eligible', 'missing_requirements' => []],
+                        'benefit' => ['status' => 'not_eligible', 'missing_requirements' => []],
+                    ];
 
-            return [
-                'program' => $program,
-                'status' => $evaluation['status'],
-                'missing' => $evaluation['missing_requirements'],
-            ];
-        });
+                return [
+                    'program' => $program,
+                    'benefit' => $benefit,
+                    'status' => $evaluation['status'],
+                    'missing' => $evaluation['missing_requirements'],
+                    'global' => $evaluation['global'],
+                    'benefit_evaluation' => $evaluation['benefit'],
+                ];
+            });
+        })->values();
 
         return view('farmer.eligibility', compact('results', 'farmer'));
     }

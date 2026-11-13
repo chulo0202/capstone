@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Farmer;
 use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -167,6 +168,18 @@ class PendingAdminEmailVerificationTest extends TestCase
         $farmer = User::factory()->unverified()->create([
             'role' => 'farmer',
             'admin_registration_status' => 'approved',
+        ]);
+        Farmer::create([
+            'user_id' => $farmer->id,
+            'full_name' => 'Test Farmer',
+            'address' => 'Sample Address',
+            'barangay' => 'Bulan',
+            'contact_number' => '09123456789',
+            'birthdate' => '1990-01-01',
+            'crop_type' => 'Rice',
+            'land_size' => 1.5,
+            'rsbsa_number' => 'RSBSA-TEST-VERIFY-' . fake()->unique()->numerify('######'),
+            'profile_completed' => true,
         ]);
 
         $loginResponse = $this->post('/login', [

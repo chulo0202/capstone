@@ -13,6 +13,8 @@ class Distribution extends Model
     protected $fillable = [
         'farmer_id',
         'program_id',
+        'program_benefit_id',
+        'application_id',
         'released_by',
         'distributed_at',
         'notes',
@@ -33,6 +35,16 @@ class Distribution extends Model
     public function program(): BelongsTo
     {
         return $this->belongsTo(Program::class);
+    }
+
+    public function benefit(): BelongsTo
+    {
+        return $this->belongsTo(ProgramBenefit::class, 'program_benefit_id');
+    }
+
+    public function application(): BelongsTo
+    {
+        return $this->belongsTo(Application::class);
     }
 
     public function releasedBy(): BelongsTo

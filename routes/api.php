@@ -23,6 +23,15 @@ Route::post('/login', function (Request $request) {
 
     $user = $request->user();
 
+    if ($user->isFarmer() && $user->farmer?->is_active !== true) {
+        auth()->logout();
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid email or password.',
+        ], 401);
+    }
+
     $token = $user->createToken('fams-mobile')->plainTextToken;
 
     return response()->json([
@@ -56,7 +65,7 @@ Route::post('/logout', function (Request $request) {
 Route::post('/qr/verify', [
     QRVerificationController::class,
     'verify'
-])->middleware(['auth:sanctum', 'throttle:10,1']);
+])->middleware(['auth:sanctum', 'admin', 'throttle:10,1']);
 
 Route::post('/qr/release', [
     QRVerificationController::class,

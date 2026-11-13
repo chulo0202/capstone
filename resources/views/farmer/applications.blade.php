@@ -259,6 +259,10 @@ APPLICATION HISTORY
                     </th>
 
                     <th>
+                        Benefit
+                    </th>
+
+                    <th>
                         Date Applied
                     </th>
 
@@ -289,6 +293,15 @@ APPLICATION HISTORY
                         if ($application->status === 'approved') {
                             $alreadyReleased = Distribution::where('farmer_id', $application->farmer_id)
                                 ->where('program_id', $application->program_id)
+                                ->when(
+                                    $application->program_benefit_id === null,
+                                    fn ($query) => $query->whereNull('program_benefit_id'),
+                                    fn ($query) => $query->where('program_benefit_id', $application->program_benefit_id)
+                                )
+                                ->where(function ($query) use ($application) {
+                                    $query->where('application_id', $application->id)
+                                        ->orWhereNull('application_id');
+                                })
                                 ->exists();
                         }
                     @endphp
@@ -307,6 +320,10 @@ APPLICATION HISTORY
 
                             </div>
 
+                        </td>
+
+                        <td>
+                            {{ $application->benefit?->name ?? 'Legacy application' }}
                         </td>
 
 
@@ -453,7 +470,7 @@ APPLICATION HISTORY
                     <tr>
 
                         <td
-                            colspan="5"
+                            colspan="6"
                             class="text-center py-5"
                         >
 

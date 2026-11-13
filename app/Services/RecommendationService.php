@@ -14,21 +14,35 @@ class RecommendationService
 
     public function generateForFarmer(Farmer $farmer): void
     {
-        $programs = Program::where('is_active', true)->with('eligibilityRule')->get();
+        $now = now();
+        $programs = Program::available()
+            ->whereNotNull('start_at')
+            ->whereNotNull('end_at')
+            ->where('start_at', '<=', $now)
+            ->where('end_at', '>=', $now)
+            ->with(['eligibilityRule', 'activeBenefits'])
+            ->get();
 
         foreach ($programs as $program) {
-            $result = $this->eligibilityService->evaluate($farmer, $program);
+            foreach ($program->activeBenefits as $benefit) {
+                if (! $benefit->eligibility_configured_at) {
+                    continue;
+                }
 
-            Recommendation::updateOrCreate(
-                [
-                    'farmer_id' => $farmer->id,
-                    'program_id' => $program->id,
-                ],
-                [
-                    'eligibility_status' => $result['status'],
-                    'missing_requirements' => $result['missing_requirements'],
-                ]
-            );
+                $result = $this->eligibilityService->evaluate($farmer, $program, $benefit);
+
+                Recommendation::updateOrCreate(
+                    [
+                        'farmer_id' => $farmer->id,
+                        'program_id' => $program->id,
+                        'program_benefit_id' => $benefit->id,
+                    ],
+                    [
+                        'eligibility_status' => $result['status'],
+                        'missing_requirements' => $result['missing_requirements'],
+                    ]
+                );
+            }
         }
     }
 

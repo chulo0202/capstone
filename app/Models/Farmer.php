@@ -41,6 +41,7 @@ class Farmer extends Model
             'association_membership' => 'boolean',
             'four_ps_membership' => 'boolean',
             'profile_completed' => 'boolean',
+            'is_active' => 'boolean',
         ];
     }
 

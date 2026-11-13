@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('page-title', 'Recommendation Engine')
+@section('page-title', 'Program / Benefit Engine')
 
 @section('main')
 
@@ -42,7 +42,7 @@
 
                         <th class="program-column">
                             <i class="bi bi-box-seam me-1"></i>
-                            Program
+                            Program / Benefit
                         </th>
 
                         <th class="status-column">
@@ -84,6 +84,9 @@
                                     <span>
                                         {{ $recommendation->program->name }}
                                     </span>
+                                </div>
+                                <div class="small text-muted ms-4">
+                                    {{ $recommendation->benefit?->name ?? 'Legacy recommendation' }}
                                 </div>
 
                             </td>

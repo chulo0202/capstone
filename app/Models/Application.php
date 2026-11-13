@@ -13,6 +13,7 @@ class Application extends Model
     protected $fillable = [
         'farmer_id',
         'program_id',
+        'program_benefit_id',
         'status',
         'remarks',
         'applied_at',
@@ -35,5 +36,10 @@ class Application extends Model
     public function program(): BelongsTo
     {
         return $this->belongsTo(Program::class);
+    }
+
+    public function benefit(): BelongsTo
+    {
+        return $this->belongsTo(ProgramBenefit::class, 'program_benefit_id');
     }
 }

@@ -26,13 +26,6 @@ $photoUrl = $hasPhoto
     ? \Illuminate\Support\Facades\Storage::disk('public')->url($farmer->farmer_photo_path)
     : null;
 
-// Confirmed against app/Models/Farmer.php: the real, cast boolean
-// attribute is "four_ps_membership" ($fillable + casts()). Note: the
-// 4Ps <select> in the edit form below posts as "4ps_membership" — see
-// ProfileController::update(), which currently assigns that submitted
-// value to a "4ps_membership" array key that isn't in $fillable, so it
-// never actually persists. Flagged separately; not something this view
-// can fix on its own.
 $fourPsMembership = (bool) ($farmer?->four_ps_membership);
 
 // Profile is considered "complete enough" to show the read-only summary
@@ -255,11 +248,21 @@ $startInEdit = $errors->any() || request()->boolean('edit') || ! $isComplete;
     .fams-edit-photo-current {
         display: flex;
         align-items: center;
-        gap: 1rem;
-        margin-bottom: .9rem;
+        gap: .5rem;
+        margin-bottom: .5rem;
     }
     .fams-edit-photo-current .fams-avatar-wrap { width: 76px; height: 76px; }
     .fams-edit-photo-current .fams-avatar-initial { font-size: 1.6rem; }
+
+    .fams-profile-edit-form .form-label { margin-bottom: .4rem; }
+    .fams-profile-edit-form .form-check {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        min-height: 2.375rem;
+    }
+    .fams-profile-edit-form .form-check-input { margin: 0; flex: 0 0 auto; }
+    .fams-profile-edit-form .form-check-label { margin: 0; white-space: nowrap; }
 
     @media (max-width: 767.98px) {
         .fams-overview-card .d-flex-overview { flex-direction: column; text-align: center; align-items: center !important; }
@@ -389,7 +392,7 @@ READ-ONLY VIEW
                     <span class="fams-info-label">4Ps Membership</span>
                     <span class="fams-info-value">{{ $fourPsMembership ? 'Yes' : 'No' }}</span>
                 </div>
-                <div class="col-12 fams-info-item">
+                <div class="col-md-6 fams-info-item">
                     <span class="fams-info-label">Farmer Association</span>
                     <span class="fams-info-value {{ $farmer?->farmer_association ? '' : 'text-muted-value' }}">{{ $farmer?->farmer_association ?? 'Not a member of any association' }}</span>
                 </div>
@@ -444,28 +447,31 @@ preserved exactly as-is)
             <h6><i class="bi bi-person-badge me-2 text-fams"></i>Farmer Profile</h6>
         </div>
         <div class="fams-card-body">
-            <form method="POST" action="{{ route('farmer.profile.update') }}" enctype="multipart/form-data" id="famsProfileEditForm">
+            <form method="POST" action="{{ route('farmer.profile.update') }}" enctype="multipart/form-data" id="famsProfileEditForm" class="fams-profile-edit-form">
                 @csrf @method('PUT')
-                <div class="row g-3">
+                <div class="row g-4 align-items-stretch">
                     <div class="col-md-6">
-                        <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                        <input type="text" name="full_name" class="form-control @error('full_name') is-invalid @enderror" value="{{ old('full_name', $farmer?->full_name ?? auth()->user()->name) }}" required>
-                        @error('full_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <label class="form-label" for="profile-full-name">Full Name</label>
+                        <output id="profile-full-name" class="form-control bg-light" aria-readonly="true">{{ $farmerName }}</output>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Contact Number <span class="text-danger">*</span></label>
-                        <input type="text" name="contact_number" class="form-control @error('contact_number') is-invalid @enderror" value="{{ old('contact_number', $farmer?->contact_number) }}" placeholder="09XXXXXXXXX" required>
+                        <label class="form-label" for="profile-email">Email</label>
+                        <output id="profile-email" class="form-control bg-light text-break" aria-readonly="true">{{ $farmer?->user?->email ?? auth()->user()->email }}</output>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="profile-contact-number">Contact Number <span class="text-danger">*</span></label>
+                        <input type="text" name="contact_number" id="profile-contact-number" class="form-control @error('contact_number') is-invalid @enderror" value="{{ old('contact_number', $farmer?->contact_number) }}" placeholder="09XXXXXXXXX" required>
                         @error('contact_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-12">
-                        <label class="form-label">Address <span class="text-danger">*</span></label>
-                        <textarea name="address" class="form-control @error('address') is-invalid @enderror" rows="2" required>{{ old('address', $farmer?->address) }}</textarea>
+                        <label class="form-label" for="profile-address">Address <span class="text-danger">*</span></label>
+                        <textarea name="address" id="profile-address" class="form-control @error('address') is-invalid @enderror" rows="2" required>{{ old('address', $farmer?->address) }}</textarea>
                         @error('address')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                    <div class="col-md-4">
-    <label class="form-label">Barangay <span class="text-danger">*</span></label>
+    <label class="form-label" for="profile-barangay">Barangay <span class="text-danger">*</span></label>
 
-    <select name="barangay" class="form-select @error('barangay') is-invalid @enderror" required>
+    <select name="barangay" id="profile-barangay" class="form-select @error('barangay') is-invalid @enderror" required>
         <option value="">Select Barangay</option>
 
         @foreach([
@@ -545,62 +551,35 @@ preserved exactly as-is)
     @enderror
 </div>
                     <div class="col-md-4">
-                        <label class="form-label">Birthdate <span class="text-danger">*</span></label>
-                        <input type="date" name="birthdate" class="form-control @error('birthdate') is-invalid @enderror" value="{{ old('birthdate', $farmer?->birthdate?->format('Y-m-d')) }}" required>
+                        <label class="form-label" for="profile-birthdate">Birthdate <span class="text-danger">*</span></label>
+                        <input type="date" name="birthdate" id="profile-birthdate" class="form-control @error('birthdate') is-invalid @enderror" value="{{ old('birthdate', $farmer?->birthdate?->format('Y-m-d')) }}" required>
                         @error('birthdate')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Crop Type <span class="text-danger">*</span></label>
-                        <select name="crop_type" class="form-select @error('crop_type') is-invalid @enderror" required>
-                            @foreach(['Rice','Corn','Vegetables','Fruits','Coconut','Other'] as $crop)
-                            <option value="{{ $crop }}" {{ old('crop_type', $farmer?->crop_type) === $crop ? 'selected' : '' }}>{{ $crop }}</option>
-                            @endforeach
-                        </select>
-                        @error('crop_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <label class="form-label" for="profile-crop-type">Crop Type</label>
+                        <output id="profile-crop-type" class="form-control bg-light" aria-readonly="true">{{ $farmer?->crop_type ?? '—' }}</output>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Land Size (hectares) <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" name="land_size" class="form-control @error('land_size') is-invalid @enderror" value="{{ old('land_size', $farmer?->land_size) }}" required>
+                        <label class="form-label" for="profile-land-size">Land Size (hectares) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" name="land_size" id="profile-land-size" class="form-control @error('land_size') is-invalid @enderror" value="{{ old('land_size', $farmer?->land_size) }}" required>
                         @error('land_size')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
-                    <div class="col-md-4" id="rsbsa-number-container">
-    <label class="form-label">RSBSA Number</label>
-
-    <input
-        type="text"
-        name="rsbsa_number"
-        id="rsbsa_number"
-        class="form-control @error('rsbsa_number') is-invalid @enderror"
-        value="{{ old('rsbsa_number', $farmer?->rsbsa_number) }}"
-        placeholder="Enter RSBSA Number"
-    >
-
-    @error('rsbsa_number')
-        <div class="invalid-feedback">{{ $message }}</div>
-    @enderror
-</div>
-                    <div class="col-md-4 d-flex align-items-end gap-4 pb-2">
-    <div class="form-check">
+                    <div class="col-md-4">
+                        <label class="form-label" for="profile-rsbsa-number">RSBSA Number</label>
+                        <output id="profile-rsbsa-number" class="form-control bg-light" aria-readonly="true">{{ $farmer?->rsbsa_number ?? 'Not provided' }}</output>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="profile-rsbsa-status">RSBSA Registered Status</label>
+                        <output id="profile-rsbsa-status" class="form-control bg-light" aria-readonly="true">{{ $farmer?->rsbsa_status ? 'Registered' : 'Not registered' }}</output>
+                    </div>
+                    <div class="col-12 d-flex align-items-center">
+    <div class="form-check py-2">
         <input
-            type="checkbox"
-            name="rsbsa_status"
-            value="1"
-            class="form-check-input @error('rsbsa_status') is-invalid @enderror"
-            id="rsbsa"
-            {{ old('rsbsa_status', $farmer?->rsbsa_status) ? 'checked' : '' }}
-            required
+            type="hidden"
+            name="association_membership"
+            value="0"
         >
 
-        <label class="form-check-label" for="rsbsa">
-            RSBSA Registered <span class="text-danger">*</span>
-        </label>
-
-        @error('rsbsa_status')
-            <div class="invalid-feedback">{{ $message }}</div>
-        @enderror
-    </div>
-
-    <div class="form-check">
         <input
             type="checkbox"
             name="association_membership"
@@ -613,31 +592,32 @@ preserved exactly as-is)
         <label class="form-check-label" for="assoc">
             Association Member
         </label>
+
     </div>
 </div>
-                    <div class="col-md-4">
-                        <label class="form-label">4Ps Membership</label>
-                        <select name="four_ps_membership" class="form-select">
+                    <div class="col-12" id="farmer-association-container" style="display: none;">
+                        <label class="form-label" for="farmer_association">Farmer Association</label>
+                        <select name="farmer_association" id="farmer_association" class="form-select @error('farmer_association') is-invalid @enderror" disabled>
+                            <option value="">Select Farmer Association</option>
+                            @foreach(config('farmer_associations', []) as $association)
+                                <option value="{{ $association }}" {{ old('farmer_association', $farmer?->farmer_association) === $association ? 'selected' : '' }}>
+                                    {{ $association }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('farmer_association')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="profile-four-ps">4Ps Membership</label>
+                        <select name="four_ps_membership" id="profile-four-ps" class="form-select">
                             <option value="0" {{ old('four_ps_membership', $fourPsMembership ? 1 : 0) == 0 ? 'selected' : '' }}>No</option>
                             <option value="1" {{ old('four_ps_membership', $fourPsMembership ? 1 : 0) == 1 ? 'selected' : '' }}>Yes</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Farmer Association</label>
-                        <input type="text" name="farmer_association" class="form-control" value="{{ old('farmer_association', $farmer?->farmer_association) }}" placeholder="Association name">
-                    </div>
                     <div class="col-12">
-                        <label class="form-label">Valid ID Upload</label>
-                        <input type="file" name="valid_id" class="form-control @error('valid_id') is-invalid @enderror" accept=".jpg,.jpeg,.png,.pdf">
-                        @error('valid_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        @if($farmer?->valid_id_path)
-                        <small class="text-muted mt-1 d-block">Current file: <a href="{{ route('farmer.profile.valid-id') }}" target="_blank" class="auth-link">View uploaded ID</a></small>
-                        @endif
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label">Farmer Photo</label>
+                        <label class="form-label mb-2" for="profile-farmer-photo">Farmer Photo</label>
 
-                    <div class="fams-edit-photo-current">
+                    <div class="fams-edit-photo-current gap-2 mb-2">
                         <div class="fams-avatar-wrap">
                             @if($hasPhoto)
                                 <img src="{{ $photoUrl }}" alt="Current Farmer Photo">
@@ -649,11 +629,11 @@ preserved exactly as-is)
                             <p class="mb-0 text-muted small">{{ $hasPhoto ? 'Current Profile Photo' : 'No photo uploaded yet' }}</p>
                         </div>
                     </div>
-
                     <input
                         type="file"
                         name="farmer_photo"
-                        class="form-control @error('farmer_photo') is-invalid @enderror"
+                        id="profile-farmer-photo"
+                        class="form-control mt-2 @error('farmer_photo') is-invalid @enderror"
                         accept=".jpg,.jpeg,.png"
                     >
 
@@ -661,11 +641,19 @@ preserved exactly as-is)
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
+                    <div class="col-12">
+                        <label class="form-label" for="profile-valid-id">Valid ID Upload</label>
+                        <input type="file" name="valid_id" id="profile-valid-id" class="form-control mt-2 @error('valid_id') is-invalid @enderror" accept=".jpg,.jpeg,.png,.pdf">
+                        @error('valid_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        @if($farmer?->valid_id_path)
+                        <small class="text-muted mt-1 d-block">Current file: <a href="{{ route('farmer.profile.valid-id') }}" target="_blank" class="auth-link">View uploaded ID</a></small>
+                        @endif
+                    </div>
                 <div class="col-12">
-                    <label class="form-label">Change Password</label>
+                    <label class="form-label" for="profile-password">Change Password</label>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <input type="password" name="password" class="form-control" placeholder="New password">
+                            <input type="password" name="password" id="profile-password" class="form-control" placeholder="New password">
                         </div>
                         <div class="col-md-6">
                             <input type="password" name="password_confirmation" class="form-control" placeholder="Confirm password">
@@ -691,17 +679,16 @@ preserved exactly as-is)
         var btnCancel = document.getElementById('btnCancelEdit');
         var form = document.getElementById('famsProfileEditForm');
 
-        // RSBSA fields
-        var rsbsaCheckbox = document.getElementById('rsbsa');
-        var rsbsaContainer = document.getElementById('rsbsa-number-container');
-        var rsbsaNumber = document.getElementById('rsbsa_number');
+        var associationCheckbox = document.getElementById('assoc');
+        var associationContainer = document.getElementById('farmer-association-container');
+        var associationSelect = document.getElementById('farmer_association');
 
         function showEdit() {
             if (viewMode) viewMode.style.display = 'none';
             if (editMode) editMode.style.display = 'block';
             if (btnEdit) btnEdit.style.display = 'none';
 
-            toggleRsbsaNumber();
+            toggleFarmerAssociation();
         }
 
         function showView() {
@@ -710,18 +697,13 @@ preserved exactly as-is)
             if (btnEdit) btnEdit.style.display = 'inline-flex';
         }
 
-        function toggleRsbsaNumber() {
-            if (!rsbsaCheckbox || !rsbsaContainer) return;
+        function toggleFarmerAssociation() {
+            if (!associationCheckbox || !associationContainer || !associationSelect) return;
 
-            if (rsbsaCheckbox.checked) {
-                rsbsaContainer.style.display = 'block';
-            } else {
-                rsbsaContainer.style.display = 'none';
-
-                if (rsbsaNumber) {
-                    rsbsaNumber.value = '';
-                }
-            }
+            var isMember = associationCheckbox.checked;
+            associationContainer.style.display = isMember ? '' : 'none';
+            associationSelect.disabled = !isMember;
+            associationSelect.required = isMember;
         }
 
         if (btnEdit) {
@@ -732,17 +714,16 @@ preserved exactly as-is)
             btnCancel.addEventListener('click', function () {
                 if (form) form.reset();
 
-                toggleRsbsaNumber();
                 showView();
             });
         }
 
-        if (rsbsaCheckbox) {
-            rsbsaCheckbox.addEventListener('change', toggleRsbsaNumber);
+        if (associationCheckbox) {
+            associationCheckbox.addEventListener('change', toggleFarmerAssociation);
         }
 
         // Set initial state
-        toggleRsbsaNumber();
+        toggleFarmerAssociation();
     })();
 </script>
 

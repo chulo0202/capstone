@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -18,6 +19,7 @@ class Program extends Model
         'is_active',
         'start_at',
         'end_at',
+        'archived_at',
     ];
 
     protected function casts(): array
@@ -26,6 +28,7 @@ class Program extends Model
             'is_active' => 'boolean',
             'start_at' => 'datetime',
             'end_at' => 'datetime',
+            'archived_at' => 'datetime',
         ];
     }
 
@@ -43,6 +46,18 @@ class Program extends Model
     public function benefits(): HasMany
     {
         return $this->hasMany(ProgramBenefit::class);
+    }
+
+    public function activeBenefits(): HasMany
+    {
+        return $this->hasMany(ProgramBenefit::class)
+            ->whereNull('archived_at');
+    }
+
+    public function scopeAvailable(Builder $query): Builder
+    {
+        return $query->where('is_active', true)
+            ->whereNull('archived_at');
     }
 
     public function recommendations(): HasMany

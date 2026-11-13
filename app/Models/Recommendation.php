@@ -13,6 +13,7 @@ class Recommendation extends Model
     protected $fillable = [
         'farmer_id',
         'program_id',
+        'program_benefit_id',
         'eligibility_status',
         'missing_requirements',
     ];
@@ -32,5 +33,10 @@ class Recommendation extends Model
     public function program(): BelongsTo
     {
         return $this->belongsTo(Program::class);
+    }
+
+    public function benefit(): BelongsTo
+    {
+        return $this->belongsTo(ProgramBenefit::class, 'program_benefit_id');
     }
 }

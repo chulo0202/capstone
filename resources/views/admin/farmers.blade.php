@@ -38,7 +38,7 @@
       <table class="table fams-table mb-0">
         <thead>
           <tr>
-            <th>Name</th><th>Barangay</th><th>Crop</th><th>Land (ha)</th><th>RSBSA</th><th>Actions</th>
+            <th>Name</th><th>Barangay</th><th>Crop</th><th>Land (ha)</th><th>RSBSA</th><th>Status</th><th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -51,6 +51,11 @@
             <td>
               <span class="badge fams-badge bg-{{ $farmer->rsbsa_status ? 'success' : 'secondary' }}">
                 {{ $farmer->rsbsa_status ? 'Registered' : 'None' }}
+              </span>
+            </td>
+            <td>
+              <span class="badge fams-badge bg-{{ $farmer->is_active ? 'success' : 'secondary' }}">
+                {{ $farmer->is_active ? 'Active' : 'Inactive' }}
               </span>
             </td>
             <td>
@@ -72,28 +77,31 @@
         <i class="bi bi-pencil-square"></i>
     </a>
 
-    {{-- Delete --}}
+    {{-- Deactivate or reactivate --}}
     <form
-        action="{{ route('admin.farmers.destroy', $farmer) }}"
+        action="{{ $farmer->is_active
+            ? route('admin.farmers.deactivate', $farmer)
+            : route('admin.farmers.reactivate', $farmer) }}"
         method="POST"
         class="d-inline"
-        onsubmit="return confirm('Delete this farmer?')"
+        onsubmit="return confirm('{{ $farmer->is_active
+            ? 'Deactivate this farmer? Historical records will be retained.'
+            : 'Reactivate this farmer?' }}')"
     >
         @csrf
-        @method('DELETE')
 
         <button
             type="submit"
-            class="btn btn-sm btn-fams-outline text-danger"
-            title="Delete Farmer"
+            class="btn btn-sm btn-fams-outline {{ $farmer->is_active ? 'text-danger' : 'text-success' }}"
+            title="{{ $farmer->is_active ? 'Deactivate Farmer' : 'Reactivate Farmer' }}"
         >
-            <i class="bi bi-trash"></i>
+            <i class="bi {{ $farmer->is_active ? 'bi-person-x' : 'bi-person-check' }}"></i>
         </button>
     </form>
 </td>
           </tr>
           @empty
-          <tr><td colspan="6"><div class="fams-empty"><i class="bi bi-people"></i>No farmers registered</div></td></tr>
+          <tr><td colspan="7"><div class="fams-empty"><i class="bi bi-people"></i>No farmers registered</div></td></tr>
           @endforelse
         </tbody>
       </table>

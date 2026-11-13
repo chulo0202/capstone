@@ -107,6 +107,7 @@
                 <thead>
                     <tr>
                         <th class="program-column">Program</th>
+                        <th>Benefit</th>
                         <th class="status-column">Eligibility</th>
                         <th class="application-column">Application</th>
                         <th class="requirements-column">Missing Requirements</th>
@@ -136,6 +137,9 @@
 
                             </td>
 
+                            <td class="program-cell">
+                                {{ $item['benefit']?->name ?? 'Legacy application' }}
+                            </td>
 
                             {{-- ELIGIBILITY --}}
                             <td class="status-cell">
@@ -251,12 +255,8 @@
                                         @csrf
 
                                         <input type="hidden"
-                                               name="farmer_id"
-                                               value="{{ $farmer->id }}">
-
-                                        <input type="hidden"
-                                               name="program_id"
-                                               value="{{ $item['program']->id }}">
+                                               name="application_id"
+                                               value="{{ $item['application']->id }}">
 
                                         <button type="submit"
                                                 class="btn btn-sm btn-fams release-btn"
@@ -311,7 +311,7 @@
                     @empty
 
                         <tr>
-                            <td colspan="5" class="text-center py-5">
+                            <td colspan="6" class="text-center py-5">
 
                                 <div class="empty-programs">
 

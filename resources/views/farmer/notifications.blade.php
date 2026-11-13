@@ -696,6 +696,9 @@
                                 {{ $distribution->program->name }}
 
                             </h6>
+                            <div class="small text-muted mb-1">
+                                {{ $distribution->benefit?->name ?? 'Legacy program-level benefit' }}
+                            </div>
 
                             <p class="small text-muted mb-0">
 

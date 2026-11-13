@@ -104,6 +104,15 @@
                     Inactive
                 </a>
 
+                <a
+                    href="{{ route('admin.programs.index', ['status' => 'archived']) }}"
+                    class="program-filter-btn inactive-filter
+                    {{ request('status') === 'archived' ? 'active-inactive' : '' }}"
+                >
+                    <i class="bi bi-archive me-1"></i>
+                    Archived
+                </a>
+
             </div>
 
         </div>
@@ -186,7 +195,19 @@
 
                                 $now = now();
 
-                                if (
+                                if ($program->archived_at) {
+
+                                    $status = 'archived';
+                                    $statusLabel = 'Archived';
+                                    $statusClass = 'status-inactive';
+
+                                } elseif (!$program->is_active) {
+
+                                    $status = 'inactive';
+                                    $statusLabel = 'Inactive';
+                                    $statusClass = 'status-inactive';
+
+                                } elseif (
                                     $program->start_at &&
                                     $now->lt($program->start_at)
                                 ) {

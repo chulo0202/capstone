@@ -10,7 +10,9 @@ class EnsureUserIsFarmer
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user() || ! $request->user()->isFarmer()) {
+        $user = $request->user();
+
+        if (! $user || ! $user->isFarmer() || $user->farmer?->is_active !== true) {
             abort(403, 'Unauthorized. Farmer access required.');
         }
 

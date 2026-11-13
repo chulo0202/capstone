@@ -348,7 +348,10 @@
         <div class="fams-list-item fams-dash-list-item d-flex justify-content-between align-items-center">
           <span class="d-flex align-items-center gap-3">
             <span class="fams-dash-row-icon"><i class="bi bi-box-seam-fill"></i></span>
-            <strong>{{ $d->program->name }}</strong>
+            <span>
+              <strong>{{ $d->program->name }}</strong>
+              <small class="d-block text-muted">{{ $d->benefit?->name ?? 'Legacy distribution' }}</small>
+            </span>
           </span>
           <span class="badge bg-success fams-badge fams-dash-status-pill">
             <i class="bi bi-calendar-check"></i> {{ $d->distributed_at->format('M d, Y') }}
@@ -374,7 +377,10 @@
         <div class="fams-list-item fams-dash-list-item d-flex justify-content-between align-items-center">
           <span class="d-flex align-items-center gap-3">
             <span class="fams-dash-row-icon"><i class="bi bi-file-earmark-text-fill"></i></span>
-            <strong>{{ $application->program->name }}</strong>
+            <span>
+              <strong>{{ $application->program->name }}</strong>
+              <small class="d-block text-muted">{{ $application->benefit?->name ?? 'Legacy application' }}</small>
+            </span>
           </span>
           @php
               $statusIcon = match($application->status) {

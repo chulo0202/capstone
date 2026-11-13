@@ -59,6 +59,7 @@
                     <tr>
                         <th>Farmer</th>
                         <th>Program</th>
+                        <th>Benefit</th>
                         <th>Applied Date</th>
                         <th>Status</th>
                         <th>Reviewed</th>
@@ -88,6 +89,10 @@
                             {{-- Program --}}
                             <td>
                                 {{ $application->program?->name ?? 'Unknown Program' }}
+                            </td>
+
+                            <td>
+                                {{ $application->benefit?->name ?? 'Legacy application' }}
                             </td>
 
                             {{-- Applied Date --}}
@@ -186,7 +191,7 @@
 
                         <tr>
 
-                            <td colspan="6">
+                            <td colspan="7">
 
                                 <div class="fams-empty">
 

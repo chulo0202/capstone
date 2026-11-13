@@ -34,25 +34,63 @@ class FarmerPortalFlowTest extends TestCase
             'name' => 'Seed Subsidy',
             'description' => 'Support for rice farmers',
             'is_active' => true,
+            'start_at' => now()->subDay(),
+            'end_at' => now()->addDay(),
         ]);
+        $benefit = $program->benefits()->create(['name' => 'Seed package']);
+        $benefit->eligibility_configured_at = now();
+        $benefit->save();
 
-        $response = $this->actingAs($user)->post("/farmer/applications/{$program->id}");
+        $response = $this->actingAs($user)->post("/farmer/applications/{$program->id}", [
+            'program_benefit_id' => $benefit->id,
+        ]);
 
         $response->assertRedirect();
         $this->assertDatabaseHas('applications', [
             'farmer_id' => $user->fresh()->farmer->id,
             'program_id' => $program->id,
+            'program_benefit_id' => $benefit->id,
             'status' => 'pending',
         ]);
     }
 
+    public function test_inactive_farmer_cannot_submit_a_new_application(): void
+    {
+        [$user, $farmer, $program, $benefit] = $this->createFarmerAndActiveProgram();
+        $farmer->is_active = false;
+        $farmer->save();
+
+        $this->actingAs($user)
+            ->post("/farmer/applications/{$program->id}", [
+                'program_benefit_id' => $benefit->id,
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseMissing('applications', [
+            'farmer_id' => $farmer->id,
+            'program_id' => $program->id,
+        ]);
+    }
+
+    public function test_authenticated_inactive_farmer_cannot_access_farmer_portal_routes(): void
+    {
+        [$user, $farmer] = $this->createFarmerAndActiveProgram();
+        $farmer->is_active = false;
+        $farmer->save();
+
+        $this->actingAs($user)
+            ->get(route('farmer.dashboard'))
+            ->assertForbidden();
+    }
+
     public function test_pending_application_shows_already_applied_button(): void
     {
-        [$user, $farmer, $program] = $this->createFarmerAndActiveProgram();
+        [$user, $farmer, $program, $benefit] = $this->createFarmerAndActiveProgram();
 
         Application::create([
             'farmer_id' => $farmer->id,
             'program_id' => $program->id,
+            'program_benefit_id' => $benefit->id,
             'status' => 'pending',
         ]);
 
@@ -65,11 +103,12 @@ class FarmerPortalFlowTest extends TestCase
 
     public function test_rejected_application_shows_rejected_button(): void
     {
-        [$user, $farmer, $program] = $this->createFarmerAndActiveProgram();
+        [$user, $farmer, $program, $benefit] = $this->createFarmerAndActiveProgram();
 
         Application::create([
             'farmer_id' => $farmer->id,
             'program_id' => $program->id,
+            'program_benefit_id' => $benefit->id,
             'status' => 'rejected',
         ]);
 
@@ -82,21 +121,24 @@ class FarmerPortalFlowTest extends TestCase
 
     public function test_farmer_cannot_submit_duplicate_application(): void
     {
-        [$user, $farmer, $program] = $this->createFarmerAndActiveProgram();
+        [$user, $farmer, $program, $benefit] = $this->createFarmerAndActiveProgram();
 
         Application::create([
             'farmer_id' => $farmer->id,
             'program_id' => $program->id,
+            'program_benefit_id' => $benefit->id,
             'status' => 'pending',
         ]);
 
         $response = $this->actingAs($user)
-            ->post("/farmer/applications/{$program->id}");
+            ->post("/farmer/applications/{$program->id}", [
+                'program_benefit_id' => $benefit->id,
+            ]);
 
         $response->assertRedirect();
         $response->assertSessionHas(
             'info',
-            'You already applied for this program.'
+            'You already applied for this benefit.'
         );
 
         $this->assertDatabaseCount('applications', 1);
@@ -104,11 +146,12 @@ class FarmerPortalFlowTest extends TestCase
 
     public function test_approved_application_shows_already_applied_button(): void
     {
-        [$user, $farmer, $program] = $this->createFarmerAndActiveProgram();
+        [$user, $farmer, $program, $benefit] = $this->createFarmerAndActiveProgram();
 
         Application::create([
             'farmer_id' => $farmer->id,
             'program_id' => $program->id,
+            'program_benefit_id' => $benefit->id,
             'status' => 'approved',
         ]);
 
@@ -144,7 +187,10 @@ class FarmerPortalFlowTest extends TestCase
             'start_at' => now()->subDay(),
             'end_at' => now()->addDay(),
         ]);
+        $benefit = $program->benefits()->create(['name' => 'Test benefit']);
+        $benefit->eligibility_configured_at = now();
+        $benefit->save();
 
-        return [$user, $farmer, $program];
+        return [$user, $farmer, $program, $benefit];
     }
 }

@@ -28,6 +28,510 @@
 
             <div class="card-body p-4">
 
+                @if($isEdit ?? false)
+                    @php
+                        $globalRule = $program->eligibilityRule;
+                        $newBenefitIndex = $program->activeBenefits->count();
+                        $cropTypes = ['Rice', 'Corn', 'Vegetables', 'Fruits', 'Coconut', 'Other'];
+                    @endphp
+
+                    <form
+                        method="POST"
+                        action="{{ route('admin.programs.update', $program) }}"
+                        id="programForm"
+                    >
+                        @csrf
+                        @method('PUT')
+
+                        @if($errors->any())
+                            <div
+                                class="alert alert-danger"
+                            >
+                                <ul class="mb-0">
+                                    @foreach($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
+                        <h5 class="fw-bold mb-4">Program Details</h5>
+
+                        <div class="mb-3">
+                            <label
+                                for="name"
+                                class="form-label fw-semibold"
+                            >
+                                Program Name
+                            </label>
+                            <input
+                                type="text"
+                                name="name"
+                                id="name"
+                                class="form-control"
+                                value="{{ old('name', $program->name) }}"
+                                required
+                            >
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label fw-semibold">Description</label>
+                            <textarea
+                                name="description"
+                                id="description"
+                                class="form-control"
+                                rows="4"
+                                required
+                            >{{ old('description', $program->description) }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="eligibility_criteria" class="form-label fw-semibold">Eligibility Criteria</label>
+                            <textarea
+                                name="eligibility_criteria"
+                                id="eligibility_criteria"
+                                class="form-control"
+                                rows="3"
+                            >{{ old('eligibility_criteria', $program->eligibility_criteria) }}</textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="start_at" class="form-label fw-semibold">Start Date &amp; Time</label>
+                                <input
+                                    type="datetime-local"
+                                    name="start_at"
+                                    id="start_at"
+                                    class="form-control"
+                                    value="{{ old('start_at', $program->start_at?->format('Y-m-d\TH:i')) }}"
+                                >
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="end_at" class="form-label fw-semibold">End Date &amp; Time</label>
+                                <input
+                                    type="datetime-local"
+                                    name="end_at"
+                                    id="end_at"
+                                    class="form-control"
+                                    value="{{ old('end_at', $program->end_at?->format('Y-m-d\TH:i')) }}"
+                                >
+                            </div>
+                        </div>
+
+                        <input type="hidden" name="is_active" value="0">
+                        <div class="form-check mb-4">
+                            <input
+                                type="checkbox"
+                                name="is_active"
+                                id="is_active"
+                                value="1"
+                                class="form-check-input"
+                                @checked(old('is_active', $program->is_active))
+                            >
+                            <label for="is_active" class="form-check-label">Program is active</label>
+                        </div>
+
+                        <hr>
+                        <h5 class="fw-bold mb-3">Benefits</h5>
+                        <p class="text-muted">Existing benefit IDs are preserved. Select Archive only to explicitly remove a benefit from active use.</p>
+                        <div class="alert alert-info">
+                            Program-wide rules apply to every benefit. Benefit-specific rules are combined with them. New benefits remain unavailable until eligibility is explicitly configured.
+                        </div>
+
+                        @foreach($program->activeBenefits as $index => $benefit)
+                            @php
+                                $benefitRule = $benefit->eligibilityRules->first();
+                                $rulePrefix = "benefit_rules.{$index}";
+                            @endphp
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <input type="hidden" name="benefits[{{ $index }}][id]" value="{{ $benefit->id }}">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Benefit #{{ $benefit->id }} Name</label>
+                                        <input
+                                            type="text"
+                                            name="benefits[{{ $index }}][name]"
+                                            class="form-control"
+                                            value="{{ old("benefits.{$index}.name", $benefit->name) }}"
+                                            required
+                                        >
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Description</label>
+                                        <textarea
+                                            name="benefits[{{ $index }}][description]"
+                                            class="form-control"
+                                            rows="2"
+                                        >{{ old("benefits.{$index}.description", $benefit->description) }}</textarea>
+                                    </div>
+                                    @if(!$benefit->eligibility_configured_at)
+                                        <input type="hidden" name="benefits[{{ $index }}][eligibility_configured]" value="0">
+                                        <div class="form-check mb-3">
+                                            <input
+                                                type="checkbox"
+                                                name="benefits[{{ $index }}][eligibility_configured]"
+                                                value="1"
+                                                class="form-check-input"
+                                                id="configure_benefit_{{ $benefit->id }}"
+                                                @checked(old("benefits.{$index}.eligibility_configured"))
+                                            >
+                                            <label class="form-check-label" for="configure_benefit_{{ $benefit->id }}">
+                                                Confirm eligibility configuration (including no benefit-specific restrictions)
+                                            </label>
+                                        </div>
+                                    @else
+                                        <div class="small text-success mb-3">
+                                            <i class="bi bi-check-circle me-1"></i>
+                                            Eligibility configured
+                                        </div>
+                                    @endif
+                                    <input type="hidden" name="benefits[{{ $index }}][remove]" value="0">
+                                    <div class="form-check">
+                                        <input
+                                            type="checkbox"
+                                            name="benefits[{{ $index }}][remove]"
+                                            value="1"
+                                            class="form-check-input"
+                                            id="remove_benefit_{{ $benefit->id }}"
+                                            @checked(old("benefits.{$index}.remove"))
+                                        >
+                                        <label class="form-check-label text-danger" for="remove_benefit_{{ $benefit->id }}">
+                                            Archive this benefit
+                                        </label>
+                                    </div>
+
+                                    <hr>
+                                    <h6 class="fw-semibold">
+                                        Benefit-specific eligibility
+                                    </h6>
+                                    <input
+                                        type="hidden"
+                                        name="benefit_rules[{{ $index }}][program_benefit_id]"
+                                        value="{{ $benefit->id }}"
+                                    >
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            Allowed Crop Types
+                                        </label>
+                                        @php
+                                            $selectedBenefitCrops = old("{$rulePrefix}.crop_types", $benefitRule?->crop_types ?? []);
+                                        @endphp
+                                        <input
+                                            type="hidden"
+                                            name="benefit_rules[{{ $index }}][crop_types][]"
+                                            value=""
+                                        >
+                                        <select
+                                            name="benefit_rules[{{ $index }}][crop_types][]"
+                                            class="form-select"
+                                            multiple
+                                        >
+                                            @foreach($cropTypes as $cropType)
+                                                <option
+                                                    value="{{ $cropType }}"
+                                                    @selected(is_array($selectedBenefitCrops) && in_array($cropType, $selectedBenefitCrops, true))
+                                                >
+                                                    {{ $cropType }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <small class="text-muted">
+                                            Leave unselected for no crop restriction.
+                                        </small>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">
+                                                Minimum Land Size (hectares)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                name="benefit_rules[{{ $index }}][min_land_size]"
+                                                class="form-control"
+                                                value="{{ old("{$rulePrefix}.min_land_size", $benefitRule?->min_land_size) }}"
+                                            >
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">
+                                                Maximum Land Size (hectares)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                name="benefit_rules[{{ $index }}][max_land_size]"
+                                                class="form-control"
+                                                value="{{ old("{$rulePrefix}.max_land_size", $benefitRule?->max_land_size) }}"
+                                            >
+                                        </div>
+                                    </div>
+                                    @foreach(['requires_rsbsa' => 'RSBSA Registration', 'requires_association' => 'Farmers Association Membership', 'requires_4ps' => '4Ps Beneficiary'] as $field => $label)
+                                        <input
+                                            type="hidden"
+                                            name="benefit_rules[{{ $index }}][{{ $field }}]"
+                                            value="0"
+                                        >
+                                        <div class="form-check mb-2">
+                                            <input
+                                                type="checkbox"
+                                                name="benefit_rules[{{ $index }}][{{ $field }}]"
+                                                value="1"
+                                                class="form-check-input"
+                                                id="{{ $field }}_{{ $benefit->id }}"
+                                                @checked(old("{$rulePrefix}.{$field}", $benefitRule?->{$field}))
+                                            >
+                                            <label
+                                                class="form-check-label"
+                                                for="{{ $field }}_{{ $benefit->id }}"
+                                            >
+                                                {{ $label }} Required
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                    <input
+                                        type="hidden"
+                                        name="benefit_rules[{{ $index }}][clear]"
+                                        value="0"
+                                    >
+                                    <div class="form-check mt-3">
+                                        <input
+                                            type="checkbox"
+                                            name="benefit_rules[{{ $index }}][clear]"
+                                            value="1"
+                                            class="form-check-input"
+                                            id="clear_rule_{{ $benefit->id }}"
+                                            @checked(old("{$rulePrefix}.clear"))
+                                        >
+                                        <label
+                                            class="form-check-label text-danger"
+                                            for="clear_rule_{{ $benefit->id }}"
+                                        >
+                                            Explicitly clear this benefit's eligibility rule
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+
+                        @foreach($program->benefits->whereNotNull('archived_at') as $benefit)
+                            <div
+                                class="alert alert-secondary"
+                            >
+                                <strong>Archived benefit #{{ $benefit->id }}:</strong> {{ $benefit->name }}
+                                <span class="ms-2">This benefit is retained for historical records.</span>
+                            </div>
+                        @endforeach
+
+                        <div id="newBenefits">
+                            @foreach(old('benefits', []) as $oldBenefit)
+                                @if(is_array($oldBenefit) && empty($oldBenefit['id']))
+                                    <div class="card mb-3">
+                                        <div class="card-body">
+                                            <h6 class="fw-semibold">New benefit</h6>
+                                            <p class="text-muted">Eligibility may be configured with no benefit-specific restrictions now, or later in another edit.</p>
+                                            <div class="mb-3">
+                                                <label class="form-label">Benefit Name</label>
+                                                <input
+                                                    type="text"
+                                                    name="benefits[{{ $newBenefitIndex }}][name]"
+                                                    class="form-control"
+                                                    value="{{ $oldBenefit['name'] ?? '' }}"
+                                                    required
+                                                >
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Description</label>
+                                                <textarea
+                                                    name="benefits[{{ $newBenefitIndex }}][description]"
+                                                    class="form-control"
+                                                    rows="2"
+                                                >{{ $oldBenefit['description'] ?? '' }}</textarea>
+                                            </div>
+                                                <input
+                                                    type="hidden"
+                                                    name="benefits[{{ $newBenefitIndex }}][eligibility_configured]"
+                                                    value="0"
+                                                >
+                                                <div class="form-check mb-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        name="benefits[{{ $newBenefitIndex }}][eligibility_configured]"
+                                                        value="1"
+                                                        class="form-check-input"
+                                                        @checked(!empty($oldBenefit['eligibility_configured']))
+                                                    >
+                                                    <label class="form-check-label">
+                                                        Confirm eligibility is configured with no benefit-specific restrictions
+                                                    </label>
+                                                </div>
+                                                <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-danger remove-new-benefit"
+                                            >
+                                                Remove new benefit
+                                            </button>
+                                        </div>
+                                    </div>
+                                    @php
+                                        $newBenefitIndex++;
+                                    @endphp
+                                @endif
+                            @endforeach
+                        </div>
+                        <button
+                            type="button"
+                            class="btn btn-outline-success mb-4"
+                            id="addBenefit"
+                        >
+                            Add benefit
+                        </button>
+
+                        <hr>
+                        <h5 class="fw-bold mb-3">Program-wide eligibility</h5>
+                        <p class="text-muted">These requirements apply in addition to the selected benefit's requirements.</p>
+                        <div class="mb-3">
+                            <label class="form-label">Allowed Crop Types</label>
+                            @php
+                                $selectedGlobalCrops = old('global_eligibility.crop_types', $globalRule?->crop_types ?? []);
+                            @endphp
+                            <input type="hidden" name="global_eligibility[crop_types][]" value="">
+                            <select name="global_eligibility[crop_types][]" class="form-select" multiple>
+                                @foreach($cropTypes as $cropType)
+                                    <option value="{{ $cropType }}" @selected(is_array($selectedGlobalCrops) && in_array($cropType, $selectedGlobalCrops, true))>{{ $cropType }}</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">Leave unselected for no crop restriction.</small>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Minimum Land Size (hectares)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    name="global_eligibility[min_land_size]"
+                                    class="form-control"
+                                    value="{{ old('global_eligibility.min_land_size', $globalRule?->min_land_size) }}"
+                                >
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Maximum Land Size (hectares)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    name="global_eligibility[max_land_size]"
+                                    class="form-control"
+                                    value="{{ old('global_eligibility.max_land_size', $globalRule?->max_land_size) }}"
+                                >
+                            </div>
+                        </div>
+                        @foreach(['requires_rsbsa' => 'RSBSA Registration', 'requires_association' => 'Farmers Association Membership', 'requires_4ps' => '4Ps Beneficiary'] as $field => $label)
+                            <input type="hidden" name="global_eligibility[{{ $field }}]" value="0">
+                            <div class="form-check mb-2">
+                                <input
+                                    type="checkbox"
+                                    name="global_eligibility[{{ $field }}]"
+                                    value="1"
+                                    class="form-check-input"
+                                    id="global_{{ $field }}"
+                                    @checked(old("global_eligibility.{$field}", $globalRule?->{$field}))
+                                >
+                                <label class="form-check-label" for="global_{{ $field }}">{{ $label }} Required</label>
+                            </div>
+                        @endforeach
+                        <input type="hidden" name="clear_global_eligibility" value="0">
+                        <div class="form-check mt-3 mb-4">
+                            <input
+                                type="checkbox"
+                                name="clear_global_eligibility"
+                                value="1"
+                                class="form-check-input"
+                                id="clear_global_eligibility"
+                                @checked(old('clear_global_eligibility'))
+                            >
+                            <label class="form-check-label text-danger" for="clear_global_eligibility">Explicitly clear the program-wide eligibility rule</label>
+                        </div>
+
+                        <button
+                            type="submit"
+                            class="btn btn-fams"
+                        >
+                            Save Program
+                        </button>
+                        <a href="{{ route('admin.programs.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </form>
+
+                    <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const container = document.getElementById('newBenefits');
+                        const addButton = document.getElementById('addBenefit');
+                        let newBenefitIndex = {{ $newBenefitIndex }};
+
+                        container.addEventListener('click', function (event) {
+                            const removeButton = event.target.closest('.remove-new-benefit');
+                            if (removeButton) {
+                                removeButton.closest('.card').remove();
+                            }
+                        });
+
+                        addButton.addEventListener('click', function () {
+                            const index = newBenefitIndex++;
+                            const card = document.createElement('div');
+                            card.className = 'card mb-3';
+                            card.innerHTML = `
+                                <div class="card-body">
+                                    <h6 class="fw-semibold">New benefit</h6>
+                                    <p class="text-muted">Confirm an unrestricted eligibility setup now, or leave this unchecked and configure rules in another edit.</p>
+                                    <div class="mb-3">
+                                        <label class="form-label">Benefit Name</label>
+                                        <input
+                                            type="text"
+                                            name="benefits[${index}][name]"
+                                            class="form-control"
+                                            required
+                                        >
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Description</label>
+                                        <textarea
+                                            name="benefits[${index}][description]"
+                                            class="form-control"
+                                            rows="2"
+                                        ></textarea>
+                                    </div>
+                                    <input
+                                        type="hidden"
+                                        name="benefits[${index}][eligibility_configured]"
+                                        value="0"
+                                    >
+                                    <div class="form-check mb-3">
+                                        <input
+                                            type="checkbox"
+                                            name="benefits[${index}][eligibility_configured]"
+                                            value="1"
+                                            class="form-check-input"
+                                            id="configure_new_benefit_${index}"
+                                        >
+                                        <label class="form-check-label" for="configure_new_benefit_${index}">
+                                            Confirm eligibility is configured with no benefit-specific restrictions
+                                        </label>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-danger remove-new-benefit"
+                                    >
+                                        Remove new benefit
+                                    </button>
+                                </div>`;
+                            container.appendChild(card);
+                        });
+                    });
+                    </script>
+                @else
+
 
                 {{-- ========================================================
                      STEP INDICATOR
@@ -620,6 +1124,7 @@
                     </div>
 
                 </form>
+                @endif
 
             </div>
 
@@ -634,6 +1139,7 @@
      ================================================================ --}}
 <script>
 
+@if(!($isEdit ?? false))
 document.addEventListener('DOMContentLoaded', function () {
 
     const programSelect =
@@ -673,7 +1179,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             return [
 
-                $program->id => $program->benefits
+                $program->id => $program->activeBenefits
                     ->map(function ($benefit) {
 
                         return [
@@ -1145,6 +1651,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 });
+@endif
 
 </script>
 

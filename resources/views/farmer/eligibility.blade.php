@@ -198,7 +198,7 @@
                         <tr>
 
                             <th class="px-4 py-3">
-                                Program
+                                Program / Benefit
                             </th>
 
                             <th class="py-3">
@@ -233,6 +233,9 @@
 
                                     <div class="fw-semibold">
                                         {{ $item['program']->name }}
+                                    </div>
+                                    <div class="small text-muted">
+                                        {{ $item['benefit']->name }}
                                     </div>
 
                                 </td>
@@ -322,39 +325,31 @@
                                 {{-- Requirements --}}
                                 <td>
 
-                                    @if(count($item['missing']))
-
-                                        <div class="small">
-
-                                            <span class="fw-semibold text-danger">
-                                                Missing:
-                                            </span>
-
-                                            <ul class="mb-0 mt-1 ps-3">
-
-                                                @foreach($item['missing'] as $missing)
-
-                                                    <li>
-                                                        {{ $missing }}
-                                                    </li>
-
+                                    <div class="small mb-2">
+                                        <span class="fw-semibold">Program-wide rules:</span>
+                                        @if($item['global']['missing_requirements'])
+                                            <ul class="mb-0 mt-1 ps-3 text-danger">
+                                                @foreach($item['global']['missing_requirements'] as $missing)
+                                                    <li>{{ $missing }}</li>
                                                 @endforeach
-
                                             </ul>
+                                        @else
+                                            <span class="text-success">Met</span>
+                                        @endif
+                                    </div>
 
-                                        </div>
-
-                                    @else
-
-                                        <span class="small text-success">
-
-                                            <i class="bi bi-check-circle me-1"></i>
-
-                                            All requirements met
-
-                                        </span>
-
-                                    @endif
+                                    <div class="small">
+                                        <span class="fw-semibold">Benefit-specific rules:</span>
+                                        @if($item['benefit_evaluation']['missing_requirements'])
+                                            <ul class="mb-0 mt-1 ps-3 text-danger">
+                                                @foreach($item['benefit_evaluation']['missing_requirements'] as $missing)
+                                                    <li>{{ $missing }}</li>
+                                                @endforeach
+                                            </ul>
+                                        @else
+                                            <span class="text-success">Met</span>
+                                        @endif
+                                    </div>
 
                                 </td>
 

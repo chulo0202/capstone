@@ -26,7 +26,7 @@ class NotificationController extends Controller
             ->get();
 
         $distributions = $farmer
-            ? Distribution::with('program')->where('farmer_id', $farmer->id)->latest('distributed_at')->take(5)->get()
+            ? Distribution::with(['program', 'benefit'])->where('farmer_id', $farmer->id)->latest('distributed_at')->take(5)->get()
             : collect();
 
         $weather = WeatherPrediction::latest('fetched_at')->first();
