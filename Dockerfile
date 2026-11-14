@@ -87,8 +87,4 @@ RUN mkdir -p \
 
 EXPOSE 10000
 
-CMD ["apache2-foreground"]
-
-
-
-
+CMD ["sh", "/var/www/html/start.sh"]
