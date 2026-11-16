@@ -38,3 +38,15 @@ correction-backup-*/
 *.bak-before-mariadb-fix
 
 *.bak-before-cleanup
+
+# Local database backups
+*.dump
+*.backup
+
+# Temporary backup files
+*.bak
+*.bak-*
+
+# Local backup directories
+backup-weather-removal/
+backup-web-scanner/

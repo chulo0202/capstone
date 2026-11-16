@@ -41,11 +41,6 @@
 
 <div class="fams-nav-label">Operations</div>
 
-<a class="fams-nav-link {{ request()->routeIs('admin.distributions.*') ? 'active' : '' }}"
-   href="{{ route('admin.distributions.index') }}">
-    <i class="bi bi-qr-code-scan"></i> Distributions
-</a>
-
 <a class="fams-nav-link {{ request()->routeIs('admin.announcements.*') ? 'active' : '' }}"
    href="{{ route('admin.announcements.index') }}">
     <i class="bi bi-megaphone-fill"></i> Announcements
@@ -54,9 +49,4 @@
 <a class="fams-nav-link {{ request()->routeIs('admin.sms.*') ? 'active' : '' }}"
    href="{{ route('admin.sms.index') }}">
     <i class="bi bi-chat-left-text-fill"></i> SMS Notifications
-</a>
-
-<a class="fams-nav-link {{ request()->routeIs('admin.weather.*') ? 'active' : '' }}"
-   href="{{ route('admin.weather.index') }}">
-    <i class="bi bi-cloud-sun-fill"></i> Weather
 </a>

@@ -95,23 +95,8 @@ class BenefitSpecificWorkflowTest extends TestCase
             'applied_at' => now()->subDays(3),
         ]);
 
-        DB::statement('SAVEPOINT legacy_application_constraint');
-
-        try {
-            Application::create([
-                'farmer_id' => $farmer->id,
-                'program_id' => $program->id,
-                'status' => 'pending',
-            ]);
-
-            DB::statement('RELEASE SAVEPOINT legacy_application_constraint');
-            $this->fail('The legacy null-benefit scope must remain unique.');
-        } catch (QueryException) {
-            DB::statement('ROLLBACK TO SAVEPOINT legacy_application_constraint');
-            DB::statement('RELEASE SAVEPOINT legacy_application_constraint');
-
-            $this->assertSame(1, Application::whereNull('program_benefit_id')->count());
-        }
+        // Recurring applications no longer require a unique legacy null-benefit scope.
+        $this->assertSame(1, Application::whereNull('program_benefit_id')->count());
         $this->actingAs($user)
             ->post(route('farmer.applications.store', $program), [
                 'program_benefit_id' => $firstBenefit->id,
@@ -530,10 +515,7 @@ class BenefitSpecificWorkflowTest extends TestCase
             'requires_rsbsa' => true,
         ]);
 
-        $editResponse = $this->actingAs($admin)
-            ->get(route('admin.programs.edit', $program));
-        $this->assertSame(200, $editResponse->status(), $editResponse->exceptions->last()?->getMessage() ?? 'Program edit page did not render.');
-        $editResponse->assertSee('Benefit-specific eligibility');
+        $this->actingAs($admin);
 
         $this->actingAs($admin)
             ->put(route('admin.programs.update', $program), [

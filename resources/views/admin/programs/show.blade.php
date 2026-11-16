@@ -265,8 +265,77 @@
 
         <div class="card-body">
 
-            @forelse($program->benefits as $benefit)
+                @php
+                    $now = now();
 
+                    $benefitGroups = [
+                        'Active' => collect(),
+                        'Upcoming' => collect(),
+                        'Expired / Inactive' => collect(),
+                    ];
+
+                    foreach ($program->benefits as $benefit) {
+                        $configurations = $benefit->configurations
+                            ->sortByDesc('created_at');
+
+                        $isInactive = $program->archived_at !== null
+                            || ! $program->is_active
+                            || $benefit->archived_at !== null;
+
+                        if ($isInactive) {
+                        $group = 'Expired / Inactive';
+
+                    } elseif ($configurations->contains(
+                        fn ($config) => $config->start_at <= $now
+                            && $config->end_at >= $now
+                    )) {
+                        $group = 'Active';
+
+                    } elseif ($configurations->contains(
+                        fn ($config) => $config->start_at > $now
+                    )) {
+                        $group = 'Upcoming';
+
+                    } elseif (
+                        $program->isPcicCropInsurance()
+                        && $configurations->isEmpty()
+                        && $program->start_at !== null
+                        && $program->end_at !== null
+                        && $program->start_at <= $now
+                        && $program->end_at >= $now
+                    ) {
+                        // Legacy PCIC benefits follow the active program schedule
+                        // when no benefit-specific configuration exists.
+                        $group = 'Active';
+
+                    } else {
+                        $group = 'Expired / Inactive';
+                    }
+
+                        $benefitGroups[$group]->push($benefit);
+                    }
+
+                    foreach ($benefitGroups as $group => $benefits) {
+                        $benefitGroups[$group] = $benefits
+                            ->sortByDesc(
+                                fn ($benefit) => $benefit->configurations
+                                    ->max('created_at') ?? $benefit->created_at
+                            );
+                    }
+                @endphp
+
+                @if($program->benefits->isNotEmpty())
+
+                    @foreach($benefitGroups as $groupName => $groupBenefits)
+
+                <h5 class="fw-bold mt-4 mb-3">
+                    {{ $groupName }}
+                    <span class="badge bg-secondary ms-2">
+                        {{ $groupBenefits->count() }}
+                    </span>
+                </h5>
+
+                @foreach($groupBenefits as $benefit)
                 {{-- ====================================================
                      BENEFIT CARD
                      ==================================================== --}}
@@ -510,7 +579,11 @@
 
                 </div>
 
-            @empty
+                @endforeach
+
+                @endforeach
+
+            @else
 
                 <div class="text-center py-5">
 
@@ -526,7 +599,7 @@
 
                 </div>
 
-            @endforelse
+            @endif
 
         </div>
 

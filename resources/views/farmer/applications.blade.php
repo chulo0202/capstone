@@ -263,6 +263,10 @@ APPLICATION HISTORY
                     </th>
 
                     <th>
+                        Incident Reference
+                    </th>
+
+                    <th>
                         Date Applied
                     </th>
 
@@ -288,22 +292,42 @@ APPLICATION HISTORY
                 @forelse($applications as $application)
 
                     @php
+
                         $alreadyReleased = false;
 
                         if ($application->status === 'approved') {
-                            $alreadyReleased = Distribution::where('farmer_id', $application->farmer_id)
+                            $isPcicClaim = $application->program?->name === 'PCIC Crop Insurance'
+                                && $application->benefit?->name === 'Claim for Indemnity';
+
+                            $distributionQuery = Distribution::query()
+                                ->where('farmer_id', $application->farmer_id)
                                 ->where('program_id', $application->program_id)
                                 ->when(
                                     $application->program_benefit_id === null,
                                     fn ($query) => $query->whereNull('program_benefit_id'),
-                                    fn ($query) => $query->where('program_benefit_id', $application->program_benefit_id)
-                                )
-                                ->where(function ($query) use ($application) {
+                                    fn ($query) => $query->where(
+                                        'program_benefit_id',
+                                        $application->program_benefit_id
+                                    )
+                                );
+
+                            if ($isPcicClaim) {
+                                // PCIC claims must match their specific application.
+                                $distributionQuery->where(
+                                    'application_id',
+                                    $application->id
+                                );
+                            } else {
+                                // Preserve legacy distribution matching for other programs.
+                                $distributionQuery->where(function ($query) use ($application) {
                                     $query->where('application_id', $application->id)
                                         ->orWhereNull('application_id');
-                                })
-                                ->exists();
+                                });
+                            }
+
+                            $alreadyReleased = $distributionQuery->exists();
                         }
+
                     @endphp
 
                     <tr
@@ -324,6 +348,21 @@ APPLICATION HISTORY
 
                         <td>
                             {{ $application->benefit?->name ?? 'Legacy application' }}
+                        </td>
+
+                        <td>
+                            @if($application->pcicDamageIncident)
+                                <span class="fw-semibold text-primary">
+                                    {{ $application->pcicDamageIncident->incident_reference }}
+                                </span>
+
+                                <div class="small text-muted">
+                                    Incident:
+                                    {{ ucfirst($application->pcicDamageIncident->status) }}
+                                </div>
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
                         </td>
 
 
@@ -470,7 +509,7 @@ APPLICATION HISTORY
                     <tr>
 
                         <td
-                            colspan="6"
+                            colspan="7
                             class="text-center py-5"
                         >
 

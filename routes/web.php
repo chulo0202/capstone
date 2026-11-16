@@ -11,7 +11,6 @@ use App\Http\Controllers\Admin\ProgramController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SmsNotificationController;
-use App\Http\Controllers\Admin\WeatherController;
 use App\Http\Controllers\Admin\AdminRegistrationController;
 use App\Http\Controllers\Auth\AdminRegistrationController as AuthAdminRegistrationController;
 use App\Http\Controllers\Auth\RsbsaRegistrationController;
@@ -25,7 +24,6 @@ use App\Http\Controllers\Farmer\RecommendationController;
 use App\Models\Farmer;
 use App\Models\Program;
 use App\Models\Distribution;
-use App\Models\WeatherPrediction;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -50,13 +48,6 @@ Route::get('/', function () {
             'value' => Program::where('is_active', 1)->count(),
             'suffix' => '',
             'label' => 'Active Programs',
-        ],
-
-        [
-            'icon' => 'bi-exclamation-triangle',
-            'value' => WeatherPrediction::where('alert_level', '!=', 'Normal')->count(),
-            'suffix' => '',
-            'label' => 'Weather Alerts Issued',
         ],
 
         [
@@ -114,6 +105,33 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/applications', [\App\Http\Controllers\Admin\ApplicationController::class, 'index'])
             ->name('applications.index');
 
+        // Admin - View submitted farmer application details
+        Route::get(
+            '/applications/{application}',
+            [\App\Http\Controllers\Admin\ApplicationController::class, 'show']
+        )->name('applications.show');
+
+        // PCIC Damage Incident Management
+        Route::get(
+            '/pcic-incidents/{incident}/damage-photo',
+            [\App\Http\Controllers\Admin\PcicDamageIncidentController::class, 'damagePhoto']
+        )->name('pcic-incidents.damage-photo');
+
+        Route::patch(
+            '/pcic-incidents/{incident}/verify',
+            [\App\Http\Controllers\Admin\PcicDamageIncidentController::class, 'verify']
+        )->name('pcic-incidents.verify');
+
+        Route::patch(
+            '/pcic-incidents/{incident}/reject',
+            [\App\Http\Controllers\Admin\PcicDamageIncidentController::class, 'reject']
+        )->name('pcic-incidents.reject');
+
+        Route::get(
+            '/pcic-incidents',
+            [\App\Http\Controllers\Admin\PcicDamageIncidentController::class, 'index']
+        )->name('pcic-incidents.index');
+
         Route::patch('/applications/{application}/approve', [\App\Http\Controllers\Admin\ApplicationController::class, 'approve'])
             ->name('applications.approve');
 
@@ -162,9 +180,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/programs/{program}', [ProgramController::class, 'show'])
             ->name('programs.show');
 
-        Route::get('/programs/{program}/edit', [ProgramController::class, 'edit'])
-            ->name('programs.edit');
-
         Route::put('/programs/{program}', [ProgramController::class, 'update'])
             ->name('programs.update');
 
@@ -192,9 +207,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/distributions', [DistributionController::class, 'index'])
             ->name('distributions.index');
 
-        Route::get('/distributions/scan', [DistributionController::class, 'scan'])
-            ->name('distributions.scan');
-
         Route::post('/distributions/verify', [DistributionController::class, 'verify'])
             ->name('distributions.verify');
 
@@ -221,12 +233,6 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/analytics', [AnalyticsController::class, 'index'])
             ->name('analytics.index');
-
-        Route::get('/weather', [WeatherController::class, 'index'])
-            ->name('weather.index');
-
-        Route::post('/weather/refresh', [WeatherController::class, 'refresh'])
-            ->name('weather.refresh');
 
         Route::get('/reports', [ReportController::class, 'index'])
             ->name('reports.index');

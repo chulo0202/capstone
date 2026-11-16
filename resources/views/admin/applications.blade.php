@@ -7,7 +7,8 @@
 
 <div class="fams-card">
 
-    <div class="fams-card-header d-flex justify-content-between align-items-center">
+    <div class="fams-card-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+
         <div>
             <h6 class="mb-1">
                 <i class="bi bi-file-earmark-text-fill me-2 text-fams"></i>
@@ -18,35 +19,43 @@
             </small>
         </div>
 
-        <form method="GET" class="d-flex gap-2">
+        <form method="GET"
+            action="{{ url()->current() }}"
+            class="d-flex flex-wrap align-items-center justify-content-end gap-2 ms-auto">
 
             <input
-                type="text"
+                type="search"
                 name="search"
                 class="form-control form-control-sm"
                 placeholder="Search farmer or program..."
                 value="{{ request('search') }}"
-                style="min-width:220px;"
+                aria-label="Search applications"
+                style="width: 230px; max-width: 100%;"
             >
 
-            <select name="status" class="form-select form-select-sm">
-                <option value="">All Status</option>
-                <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>
-                    Pending
-                </option>
-                <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>
-                    Approved
-                </option>
-                <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>
-                    Rejected
-                </option>
+            <select
+                name="status"
+                class="form-select form-select-sm"
+                aria-label="Filter applications by status"
+                style="width: 145px;"
+            >
+                <option value="">All Statuses</option>
+                <option value="pending" @selected(request('status') === 'pending')>Pending</option>
+                <option value="approved" @selected(request('status') === 'approved')>Approved</option>
+                <option value="rejected" @selected(request('status') === 'rejected')>Rejected</option>
             </select>
 
-            <button type="submit" class="btn btn-sm btn-fams">
+            <button
+                type="submit"
+                class="btn btn-sm btn-fams px-3"
+                title="Search applications"
+                aria-label="Search applications"
+            >
                 <i class="bi bi-search"></i>
             </button>
 
         </form>
+
     </div>
 
     <div class="fams-card-body p-0">
@@ -132,6 +141,15 @@
 
                             {{-- Actions --}}
                             <td>
+                                <div class="mb-2">
+                                   <a
+                                        href="{{ route('admin.applications.show', $application) }}"
+                                        class="btn btn-sm btn-outline-primary"
+                                    >
+                                        <i class="bi bi-eye me-1"></i>
+                                        View Details
+                                    </a>
+                                </div>
 
                                 @if($application->status === 'pending')
 
@@ -186,6 +204,97 @@
                             </td>
 
                         </tr>
+
+                        <tr>
+                            <td colspan="7" class="p-0 border-0">
+                                <div
+                                    class="d-none"
+                                    id="application-details-{{ $application->id }}"
+                                >
+                                    <div class="p-3 border rounded m-2">
+                                        <h6 class="mb-3">Application Details</h6>
+
+                                        @php
+                                            $formType = $application->detail?->form_type;
+                                            $details = $application->detail?->details ?? [];
+
+                                            $isSimpleClaim = in_array(
+                                                $application->program?->name,
+                                                ['Seed Subsidies', 'Fertilizer Subsidies'],
+                                                true
+                                            );
+                                        @endphp
+
+                                        @if ($formType)
+                                            <p class="mb-2">
+                                                <strong>Form Type:</strong>
+                                                {{ ucwords(str_replace('_', ' ', $formType)) }}
+                                            </p>
+                                        @endif
+
+                                        @if ($application->pcicDamageIncident)
+                                            <p class="mb-2">
+                                                <strong>PCIC Incident Reference:</strong>
+                                                {{ $application->pcicDamageIncident->incident_reference }}
+                                            </p>
+                                        @endif
+
+                                        @if ($isSimpleClaim)
+                                            <p class="mb-2">
+                                                <strong>Farmer:</strong>
+                                                {{ $application->farmer?->full_name ?? 'Unknown' }}
+                                            </p>
+                                            <p class="mb-2">
+                                                <strong>Selected Benefit:</strong>
+                                                {{ $application->benefit?->name ?? 'Not specified' }}
+                                            </p>
+                                            <p class="mb-2">
+                                                <strong>Intent to Claim:</strong>
+                                                {{ !empty($details['confirm_intent']) ? 'Confirmed' : 'Not confirmed' }}
+                                            </p>
+                                        @elseif (!empty($details))
+                                            @foreach ($details as $key => $value)
+                                                @continue($key === 'damage_photo_path')
+
+                                                <p class="mb-2">
+                                                    <strong>
+                                                        {{ ucwords(str_replace('_', ' ', $key)) }}:
+                                                    </strong>
+
+                                                    @if (is_array($value))
+                                                        {{ implode(', ', array_map(
+                                                            fn ($item) => is_scalar($item) ? (string) $item : '[complex value]',
+                                                            $value
+                                                        )) }}
+                                                    @elseif (is_bool($value))
+                                                        {{ $value ? 'Yes' : 'No' }}
+                                                    @else
+                                                        {{ $value === null || $value === '' ? 'Not provided' : $value }}
+                                                    @endif
+                                                </p>
+                                            @endforeach
+
+                                            @if (!empty($details['damage_photo_path']) && $application->pcicDamageIncident)
+                                                <a
+                                                    href="{{ route('admin.pcic-incidents.damage-photo', $application->pcicDamageIncident) }}"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="btn btn-sm btn-outline-primary mt-2"
+                                                >
+                                                    <i class="bi bi-image me-1"></i>
+                                                    View Damage Photo
+                                                </a>
+                                            @endif
+                                        @else
+                                            <p class="text-muted mb-0">
+                                                No additional application details available.
+                                            </p>
+                                        @endif
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+
 
                     @empty
 

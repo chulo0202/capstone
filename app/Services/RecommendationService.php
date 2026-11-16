@@ -15,17 +15,23 @@ class RecommendationService
     public function generateForFarmer(Farmer $farmer): void
     {
         $now = now();
-        $programs = Program::available()
-            ->whereNotNull('start_at')
-            ->whereNotNull('end_at')
-            ->where('start_at', '<=', $now)
-            ->where('end_at', '>=', $now)
+        $programs = Program::query()
+            ->whereNull('archived_at')
+            ->where(function ($query) use ($now) {
+                $query->where(function ($normal) use ($now) {
+                    $normal->where('is_active', true)
+                        ->whereNotNull('start_at')
+                        ->whereNotNull('end_at')
+                        ->where('start_at', '<=', $now)
+                        ->where('end_at', '>=', $now);
+                })->orWhere('name', 'PCIC Crop Insurance');
+            })
             ->with(['eligibilityRule', 'activeBenefits'])
             ->get();
 
         foreach ($programs as $program) {
             foreach ($program->activeBenefits as $benefit) {
-                if (! $benefit->eligibility_configured_at) {
+                if (! $program->isPcicCropInsurance() && ! $benefit->eligibility_configured_at) {
                     continue;
                 }
 

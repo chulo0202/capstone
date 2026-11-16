@@ -14,7 +14,8 @@ Artisan::command('inspire', function () {
 |--------------------------------------------------------------------------
 */
 
-Schedule::command('weather:fetch')->everyMinute();
+// Weather API disabled — scheduled fetching removed.
+// Schedule::command('weather:fetch')->everyMinute();
 
 // Kung gusto mo bawat 1 oras, gamitin ito sa halip:
 // Schedule::command('weather:fetch')->hourly();

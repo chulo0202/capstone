@@ -1,8 +1,7 @@
 #!/bin/sh
 set -eu
 
-echo "Running Laravel database migrations..."
-php artisan migrate --force --no-interaction
+echo "Starting FAMS application..."
+echo "Database migrations must be run separately after verification."
 
-echo "Starting Apache..."
 exec apache2-foreground

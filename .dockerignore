@@ -20,3 +20,17 @@ public/storage
 *.sql
 composer.json.backup
 composer.lock.backup
+
+# Local database backups
+*.dump
+*.backup
+
+# Temporary development backups
+*.bak
+*.bak-*
+*.before-weather-cleanup.bak
+*.before-weather-removal.bak
+
+# Local backup directories
+backup-weather-removal/
+backup-web-scanner/

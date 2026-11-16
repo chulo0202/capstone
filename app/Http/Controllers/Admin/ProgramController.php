@@ -21,8 +21,9 @@ class ProgramController extends Controller
     {
         $now = now();
 
-        $query = Program::with('benefits')
-            ->latest();
+        $query = Program::with([
+            'benefits.configurations',
+        ])->latest();
 
         $status = $request->input('status');
 
@@ -120,9 +121,20 @@ class ProgramController extends Controller
         ]);
     }
 
+
     public function create(): View
     {
-        $availablePrograms = Program::with('activeBenefits')
+        $now = now();
+
+        $availablePrograms = Program::with([
+            'activeBenefits' => function ($query) use ($now) {
+                $query->whereNotIn('id', function ($subquery) use ($now) {
+                    $subquery->select('program_benefit_id')
+                        ->from('benefit_configurations')
+                        ->where('end_at', '>=', $now);
+                });
+            },
+        ])
             ->orderBy('name')
             ->get();
 
@@ -131,12 +143,14 @@ class ProgramController extends Controller
         ]);
     }
 
+
     public function show(Program $program): View
-    {
+        {
         $program->load([
             'eligibilityRule',
             'benefits',
             'benefits.eligibilityRules',
+            'benefits.configurations',
             'activeBenefits.eligibilityRules',
         ]);
 
@@ -144,28 +158,6 @@ class ProgramController extends Controller
 
         return view('admin.programs.show', [
             'program' => $program,
-        ]);
-    }
-
-    public function edit(Program $program): View
-    {
-        $availablePrograms = Program::with('activeBenefits')
-            ->orderBy('name')
-            ->get();
-
-        $program->load([
-            'benefits',
-            'benefits.eligibilityRules',
-            'eligibilityRule',
-            'activeBenefits.eligibilityRules',
-        ]);
-
-        $this->ensureEligibilityRulesAreUnambiguous($program);
-
-        return view('admin.programs.create', [
-            'availablePrograms' => $availablePrograms,
-            'program' => $program,
-            'isEdit' => true,
         ]);
     }
 
@@ -200,14 +192,14 @@ class ProgramController extends Controller
 
             'start_at' => [
                 'required',
-                'date',
-                'after:now',
+                'date'
             ],
 
             'end_at' => [
                 'required',
                 'date',
-                'after_or_equal:start_at',
+                'after:now',
+                'after_or_equal:start_at'
             ],
 
             'eligibility' => [
@@ -266,6 +258,12 @@ class ProgramController extends Controller
             $validated['program_id']
         );
 
+        if ($program->name === 'PCIC Crop Insurance') {
+            throw ValidationException::withMessages([
+                'program_id' => 'PCIC Crop Insurance is permanently available and cannot be configured through Create Program.',
+            ]);
+        }
+
         if ($program->archived_at) {
             throw ValidationException::withMessages([
                 'program_id' => 'Archived programs cannot be configured or reactivated.',
@@ -308,6 +306,26 @@ class ProgramController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | Prevent Duplicate Active or Upcoming Benefit Configurations
+            |--------------------------------------------------------------------------
+            */
+
+            $hasExistingConfiguration = DB::table('benefit_configurations')
+                ->where('program_benefit_id', $benefit->id)
+                ->where('end_at', '>=', now())
+                ->exists();
+
+            if ($hasExistingConfiguration) {
+                throw ValidationException::withMessages([
+                    'program_benefit_id' =>
+                        'This benefit already has an Active or Upcoming configuration. You can configure it again only after its End Date & Time has passed.',
+                ]);
+            }
+
+
             $program->update([
                 'description' => $validated['description'],
                 'start_at' => $validated['start_at'],
@@ -317,7 +335,7 @@ class ProgramController extends Controller
             $ruleQuery = $program->eligibilityRules()
                 ->where('program_id', $program->id)
                 ->where('program_benefit_id', $benefit->id);
-            $rule = $this->singleEligibilityRule($ruleQuery, 'eligibility');
+            $rule = $this->singleEligibilityRule($ruleQuery->getQuery(), 'eligibility');
             $attributes = [
                 'crop_types' => $eligibility['crop_types'] ?? null,
                 'min_land_size' => $eligibility['min_land_size'] ?? null,
@@ -339,6 +357,31 @@ class ProgramController extends Controller
                 $benefit->eligibility_configured_at = now();
                 $benefit->save();
             }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Save Individual Benefit Configuration
+            |--------------------------------------------------------------------------
+            */
+
+            DB::table('benefit_configurations')->insert([
+                'program_benefit_id' => $benefit->id,
+                'description' => $validated['description'],
+                'start_at' => $validated['start_at'],
+                'end_at' => $validated['end_at'],
+                'eligibility_snapshot' => json_encode([
+                    'crop_types' => $eligibility['crop_types'] ?? null,
+                    'min_land_size' => $eligibility['min_land_size'] ?? null,
+                    'max_land_size' => $eligibility['max_land_size'] ?? null,
+                    'requires_rsbsa' => $request->boolean('eligibility.requires_rsbsa'),
+                    'requires_association' => $request->boolean('eligibility.requires_association'),
+                    'requires_4ps' => $request->boolean('eligibility.requires_4ps'),
+                ], JSON_THROW_ON_ERROR),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
 
             AuditLog::create([
                 'user_id' => $request->user()->id,

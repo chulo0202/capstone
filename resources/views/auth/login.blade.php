@@ -12,7 +12,7 @@
             <ul class="auth-brand-features">
                 <li><i class="bi bi-check-circle-fill"></i> Program eligibility tracking</li>
                 <li><i class="bi bi-check-circle-fill"></i> QR-based benefit distribution</li>
-                <li><i class="bi bi-check-circle-fill"></i> Weather advisories & announcements</li>
+                <li><i class="bi bi-check-circle-fill"></i> Program updates & announcements</li>
             </ul>
         </div>
     </div>

@@ -69,4 +69,14 @@ class Farmer extends Model
     {
         return $this->hasMany(Application::class);
     }
+
+    public function pcicInsuranceCoverages(): HasMany
+    {
+        return $this->hasMany(PcicInsuranceCoverage::class);
+    }
+
+    public function pcicDamageIncidents(): HasMany
+    {
+        return $this->hasMany(PcicDamageIncident::class);
+    }
 }

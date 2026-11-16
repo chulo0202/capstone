@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FAMS | Farmer Assistance Management System</title>
-    <meta name="description" content="FAMS is a web-based decision support system helping the Municipal Agriculture Office manage farmer profiles, weather monitoring, government assistance programs, and analytics in one platform.">
+   <meta name="description" content="FAMS is a web-based decision support system helping the Municipal Agriculture Office manage farmer profiles, government assistance programs, distribution monitoring, and analytics in one platform.">
 
     {{-- Google Font: Poppins --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -44,7 +44,6 @@
                 <li class="nav-item"><a class="nav-link active" href="#home">Home</a></li>
                 <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
                 <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
-                <li class="nav-item"><a class="nav-link" href="#weather">Weather</a></li>
                 <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
             </ul>
 
@@ -83,9 +82,9 @@
                 </p>
 
                 <p class="hero-description reveal is-visible reveal-delay-2">
-                    FAMS helps farmers and the Municipal Agriculture Office manage farmer profiles, weather monitoring,
-                    government assistance programs, recommendations, announcements, distribution monitoring, and
-                    analytics &mdash; all through one intelligent platform.
+                    FAMS helps farmers and the Municipal Agriculture Office manage farmer profiles,
+                    government assistance programs, recommendations, announcements, distribution monitoring,
+                    and analytics &mdash; all through one intelligent platform.
                 </p>
 
                 <div class="hero-cta reveal is-visible reveal-delay-3">
@@ -103,8 +102,8 @@
                         <span>Verified Farmer Records</span>
                     </div>
                     <div class="hero-trust-item">
-                        <i class="bi bi-cloud-sun"></i>
-                        <span>Live Weather Monitoring</span>
+                        <i class="bi bi-clipboard2-check"></i>
+                        <span>Government Assistance Programs</span>
                     </div>
                     <div class="hero-trust-item">
                         <i class="bi bi-graph-up-arrow"></i>
@@ -181,18 +180,6 @@
                         </svg>
                     </div>
 
-                    {{-- Floating card: weather --}}
-                    <div class="float-card float-card-weather">
-                        <div class="fc-top">
-                            <span class="fc-icon" style="background:var(--fams-gradient-accent);"><i class="bi bi-cloud-sun-fill"></i></span>
-                            <div>
-                                <div class="fc-title">Bulan, Sorsogon</div>
-                                <div class="fc-sub">Partly Cloudy</div>
-                            </div>
-                        </div>
-                        <div class="fc-value">29&deg;C</div>
-                    </div>
-
                     {{-- Floating card: mobile mockup --}}
                     <div class="float-card float-card-mobile">
                         <div class="fc-top">
@@ -229,9 +216,9 @@
             <div class="col-lg-8 mx-auto text-center section-header reveal">
                 <span class="section-eyebrow"><span class="divider-dot"></span> About the System</span>
                 <h2 class="section-title">About FAMS</h2>
-                <p class="section-subtitle mx-auto">
-                    FAMS is a web-based decision support system designed to help the Municipal Agriculture Office manage
-                    farmer information, provide weather monitoring, recommend assistance programs, and improve
+               <p class="section-subtitle mx-auto">
+                    FAMS is a web-based decision support system designed to help the Municipal Agriculture Office
+                    manage farmer information, recommend assistance programs, monitor distributions, and improve
                     agricultural services using data-driven technologies.
                 </p>
             </div>
@@ -250,15 +237,15 @@
                 <div class="about-card reveal reveal-delay-2">
                     <div class="about-icon"><i class="bi bi-eye"></i></div>
                     <h4>Vision</h4>
-                    <p>A digitally empowered farming community where every farmer has access to timely weather
-                        information, fair program distribution, and personalized recommendations.</p>
+                   <p>A digitally empowered farming community where every farmer has access to
+                     government assistance programs, fair resource distribution, and personalized recommendations.</p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="about-card reveal reveal-delay-3">
                     <div class="about-icon"><i class="bi bi-list-check"></i></div>
                     <h4>Objectives</h4>
-                    <p>Centralize farmer records, automate weather-based advisories, and provide analytics that
+                    <p>Centralize farmer records, streamline government assistance applications, and provide analytics that
                         support faster, evidence-based agricultural planning.</p>
                 </div>
             </div>
@@ -283,12 +270,31 @@
         <div class="row g-4">
             @php
                 $features = [
-                    ['icon' => 'bi-person-vcard', 'title' => 'Farmer Registration', 'desc' => 'Digitally register and maintain verified farmer profiles, farm locations, and crop details in one central database.'],
-                    ['icon' => 'bi-cloud-sun', 'title' => 'Weather Monitoring', 'desc' => 'Track real-time local weather conditions and receive predictive advisories to guide planting and harvest decisions.'],
-                    ['icon' => 'bi-clipboard2-check', 'title' => 'Program Management', 'desc' => 'Create, manage, and monitor government assistance programs from application through approval.'],
-                    ['icon' => 'bi-lightbulb', 'title' => 'Recommendation System', 'desc' => 'Get data-backed suggestions on suitable crops, farming practices, and eligible assistance programs.'],
-                    ['icon' => 'bi-truck', 'title' => 'Distribution Monitoring', 'desc' => 'Track the distribution of seeds, fertilizers, and equipment to ensure accountable, transparent delivery.'],
-                    ['icon' => 'bi-bar-chart-line', 'title' => 'Analytics Dashboard', 'desc' => 'Visualize farmer demographics, program impact, and weather trends through interactive reports.'],
+                    [
+                        'icon' => 'bi-person-vcard',
+                        'title' => 'Farmer Registration',
+                        'desc' => 'Digitally register and maintain verified farmer profiles, farm locations, and crop details in one central database.',
+                    ],
+                    [
+                        'icon' => 'bi-clipboard2-check',
+                        'title' => 'Program Management',
+                        'desc' => 'Create, manage, and monitor government assistance programs from application through approval.',
+                    ],
+                    [
+                        'icon' => 'bi-lightbulb',
+                        'title' => 'Recommendation System',
+                        'desc' => 'Get data-backed suggestions on eligible assistance programs for registered farmers.',
+                    ],
+                    [
+                        'icon' => 'bi-truck',
+                        'title' => 'Distribution Monitoring',
+                        'desc' => 'Track the distribution of seeds, fertilizers, and equipment to ensure accountable, transparent delivery.',
+                    ],
+                    [
+                        'icon' => 'bi-bar-chart-line',
+                        'title' => 'Analytics Dashboard',
+                        'desc' => 'Visualize farmer demographics and government program performance through interactive reports.',
+                    ],
                 ];
             @endphp
 
@@ -328,7 +334,7 @@
                         $steps = [
                             ['icon' => 'bi-person-plus', 'title' => 'Farmer Registration', 'desc' => 'Farmers submit profile and farm details.'],
                             ['icon' => 'bi-patch-check', 'title' => 'Farmer Verification', 'desc' => 'Office staff validate submitted records.'],
-                            ['icon' => 'bi-cloud-sun', 'title' => 'Weather Monitoring', 'desc' => 'System tracks live conditions per area.'],
+                            ['icon' => 'bi-clipboard-check', 'title' => 'Program Application', 'desc' => 'Farmers apply for available assistance programs.'],
                             ['icon' => 'bi-stars', 'title' => 'Program Recommendation', 'desc' => 'Farmers matched to eligible programs.'],
                             ['icon' => 'bi-box-seam', 'title' => 'Distribution Monitoring', 'desc' => 'Resources tracked from release to receipt.'],
                             ['icon' => 'bi-graph-up', 'title' => 'Reports & Analytics', 'desc' => 'Insights generated for planning ahead.'],
@@ -347,93 +353,6 @@
                             </div>
                         </div>
                     @endforeach
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-{{-- =========================================================
-     Live Weather Preview
-     ========================================================= --}}
-<section id="weather" class="bg-alt">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-7 mx-auto text-center section-header reveal">
-                <span class="section-eyebrow"><span class="divider-dot"></span> Weather Monitoring</span>
-                <h2 class="section-title">Live Weather Preview</h2>
-                <p class="section-subtitle mx-auto">Current conditions for the municipality, updated continuously
-                    to support timely farming decisions.</p>
-            </div>
-        </div>
-
-        <div class="row g-4 align-items-stretch">
-            <div class="col-lg-6">
-                <div class="weather-panel h-100 reveal reveal-delay-1">
-                    <div class="weather-loc"><i class="bi bi-geo-alt-fill"></i> Bulan, Sorsogon</div>
-                    <div class="weather-alert"><span class="alert-dot"></span> Alert Level: Normal</div>
-
-                    <div class="weather-main">
-                        <div class="weather-icon-big"><i class="bi bi-cloud-sun-fill"></i></div>
-                        <div>
-                            <div class="weather-temp">29&deg;C</div>
-                            <div class="weather-desc">Partly Cloudy &middot; Feels like 32&deg;C</div>
-                        </div>
-                    </div>
-
-                    <div class="weather-metric-grid">
-                        <div class="weather-metric">
-                            <i class="bi bi-droplet-half"></i>
-                            <div class="wm-value">78%</div>
-                            <div class="wm-label">Humidity</div>
-                        </div>
-                        <div class="weather-metric">
-                            <i class="bi bi-wind"></i>
-                            <div class="wm-value">14 km/h</div>
-                            <div class="wm-label">Wind Speed</div>
-                        </div>
-                        <div class="weather-metric">
-                            <i class="bi bi-speedometer2"></i>
-                            <div class="wm-value">1011 hPa</div>
-                            <div class="wm-label">Pressure</div>
-                        </div>
-                        <div class="weather-metric">
-                            <i class="bi bi-cloud-rain"></i>
-                            <div class="wm-value">4.2 mm</div>
-                            <div class="wm-label">Rainfall</div>
-                        </div>
-                        <div class="weather-metric">
-                            <i class="bi bi-clouds"></i>
-                            <div class="wm-value">62%</div>
-                            <div class="wm-label">Cloud Cover</div>
-                        </div>
-                        <div class="weather-metric">
-                            <i class="bi bi-shield-check"></i>
-                            <div class="wm-value">Normal</div>
-                            <div class="wm-label">Alert Level</div>
-                        </div>
-                    </div>
-
-                    <a href="#" class="btn btn-fams-accent">
-                        <i class="bi bi-graph-up me-1"></i> View Weather Dashboard
-                    </a>
-                </div>
-            </div>
-
-            <div class="col-lg-6">
-                <div class="weather-advisory-card reveal reveal-delay-2">
-                    <h5><i class="bi bi-lightbulb-fill"></i> Predictive Advisory</h5>
-                    <p class="mb-3">Based on current conditions and short-term forecasts, here is what farmers in
-                        the area should keep in mind this week:</p>
-                    <ul class="advisory-list">
-                        <li><i class="bi bi-check-circle"></i> Favorable conditions for transplanting rice seedlings through Thursday.</li>
-                        <li><i class="bi bi-check-circle"></i> Moderate rainfall expected &mdash; delay fertilizer application until skies clear.</li>
-                        <li><i class="bi bi-check-circle"></i> Wind speeds remain within safe range for spraying operations.</li>
-                        <li><i class="bi bi-check-circle"></i> Monitor humidity levels closely to prevent fungal crop disease.</li>
-                    </ul>
-                    <a href="#contact" class="btn btn-fams-outline w-100">
-                        <i class="bi bi-bell me-1"></i> Get Advisory Alerts
-                    </a>
                 </div>
             </div>
         </div>
@@ -497,10 +416,10 @@
             @php
                 $reasons = [
                     ['icon' => 'bi-ui-checks', 'title' => 'Easy Farmer Registration', 'desc' => 'A simple, guided process for onboarding new farmers and their farm data.'],
-                    ['icon' => 'bi-cloud-sun', 'title' => 'Real-Time Weather Monitoring', 'desc' => 'Continuously updated conditions specific to the municipality.'],
-                    ['icon' => 'bi-graph-up-arrow', 'title' => 'Predictive Recommendations', 'desc' => 'Suggestions grounded in weather trends and historical data.'],
+                    ['icon' => 'bi-clipboard2-check', 'title' => 'Program Application Tracking', 'desc' => 'Monitor farmer applications and their approval status.'],
+                    ['icon' => 'bi-box-seam', 'title' => 'Distribution Monitoring', 'desc' => 'Track assistance distribution and resource releases.'],
                     ['icon' => 'bi-clipboard-data', 'title' => 'Government Program Management', 'desc' => 'Centralized tracking of every assistance program in one place.'],
-                    ['icon' => 'bi-chat-dots', 'title' => 'Automatic SMS Notifications', 'desc' => 'Farmers stay informed of alerts and program updates instantly.'],
+                    ['icon' => 'bi-chat-dots', 'title' => 'Automatic SMS Notifications', 'desc' => 'Farmers stay informed of program updates and important announcements.'],
                     ['icon' => 'bi-pie-chart', 'title' => 'Analytics Dashboard', 'desc' => 'Clear, visual reporting to guide agricultural planning decisions.'],
                 ];
             @endphp
@@ -643,7 +562,6 @@
                     <li><a href="#home">Home</a></li>
                     <li><a href="#about">About</a></li>
                     <li><a href="#features">Features</a></li>
-                    <li><a href="#weather">Weather</a></li>
                     <li><a href="#contact">Contact</a></li>
                 </ul>
             </div>

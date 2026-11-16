@@ -51,7 +51,13 @@ return [
         | Public URL comes from the R2 development URL or custom domain.
         */
 
-        'public' => [
+        'public' => env('APP_ENV') === 'local' ? [
+            'driver' => 'local',
+            'root' => storage_path('app/public'),
+            'url' => env('APP_URL') . '/storage',
+            'visibility' => 'public',
+            'throw' => false,
+        ] : [
             'driver' => 's3',
             'key' => env('R2_ACCESS_KEY_ID'),
             'secret' => env('R2_SECRET_ACCESS_KEY'),

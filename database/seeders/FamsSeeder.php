@@ -161,94 +161,68 @@ class FamsSeeder extends Seeder
             | Program Benefits
             |--------------------------------------------------------------------------
             */
+
             $benefits = match ($program->name) {
-                'Seed Subsidies' => [
-                    'Certified seeds (palay, mais)',
-                    'Hybrid seeds',
-                    'Quality planting materials',
-                    'Libre o subsidized na binhi',
-                    'Seed treatment chemicals',
-                ],
-
-                'Fertilizer Subsidies' => [
-                    'Complete fertilizer (NPK)',
-                    'Urea',
-                    'Ammonium Sulfate',
-                    'Organic fertilizer',
-                    'Subsidy voucher para sa pagbili ng pataba',
-                ],
-
-                'Equipment and Machinery Support' => [
-                    'Power tiller',
-                    'Hand tractor',
-                    'Forage chopper',
-                    'Mobile disinfection truck',
-                    'Rice thresher',
-                    'Water pump',
-                    'Equipment grant o subsidized na pagbili',
-                ],
-
                 'Agricultural Loans' => [
-                    'Pautang na may mababang interes',
-                    'Maximum na loan assistance',
-                    'Flexible payment terms',
-                    'Production loan para sa farm inputs',
-                ],
-
-                'Training and Technology Demonstrations' => [
-                    'Libreng seminar at workshop',
-                    'Farmer Field School (FFS)',
-                    'Climate Resiliency Field School',
-                    'Good Agricultural Practices (GAP) training',
-                    'Teknikal na kaalaman sa modernong pagsasaka',
-                    'Demonstration ng bagong teknolohiya',
-                ],
-
-                'Marketing Support' => [
-                    'Tulong sa pag-access sa merkado',
-                    'Kadiwa participation',
-                    'Direktang market linkage',
-                    'Trade fair participation',
-                    'Pag-uugnay sa mga mamimili at negosyante',
-                    'Market linkage assistance',
+                    'Agri-Negosyo (ANYO) Loan',
+                    'Survival and Recovery (SURE) Loan',
+                    'Agri-Puhunan at Pantawid',
+                    'Young Agripreneurs Program (YAP)',
                 ],
 
                 'PCIC Crop Insurance' => [
-                    'Insurance coverage para sa mga pananim',
-                    'Proteksyon laban sa mga sakuna',
-                    'Bayad-pinsala kapag may crop loss',
-                    'Coverage para sa palay, mais, at iba pang pananim',
-                    'Financial protection para sa mga magsasaka',
+                    'New Application',
+                    'Claim for Indemnity',
                 ],
 
-                'Infrastructure Support' => [
-                    'Post-harvest facilities',
-                    'Irrigation system',
-                    'Farm-to-market roads',
-                    'Storage facilities',
-                    'Solar dryer',
-                    'Multi-purpose drying pavement',
-                    'Small water impounding system',
+                'Seed Subsidies' => [
+                    'Certified Seeds (Palay/Mais)',
+                    'Hybrid Seeds',
+                    'Quality Planting Materials',
+                ],
+
+                'Fertilizer Subsidies' => [
+                    'Complete Fertilizer (NPK/Triple 14)',
+                    'Urea',
+                    'Foliar Fertilizer',
+                ],
+
+                'Equipment and Machinery Support' => [
+                    'Combine Harvester',
+                    '4-Wheel Tractor',
                 ],
 
                 'Post-Harvest Support' => [
-                    'Rice mill o thresher',
-                    'Mechanical dryer',
-                    'Storage facilities',
-                    'Packaging materials',
-                    'Transport assistance',
-                    'Kagamitan para sa pag-process ng ani',
-                    'Tulong sa pagbebenta ng ani',
+                    'Mechanical/Solar Grain Dryer',
+                    'Warehouse & Crop Storage',
+                    'Rice Processing Center (RPC)',
+                ],
+
+                'Marketing Support' => [
+                    'Kadiwa ng Pangulo Market Linkage',
+                    'Agri-Trade Fair Participation',
+                    'Bagsakan Center/Trading Post Access',
+                ],
+
+                'Training and Technology Demonstrations' => [
+                    'Techno-Demo Farm Visit (Wet and Dry Season)',
+                ],
+
+                'Infrastructure Support' => [
+                    'Farm-to-Market Roads (FMR)',
+                    'Communal Irrigation Canal',
                 ],
 
                 default => [],
             };
+
 
             /*
             |--------------------------------------------------------------------------
             | Save Benefits
             |--------------------------------------------------------------------------
             */
+
             foreach ($benefits as $benefitName) {
                 ProgramBenefit::updateOrCreate(
                     [
@@ -257,9 +231,14 @@ class FamsSeeder extends Seeder
                     ],
                     [
                         'description' => null,
+                        'always_active' => (
+                            $program->name === 'PCIC Crop Insurance'
+                            && $benefitName === 'Claim for Indemnity'
+                        ),
                     ]
                 );
             }
+
 
             /*
             |--------------------------------------------------------------------------

@@ -5,9 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Application extends Model
 {
+    public function pcicDamageIncident(): HasOne
+    {
+        return $this->hasOne(
+            PcicDamageIncident::class,
+            'application_id'
+        );
+    }
+
     use HasFactory;
 
     protected $fillable = [
@@ -41,5 +50,10 @@ class Application extends Model
     public function benefit(): BelongsTo
     {
         return $this->belongsTo(ProgramBenefit::class, 'program_benefit_id');
+    }
+
+    public function detail(): HasOne
+    {
+        return $this->hasOne(ApplicationDetail::class);
     }
 }

@@ -65,6 +65,11 @@ class Program extends Model
         return $this->hasMany(Recommendation::class);
     }
 
+    public function isPcicCropInsurance(): bool
+    {
+        return $this->name === 'PCIC Crop Insurance';
+    }
+
     public function distributions(): HasMany
     {
         return $this->hasMany(Distribution::class);

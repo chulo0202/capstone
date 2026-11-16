@@ -15,17 +15,30 @@ class ApplicationController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Application::with(['farmer.user', 'program', 'benefit'])
-            ->latest('applied_at');
+        $query = Application::with([
+            'farmer.user',
+            'program',
+            'benefit',
+            'detail',
+            'pcicDamageIncident',
+        ])->latest('applied_at');
 
-        if ($search = $request->get('search')) {
+        if ($search = trim((string) $request->query('search', ''))) {
             $query->where(function ($q) use ($search) {
-                $q->whereHas('farmer', fn ($farmerQuery) => $farmerQuery->whereLike('full_name', "%{$search}%"))
-                    ->orWhereHas('program', fn ($programQuery) => $programQuery->whereLike('name', "%{$search}%"))
-                    ->orWhereHas('benefit', fn ($benefitQuery) => $benefitQuery->whereLike('name', "%{$search}%"));
+                $q->whereHas('farmer', function ($farmerQuery) use ($search) {
+                    $farmerQuery->whereLike('full_name', "%{$search}%")
+                        ->orWhereHas('user', function ($userQuery) use ($search) {
+                            $userQuery->whereLike('email', "%{$search}%");
+                        });
+                })
+                ->orWhereHas('program', function ($programQuery) use ($search) {
+                    $programQuery->whereLike('name', "%{$search}%");
+                })
+                ->orWhereHas('benefit', function ($benefitQuery) use ($search) {
+                    $benefitQuery->whereLike('name', "%{$search}%");
+                });
             });
         }
-
         if ($status = $request->get('status')) {
             $query->where('status', $status);
         }
@@ -33,6 +46,24 @@ class ApplicationController extends Controller
         $applications = $query->paginate(10)->withQueryString();
 
         return view('admin.applications', compact('applications'));
+    }
+
+    /**
+     * Display a farmer's submitted application details.
+     */
+    public function show(Application $application): View
+    {
+        $application->load([
+            'farmer.user',
+            'program',
+            'benefit',
+            'detail',
+            'pcicDamageIncident',
+        ]);
+
+        return view('admin.applications.show', [
+            'application' => $application,
+        ]);
     }
 
     public function approve(
@@ -54,6 +85,15 @@ class ApplicationController extends Controller
 
             if (! $locked->farmer || ! $locked->program) {
                 return 'missing_history';
+            }
+
+            // PCIC indemnity claims require a separate official approval workflow.
+            // Do not allow the generic application approval action to approve them.
+            $isPcicClaim = $locked->program->name === 'PCIC Crop Insurance'
+                && $locked->benefit?->name === 'Claim for Indemnity';
+
+            if ($isPcicClaim) {
+                return 'pcic_official_approval_required';
             }
 
             $evaluation = $eligibilityService->evaluate(
@@ -83,6 +123,7 @@ class ApplicationController extends Controller
 
         if ($result !== 'approved') {
             $message = match ($result) {
+                'pcic_official_approval_required' => 'PCIC indemnity claims cannot be approved through the general application workflow. Official PCIC approval verification is required.',
                 'not_pending' => 'Only pending applications can be approved.',
                 'missing_history' => 'The application is missing its farmer or program record.',
                 default => 'The farmer does not currently meet the application eligibility rules.',

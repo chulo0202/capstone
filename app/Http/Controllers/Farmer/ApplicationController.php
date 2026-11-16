@@ -3,16 +3,20 @@
 namespace App\Http\Controllers\Farmer;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreProgramApplicationRequest;
 use App\Models\Application;
 use App\Models\AuditLog;
 use App\Models\Farmer;
 use App\Models\Program;
 use App\Services\EligibilityService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use App\Models\PcicInsuranceCoverage;
+use App\Models\PcicDamageIncident;
 
 class ApplicationController extends Controller
 {
@@ -21,7 +25,7 @@ class ApplicationController extends Controller
         $farmer = Auth::user()->farmer;
 
         $applications = $farmer
-            ? Application::with(['program', 'benefit'])
+            ? Application::with(['program', 'benefit', 'pcicDamageIncident'])
                 ->where('farmer_id', $farmer->id)
                 ->latest('applied_at')
                 ->get()
@@ -31,17 +35,15 @@ class ApplicationController extends Controller
     }
 
     public function store(
-        Request $request,
+        StoreProgramApplicationRequest $request,
         Program $program,
         EligibilityService $eligibilityService
     ): RedirectResponse {
-        $validated = $request->validate([
-            'program_benefit_id' => ['required', 'integer', 'exists:program_benefits,id'],
-        ]);
+        $validated = $request->validated();
 
         $farmer = Auth::user()->farmer;
 
-        if (! $farmer || $farmer->is_active !== true) {
+        if (! $farmer || ! $farmer->is_active) {
             abort(403, 'Inactive or missing farmer accounts cannot submit applications.');
         }
 
@@ -49,77 +51,242 @@ class ApplicationController extends Controller
             return back()->with('error', 'Please complete your profile before applying.');
         }
 
-        $now = now();
-        if (
-            ! $program->is_active
-            || $program->archived_at
-            || ! $program->start_at
-            || ! $program->end_at
-            || $program->start_at->gt($now)
-            || $program->end_at->lt($now)
-        ) {
-            return back()->with('error', 'This program is not currently accepting applications.');
-        }
+        $newDamagePhotoPath = null;
 
-        $application = DB::transaction(function () use (
-            $program,
-            $farmer,
-            $validated,
-            $eligibilityService
-        ) {
-            $lockedFarmer = Farmer::query()
-                ->whereKey($farmer->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if (! $lockedFarmer->is_active || ! $lockedFarmer->profile_completed) {
-                return null;
-            }
-
-            $lockedProgram = Program::query()
-                ->whereKey($program->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if (
-                ! $lockedProgram->is_active
-                || $lockedProgram->archived_at
-                || ! $lockedProgram->start_at
-                || ! $lockedProgram->end_at
-                || $lockedProgram->start_at->gt(now())
-                || $lockedProgram->end_at->lt(now())
+        try {
+            $result = DB::transaction(function () use (
+                $request,
+                $program,
+                $farmer,
+                $validated,
+                $eligibilityService,
+                &$newDamagePhotoPath
             ) {
-                return null;
-            }
+                $lockedFarmer = Farmer::query()
+                    ->whereKey($farmer->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            $benefit = $lockedProgram->activeBenefits()
-                ->whereKey($validated['program_benefit_id'])
-                ->lockForUpdate()
-                ->first();
+                if (! $lockedFarmer->is_active || ! $lockedFarmer->profile_completed) {
+                    return null;
+                }
 
-            if (! $benefit || ! $benefit->eligibility_configured_at) {
-                return null;
-            }
+                $lockedProgram = Program::query()
+                    ->whereKey($program->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            $evaluation = $eligibilityService->evaluate($lockedFarmer, $lockedProgram, $benefit);
-            if ($evaluation['status'] !== 'eligible') {
-                return null;
-            }
+                if ($lockedProgram->archived_at !== null) {
+                    return null;
+                }
 
-            $application = Application::firstOrCreate(
-                [
-                    'farmer_id' => $farmer->id,
+                $benefit = $lockedProgram->activeBenefits()
+                    ->whereKey($validated['program_benefit_id'])
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $benefit || (
+                    ! $lockedProgram->isPcicCropInsurance()
+                    && ! $benefit->eligibility_configured_at
+                )) {
+                    return null;
+                }
+
+                $now = now();
+
+                $normalAvailability = $lockedProgram->is_active
+                    && $lockedProgram->start_at
+                    && $lockedProgram->end_at
+                    && $lockedProgram->start_at->lte($now)
+                    && $lockedProgram->end_at->gte($now);
+
+                $isPcicClaim = $lockedProgram->name === 'PCIC Crop Insurance'
+                    && $benefit->name === 'Claim for Indemnity';
+
+                if (! $normalAvailability
+                    && ! ($isPcicClaim && $benefit->always_active)) {
+                    return null;
+                }
+
+                $evaluation = $eligibilityService->evaluate(
+                    $lockedFarmer,
+                    $lockedProgram,
+                    $benefit
+                );
+
+                if ($evaluation['status'] !== 'eligible') {
+                    return null;
+                }
+
+                // Preserve one-application-per-benefit behavior for
+                // programs that do not support recurring applications.
+                // PCIC claims will use incident-based duplicate screening.
+                if (! $isPcicClaim) {
+                    $existingApplication = Application::query()
+                        ->where('farmer_id', $lockedFarmer->id)
+                        ->where('program_id', $lockedProgram->id)
+                        ->where('program_benefit_id', $benefit->id)
+                        ->first();
+
+                    if ($existingApplication) {
+                        return [
+                            'application' => $existingApplication,
+                            'created' => false,
+                        ];
+                    }
+                }
+
+                // Validate verified PCIC insurance before accepting a claim.
+                if ($isPcicClaim) {
+                    $coverage = PcicInsuranceCoverage::query()
+                        ->where('farmer_id', $lockedFarmer->id)
+                        ->where('policy_number', $validated['insurance_reference'])
+                        ->where('verification_status', 'verified')
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (! $coverage || ! $coverage->isVerified()) {
+                        return [
+                            'error' => 'A verified PCIC insurance policy is required.',
+                        ];
+                    }
+
+                    $farmerCrop = trim((string) $lockedFarmer->crop_type);
+                    $insuredCrop = trim((string) $coverage->crop_type);
+
+                    if (
+                        $farmerCrop === ''
+                        || $insuredCrop === ''
+                        || strcasecmp($farmerCrop, $insuredCrop) !== 0
+                    ) {
+                        return [
+                            'error' => 'The insured crop does not match your farmer profile. Please contact the administrator to verify your insurance details.',
+                        ];
+                    }
+
+                    $dateOfLoss = \Carbon\Carbon::parse(
+                        $validated['date_of_loss']
+                    )->startOfDay();
+
+                    if (
+                        $dateOfLoss->lt($coverage->coverage_start_date)
+                        || $dateOfLoss->gt($coverage->coverage_end_date)
+                    ) {
+                        return [
+                            'error' => 'The date of loss is outside the insurance coverage period.',
+                        ];
+                    }
+
+                    if (
+                        (float) $validated['area_damaged']
+                        > (float) $coverage->area_insured
+                    ) {
+                        return [
+                            'error' => 'The damaged area exceeds the insured area.',
+                        ];
+                    }
+
+                    // Screen for possible duplicate PCIC damage incidents.
+                    // Same policy, loss date, and cause require review.
+                    $possibleDuplicate = PcicDamageIncident::query()
+                        ->where('farmer_id', $lockedFarmer->id)
+                        ->where('pcic_insurance_coverage_id', $coverage->id)
+                        ->whereDate(
+                            'date_of_loss',
+                            $validated['date_of_loss']
+                        )
+                        ->where(
+                            'cause_of_loss',
+                            $validated['cause_of_loss']
+                        )
+                        ->exists();
+
+                    if ($possibleDuplicate) {
+                        return [
+                            'error' => 'A possible duplicate damage incident was found for this insurance policy and date. Please contact the administrator for review before submitting another claim.',
+                        ];
+                    }
+
+                }
+
+                $details = collect($validated)
+                    ->except(['program_benefit_id', 'damage_photo'])
+                    ->all();
+
+                // Store claim evidence in the private R2 bucket.
+                if ($isPcicClaim && $request->hasFile('damage_photo')) {
+                    $newDamagePhotoPath = $request->file('damage_photo')
+                        ->store(
+                            'pcic-claims/'.$lockedFarmer->id,
+                            'private'
+                        );
+
+                    if (! $newDamagePhotoPath) {
+                        throw new \RuntimeException('Damage photo upload failed.');
+                    }
+
+                    $details['damage_photo_path'] = $newDamagePhotoPath;
+                }
+
+                $application = Application::create([
+                    'farmer_id' => $lockedFarmer->id,
                     'program_id' => $lockedProgram->id,
                     'program_benefit_id' => $benefit->id,
-                ],
-                [
                     'status' => 'pending',
                     'remarks' => 'Submitted through farmer portal',
                     'applied_at' => now(),
-                ]
-            );
+                ]);
 
-            if ($application->wasRecentlyCreated) {
+                $formType = match (true) {
+                    $isPcicClaim => 'pcic_claim',
+                    $lockedProgram->name === 'PCIC Crop Insurance'
+                        => 'pcic_new_application',
+                    $lockedProgram->name === 'Agricultural Loans'
+                        => 'agricultural_loan',
+                    in_array($lockedProgram->name, [
+                        'Seed Subsidies',
+                        'Fertilizer Subsidies',
+                    ], true) => 'claim_intent',
+                    default => 'service_request',
+                };
+
+                $application->detail()->create([
+                    'form_type' => $formType,
+                    'details' => $details,
+                ]);
+
+
+                // Create a PCIC damage incident for each new claim.
+                // This runs inside the same database transaction.
+                if ($isPcicClaim) {
+                    $incident = PcicDamageIncident::create([
+                        'farmer_id' => $lockedFarmer->id,
+                        'pcic_insurance_coverage_id' => $coverage->id,
+                        'incident_reference' => PcicDamageIncident::generateReference(),
+                        'date_of_loss' => $validated['date_of_loss'],
+                        'cause_of_loss' => $validated['cause_of_loss'],
+                        'crop_type' => $coverage->crop_type,
+                        'area_damaged' => $validated['area_damaged'],
+                        'status' => 'pending',
+                        'application_id' => $application->id,
+                        'reviewed_by' => null,
+                        'reviewed_at' => null,
+                        'review_notes' => null,
+                    ]);
+
+                    AuditLog::create([
+                        'user_id' => $lockedFarmer->user_id,
+                        'action' => 'PCIC_INCIDENT_REPORTED',
+                        'model' => 'PcicDamageIncident',
+                        'model_id' => $incident->id,
+                        'details' => [
+                            'incident_reference' => $incident->incident_reference,
+                            'application_id' => $application->id,
+                            'pcic_insurance_coverage_id' => $coverage->id,
+                        ],
+                    ]);
+                }
+
                 AuditLog::create([
                     'user_id' => $lockedFarmer->user_id,
                     'action' => 'APPLICATION_SUBMITTED',
@@ -128,21 +295,53 @@ class ApplicationController extends Controller
                     'details' => [
                         'program_id' => $lockedProgram->id,
                         'program_benefit_id' => $benefit->id,
+                        'form_type' => $formType,
                     ],
                 ]);
+
+                return [
+                    'application' => $application,
+                    'created' => true,
+                ];
+            });
+
+        } catch (\Throwable $exception) {
+            if ($newDamagePhotoPath) {
+                try {
+                    if (! Storage::disk('private')->delete($newDamagePhotoPath)) {
+                        Log::warning('Failed to clean up PCIC claim photo.', [
+                            'farmer_id' => $farmer->id,
+                        ]);
+                    }
+                } catch (\Throwable $cleanupException) {
+                    Log::error('PCIC claim photo cleanup failed.', [
+                        'farmer_id' => $farmer->id,
+                        'exception' => get_class($cleanupException),
+                    ]);
+                }
             }
 
-            return $application;
-        });
+            Log::error('Farmer application submission failed.', [
+                'farmer_id' => $farmer->id,
+                'program_id' => $program->id,
+                'exception' => get_class($exception),
+            ]);
 
-        if (! $application) {
+            throw $exception;
+        }
+
+        if (! $result) {
             return back()->with(
                 'error',
                 'This benefit is unavailable or you do not meet its eligibility requirements.'
             );
         }
 
-        if (! $application->wasRecentlyCreated) {
+        if (isset($result['error'])) {
+            return back()->with('error', $result['error']);
+        }
+
+        if (! $result['created']) {
             return back()->with('info', 'You already applied for this benefit.');
         }
 

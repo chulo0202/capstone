@@ -7,7 +7,6 @@ use App\Models\Distribution;
 use App\Models\Farmer;
 use App\Models\Program;
 use App\Models\Recommendation;
-use App\Models\WeatherPrediction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -482,137 +481,6 @@ class AnalyticsController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 04 - PREDICTIVE FARMER NEEDS / WEATHER
-        |--------------------------------------------------------------------------
-        */
-
-        $weatherQuery = WeatherPrediction::query()
-            ->whereBetween(
-                'fetched_at',
-                [$periodStart, $periodEnd]
-            );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Weather Alerts
-        |--------------------------------------------------------------------------
-        */
-
-        $totalWeatherAlerts = (clone $weatherQuery)
-            ->where('alert_level', '!=', 'Normal')
-            ->count();
-
-        /*
-        |--------------------------------------------------------------------------
-        | Weather Alert Levels + Percentage
-        |--------------------------------------------------------------------------
-        */
-
-        $weatherAlertsPerLevel = (clone $weatherQuery)
-            ->select(
-                'alert_level',
-                DB::raw('count(*) as total')
-            )
-            ->groupBy('alert_level')
-            ->orderByDesc('total')
-            ->get();
-
-        $totalWeatherRecords = (clone $weatherQuery)->count();
-
-        $weatherAlertsPerLevel->transform(function ($item) use (
-            $totalWeatherRecords
-        ) {
-            $item->percentage = $totalWeatherRecords > 0
-                ? round(
-                    ($item->total / $totalWeatherRecords) * 100,
-                    2
-                )
-                : 0;
-
-            return $item;
-        });
-
-        /*
-        |--------------------------------------------------------------------------
-        | Latest Weather For Selected Period
-        |--------------------------------------------------------------------------
-        */
-
-        $latestWeather = (clone $weatherQuery)
-            ->latest('fetched_at')
-            ->first();
-
-        /*
-        |--------------------------------------------------------------------------
-        | Farmers At Risk
-        |--------------------------------------------------------------------------
-        |
-        | Uses the same crop-based rules as AtRiskFarmerService.
-        |
-        */
-
-        $farmersAtRisk = collect();
-
-        if ($latestWeather && $latestWeather->alert_level !== 'Normal') {
-
-            $alert = $latestWeather->alert_level;
-
-            $riskQuery = Farmer::query()
-                ->whereBetween(
-                    'created_at',
-                    [$periodStart, $periodEnd]
-                );
-
-            if ($alert === 'Rain Alert') {
-
-                $riskQuery->whereIn(
-                    'crop_type',
-                    ['Rice', 'Vegetables']
-                );
-
-            } elseif ($alert === 'Storm Warning') {
-
-                // All farmers are at risk.
-
-            } elseif ($alert === 'Extreme Heat') {
-
-                $riskQuery->whereIn(
-                    'crop_type',
-                    ['Vegetables', 'Corn']
-                );
-
-            } elseif ($alert === 'Strong Wind') {
-
-                $riskQuery->whereIn(
-                    'crop_type',
-                    ['Corn', 'Banana']
-                );
-
-            } else {
-
-                $riskQuery->whereRaw('1 = 0');
-            }
-
-            $farmersAtRisk = $riskQuery
-                ->latest()
-                ->get();
-        }
-
-        $farmersAtRiskCount = $farmersAtRisk->count();
-
-        /*
-        |--------------------------------------------------------------------------
-        | Weather History
-        |--------------------------------------------------------------------------
-        */
-
-        $weatherHistory = (clone $weatherQuery)
-            ->latest('fetched_at')
-            ->limit(10)
-            ->get();
-
-        /*
-        |--------------------------------------------------------------------------
         | 05 - DESCRIPTIVE ANALYTICS & TRENDS
         |--------------------------------------------------------------------------
         */
@@ -726,27 +594,6 @@ class AnalyticsController extends Controller
 
             'programPerformanceSummary' =>
                 $programPerformanceSummary,
-
-            /*
-            | Weather
-            */
-            'totalWeatherAlerts' =>
-                $totalWeatherAlerts,
-
-            'weatherAlertsPerLevel' =>
-                $weatherAlertsPerLevel,
-
-            'farmersAtRisk' =>
-                $farmersAtRisk,
-
-            'farmersAtRiskCount' =>
-                $farmersAtRiskCount,
-
-            'latestWeather' =>
-                $latestWeather,
-
-            'weatherHistory' =>
-                $weatherHistory,
 
             /*
             | Trends

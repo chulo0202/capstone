@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\Distribution;
 use App\Models\SmsNotification;
-use App\Models\WeatherPrediction;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -29,8 +28,6 @@ class NotificationController extends Controller
             ? Distribution::with(['program', 'benefit'])->where('farmer_id', $farmer->id)->latest('distributed_at')->take(5)->get()
             : collect();
 
-        $weather = WeatherPrediction::latest('fetched_at')->first();
-
-        return view('farmer.notifications', compact('notifications', 'announcements', 'distributions', 'weather', 'farmer'));
+        return view('farmer.notifications', compact('notifications', 'announcements', 'distributions', 'farmer'));
     }
 }

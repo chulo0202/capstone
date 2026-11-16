@@ -536,33 +536,62 @@
 
                                     @else
 
-                                        <form
-                                            method="POST"
-                                            action="{{ route(
-                                                'farmer.applications.store',
-                                                $rec->program
-                                            ) }}"
-                                        >
-                                            @csrf
-                                            <input
-                                                type="hidden"
-                                                name="program_benefit_id"
-                                                value="{{ $rec->benefit->id }}"
-                                            >
 
-                                            <button
-                                                type="submit"
-                                                class="btn btn-sm
-                                                       {{ $rec->eligibility_status === 'eligible'
-                                                           ? 'btn-fams'
-                                                           : 'btn-outline-warning'
-                                                       }}
-                                                       px-3"
-                                            >
-                                                <i class="bi bi-send me-1"></i>
-                                                Apply Now
-                                            </button>
-                                        </form>
+                                    @php
+                                        $programName = $rec->program->name;
+                                        $benefitName = $rec->benefit->name;
+
+                                        $formType = match (true) {
+                                            $programName === 'Agricultural Loans'
+                                                => 'agricultural_loan',
+
+                                            $programName === 'PCIC Crop Insurance'
+                                                && $benefitName === 'Claim for Indemnity'
+                                                => 'pcic_claim',
+
+                                            $programName === 'PCIC Crop Insurance'
+                                                => 'pcic_new_application',
+
+                                            in_array($programName, [
+                                                'Seed Subsidies',
+                                                'Fertilizer Subsidies',
+                                            ], true) => 'claim_intent',
+
+                                            default => 'service_request',
+                                        };
+
+                                        $buttonLabel = match ($formType) {
+                                            'pcic_claim' => 'File Claim',
+                                            'claim_intent' => 'Confirm Intent to Claim',
+                                            'service_request' => 'Request Service',
+                                            default => 'Apply Now',
+                                        };
+                                    @endphp
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm
+                                            {{ $rec->eligibility_status === 'eligible'
+                                                ? 'btn-fams'
+                                                : 'btn-outline-warning'
+                                            }}
+                                            px-3"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#programApplicationModal"
+                                        data-application-url="{{ route(
+                                            'farmer.applications.store',
+                                            $rec->program
+                                        ) }}"
+                                        data-benefit-id="{{ $rec->benefit->id }}"
+                                        data-benefit-name="{{ $rec->benefit->name }}"
+                                        data-program-name="{{ $rec->program->name }}"
+                                        data-form-type="{{ $formType }}"
+
+                                    >
+                                        <i class="bi bi-send me-1"></i>
+                                        {{ $buttonLabel }}
+                                    </button>
+
 
                                     @endif
 
@@ -627,6 +656,113 @@
         </div>
 
     </div>
+
+
+        {{-- Program-specific application modal --}}
+        @include('farmer.partials.application-modal')
+
+
+        {{-- APPLICATION MODAL SCRIPT --}}
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const modal = document.getElementById('programApplicationModal');
+            const form = document.getElementById('programApplicationForm');
+
+            if (!modal || !form) {
+                return;
+            }
+
+            const benefitId = document.getElementById('modalBenefitId');
+            const modalTitle = document.getElementById('programApplicationModalLabel');
+            const modalDescription = document.getElementById('modalBenefitDescription');
+            const submitButton = document.getElementById('modalSubmitButton');
+
+            modal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+
+                if (!button || button.disabled) {
+                    event.preventDefault();
+                    return;
+                }
+
+                const formType = button.dataset.formType;
+                const programName = button.dataset.programName;
+                const benefitName = button.dataset.benefitName;
+
+                // Clear previous application information.
+                form.reset();
+                form.removeAttribute('action');
+                benefitId.value = '';
+
+                // Hide and disable all program-specific fields.
+                modal.querySelectorAll('.application-fields').forEach(function (section) {
+                    section.classList.add('d-none');
+
+                    section.querySelectorAll('input, select, textarea').forEach(function (field) {
+                        field.disabled = true;
+                    });
+                });
+
+                // Find the matching form section.
+                const section = Array.from(
+                    modal.querySelectorAll('.application-fields')
+                ).find(function (element) {
+                    return element.dataset.formType.split(/\s+/).includes(formType);
+                });
+
+                if (!section) {
+                    event.preventDefault();
+                    return;
+                }
+
+                section.classList.remove('d-none');
+
+                section.querySelectorAll('input, select, textarea').forEach(function (field) {
+                    field.disabled = false;
+                });
+
+                // Handle PCIC-specific fields.
+                modal.querySelectorAll('.pcic-new-only').forEach(function (element) {
+                    const visible = formType === 'pcic_new_application';
+
+                    element.classList.toggle('d-none', !visible);
+
+                    element.querySelectorAll('input, select, textarea').forEach(function (field) {
+                        field.disabled = !visible;
+                    });
+                });
+
+                modal.querySelectorAll('.pcic-claim-only').forEach(function (element) {
+                    const visible = formType === 'pcic_claim';
+
+                    element.classList.toggle('d-none', !visible);
+
+                    element.querySelectorAll('input, select, textarea').forEach(function (field) {
+                        field.disabled = !visible;
+                    });
+                });
+
+                modalTitle.textContent = programName;
+                modalDescription.textContent = benefitName;
+
+                form.action = button.dataset.applicationUrl;
+                benefitId.value = button.dataset.benefitId;
+
+                submitButton.textContent = {
+                    agricultural_loan: 'Submit Loan Application',
+                    pcic_new_application: 'Submit Insurance Application',
+                    pcic_claim: 'File Claim',
+                    claim_intent: 'Confirm Intent to Claim',
+                    service_request: 'Submit Service Request'
+                }[formType] || 'Submit Application';
+
+                // Keep submissions disabled until backend safeguards
+                // and functional testing are completed.
+                submitButton.disabled = false;
+            });
+        });
+        </script>
+
 
 
     {{-- =========================================================

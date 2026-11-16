@@ -1,7 +1,7 @@
 @extends('layouts.farmer')
 
 @section('page-title', 'Notifications')
-@section('page-subtitle', 'Stay updated with your applications, benefits, announcements, and weather alerts')
+@section('page-subtitle', 'Stay updated with your applications, benefits, and announcements')
 
 @section('main')
 
@@ -9,11 +9,9 @@
     $smsCount = $notifications->count();
     $announcementCount = $announcements->count();
     $distributionCount = $distributions->count();
-    $weatherCount = $weather ? 1 : 0;
 
-    $totalUpdates = $smsCount + $announcementCount + $distributionCount + $weatherCount;
+    $totalUpdates = $smsCount + $announcementCount + $distributionCount;
 @endphp
-
 
 {{-- =========================================================
     SUMMARY CARDS
@@ -103,49 +101,6 @@
 
     </div>
 
-
-    {{-- WEATHER --}}
-    <div class="col-md-6 col-xl-3">
-
-        <div class="card border-0 shadow-sm h-100">
-
-            <div class="card-body">
-
-                <div class="d-flex justify-content-between align-items-center">
-
-                    <div>
-
-                        <div class="small text-muted mb-1">
-                            Weather
-                        </div>
-
-                        <h3 class="fw-bold mb-0">
-                            {{ $weatherCount }}
-                        </h3>
-
-                        <small class="text-muted">
-                            Weather alert
-                        </small>
-
-                    </div>
-
-                    <div
-                        class="rounded-circle bg-warning bg-opacity-10
-                               d-flex align-items-center justify-content-center"
-                        style="width:50px;height:50px;"
-                    >
-                        <i class="bi bi-cloud-sun text-warning fs-4"></i>
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
     {{-- DISTRIBUTION --}}
     <div class="col-md-6 col-xl-3">
 
@@ -223,17 +178,6 @@
                 SMS
             </button>
 
-
-            <button
-                type="button"
-                class="btn btn-sm btn-outline-warning notification-filter"
-                data-filter="weather"
-            >
-                <i class="bi bi-cloud-sun me-1"></i>
-                Weather
-            </button>
-
-
             <button
                 type="button"
                 class="btn btn-sm btn-outline-primary notification-filter"
@@ -279,10 +223,7 @@
                 </h6>
 
                 <small class="text-muted">
-
-                    Your latest messages, announcements, weather information,
-                    and distribution updates.
-
+                    Your latest messages, announcements, and distribution updates.
                 </small>
 
             </div>
@@ -402,127 +343,6 @@
             @endforelse
 
         </div>
-
-
-        {{-- =====================================================
-            WEATHER
-        ====================================================== --}}
-        <div
-            class="notification-section"
-            data-category="weather"
-        >
-
-            <div class="px-4 py-3 border-bottom bg-light">
-
-                <div class="d-flex align-items-center">
-
-                    <div
-                        class="rounded-circle bg-warning bg-opacity-10
-                               d-flex align-items-center justify-content-center me-3"
-                        style="width:42px;height:42px;"
-                    >
-
-                        <i class="bi bi-cloud-sun text-warning"></i>
-
-                    </div>
-
-                    <div>
-
-                        <div class="fw-semibold">
-                            Weather Alerts
-                        </div>
-
-                        <small class="text-muted">
-                            Current weather information for farmers.
-                        </small>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="p-4">
-
-                @if($weather)
-
-                    <div
-                        class="border rounded p-3
-                               bg-warning bg-opacity-10"
-                    >
-
-                        <div class="d-flex align-items-start">
-
-                            <div class="me-3">
-
-                                <i class="bi bi-cloud-sun-fill text-warning fs-2"></i>
-
-                            </div>
-
-                            <div>
-
-                                <span class="badge bg-warning text-dark mb-2">
-                                    Weather Update
-                                </span>
-
-                                <h6 class="fw-bold mb-2">
-                                    {{ ucfirst($weather->description) }}
-                                </h6>
-
-                                <div class="row g-2">
-
-                                    <div class="col-sm-6">
-
-                                        <small class="text-muted">
-                                            Temperature
-                                        </small>
-
-                                        <div class="fw-semibold">
-                                            {{ $weather->temperature }}°C
-                                        </div>
-
-                                    </div>
-
-
-                                    <div class="col-sm-6">
-
-                                        <small class="text-muted">
-                                            Humidity
-                                        </small>
-
-                                        <div class="fw-semibold">
-                                            {{ $weather->humidity }}%
-                                        </div>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                @else
-
-                    <div class="text-center text-muted py-3">
-
-                        <i class="bi bi-cloud-slash fs-2 d-block mb-2"></i>
-
-                        <small>
-                            No weather data available.
-                        </small>
-
-                    </div>
-
-                @endif
-
-            </div>
-
-        </div>
-
 
         {{-- =====================================================
             ANNOUNCEMENTS

@@ -16,13 +16,14 @@ class ProgramBenefit extends Model
         'program_id',
         'name',
         'description',
+        'always_active',
     ];
-
-    protected function casts(): array
+   protected function casts(): array
     {
         return [
             'archived_at' => 'datetime',
             'eligibility_configured_at' => 'datetime',
+            'always_active' => 'boolean',
         ];
     }
 
@@ -44,5 +45,13 @@ class ProgramBenefit extends Model
     public function eligibilityRules(): HasMany
     {
         return $this->hasMany(EligibilityRule::class);
+    }
+
+    public function configurations(): HasMany
+    {
+        return $this->hasMany(
+            BenefitConfiguration::class,
+            'program_benefit_id'
+        );
     }
 }

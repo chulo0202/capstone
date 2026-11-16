@@ -320,24 +320,58 @@
 
 
                                 {{-- =================================================
-                                     BENEFITS COUNT
-                                     ================================================= --}}
+                                    ACTIVE BENEFIT NAMES
+                                    ================================================= --}}
                                 <td>
+                                    @php
+                                    $now = now();
 
-                                    <div class="d-flex align-items-center gap-2">
+                                    $activeBenefitNames = $program->benefits
+                                    ->filter(function ($benefit) use ($program, $now) {
 
-                                        <span class="benefit-count">
+                                        if (
+                                            $program->archived_at !== null ||
+                                            ! $program->is_active ||
+                                            $benefit->archived_at !== null
+                                        ) {
+                                            return false;
+                                        }
 
-                                            {{ $program->benefits->count() }}
+                                        // Active benefit-specific configuration
+                                        if ($benefit->configurations->contains(
+                                            fn ($configuration) =>
+                                                $configuration->start_at <= $now &&
+                                                $configuration->end_at >= $now
+                                        )) {
+                                            return true;
+                                        }
 
-                                        </span>
+                                        // Legacy PCIC benefits without their own configuration
+                                        // follow the parent program's active schedule.
+                                        if (
+                                            $program->isPcicCropInsurance() &&
+                                            $benefit->configurations->isEmpty() &&
+                                            $program->start_at !== null &&
+                                            $program->end_at !== null &&
+                                            $program->start_at <= $now &&
+                                            $program->end_at >= $now
+                                        ) {
+                                            return true;
+                                        }
 
-                                        <small class="text-muted">
-                                            benefits
-                                        </small>
-
-                                    </div>
-
+                                        return false;
+                                    })
+                                    ->pluck('name');
+                                @endphp
+                                    @forelse($activeBenefitNames as $benefitName)
+                                        <div class="mb-1">
+                                            <span class="badge bg-light text-dark border">
+                                                {{ $benefitName }}
+                                            </span>
+                                        </div>
+                                    @empty
+                                        <span class="text-muted">No active benefits</span>
+                                    @endforelse
                                 </td>
 
 

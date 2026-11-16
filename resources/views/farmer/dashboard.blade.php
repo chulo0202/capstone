@@ -27,7 +27,7 @@
 .crop-icon i {
     font-size: 30px;
 }
-    
+
     .fams-dash-hero {
         position: relative;
         overflow: hidden;
@@ -203,28 +203,6 @@
     }
     .fams-dash-empty i { font-size: 1.8rem; display: block; margin-bottom: .5rem; color: #c3ccc5; }
 
-    /* Weather */
-    .fams-dash-weather-hero {
-        text-align: center;
-        padding: 1rem 0 1.35rem;
-        border-bottom: 1px solid #f1f4f2;
-        margin-bottom: 1.1rem;
-    }
-
-    .fams-dash-weather-temp {
-        font-size: 2.5rem;
-        font-weight: 800;
-        color: #1B5E20;
-        line-height: 1;
-        margin-bottom: .2rem;
-    }
-
-    .fams-dash-weather-desc {
-        font-size: .92rem;
-        font-weight: 600;
-        color: #55605a;
-    }
-
     .fams-dash-metric {
         background: #F7FAF7;
         border: 1px solid #eef2ef;
@@ -257,7 +235,7 @@
         <div>
             <div class="fams-dash-hero-greeting">{{ $greeting }}</div>
             <div class="fams-dash-hero-title">Welcome back, {{ $firstName }} <i class="bi bi-emoji-smile"></i></div>
-            <p class="fams-dash-hero-sub">Here's a quick look at your farm assistance status, latest announcements, and today's weather.</p>
+           <p class="fams-dash-hero-sub">Here's a quick look at your farm assistance status, latest announcements, and program updates.</p>
         </div>
         <div class="fams-dash-hero-icon">
     <i class="bi bi-tree-fill"></i>
@@ -400,119 +378,6 @@
     </div>
   </div>
   <div class="col-lg-6">
-
-    <div class="fams-card fams-dash-card">
-
-        <div class="fams-card-header">
-
-            <h6>
-                <i class="bi bi-cloud-sun me-2 text-fams"></i>
-                Current Weather
-            </h6>
-
-        </div>
-
-        <div class="fams-card-body">
-
-            @if($weather)
-
-                <div class="fams-dash-weather-hero">
-
-                    @if($weather->weather_icon)
-                        <img
-                            src="https://openweathermap.org/img/wn/{{ $weather->weather_icon }}@2x.png"
-                            width="80">
-                    @endif
-
-                    <div class="fams-dash-weather-temp">
-                        {{ $weather->temperature }}°C
-                    </div>
-
-                    <div class="fams-dash-weather-desc">
-                        {{ ucfirst($weather->description) }}
-                    </div>
-
-                </div>
-
-                <div class="row g-2 text-center">
-
-                    <div class="col-6">
-                        <div class="fams-dash-metric">
-                            <i class="bi bi-droplet-half"></i>
-                            <small>Humidity</small>
-                            <h5>{{ $weather->humidity }}%</h5>
-                        </div>
-                    </div>
-
-                    <div class="col-6">
-                        <div class="fams-dash-metric">
-                            <i class="bi bi-wind"></i>
-                            <small>Wind Speed</small>
-                            <h5>{{ $weather->wind_speed }} m/s</h5>
-                        </div>
-                    </div>
-
-                    <div class="col-6 mt-2">
-                        <div class="fams-dash-metric">
-                            <i class="bi bi-speedometer2"></i>
-                            <small>Pressure</small>
-                            <h5>{{ $weather->pressure }} hPa</h5>
-                        </div>
-                    </div>
-
-                    <div class="col-6 mt-2">
-                        <div class="fams-dash-metric">
-                            <i class="bi bi-cloud-rain"></i>
-                            <small>Rainfall</small>
-                            <h5>{{ $weather->rainfall }} mm</h5>
-                        </div>
-                    </div>
-
-                </div>
-
-                @php
-
-                    $badge = match($weather->alert_level){
-
-                        'Storm Warning' => 'danger',
-
-                        'Rain Alert' => 'warning',
-
-                        'Extreme Heat' => 'danger',
-
-                        'Strong Wind' => 'primary',
-
-                        default => 'success',
-
-                    };
-
-                @endphp
-
-                <hr>
-
-                <div class="text-center">
-
-                    <span class="badge bg-{{ $badge }} fs-6 fams-dash-alert-badge">
-
-                        <i class="bi bi-shield-exclamation me-1"></i>{{ $weather->alert_level }}
-
-                    </span>
-
-                </div>
-
-            @else
-
-                <div class="fams-dash-empty">
-                    <i class="bi bi-cloud-slash"></i>
-                    No weather data available.
-                </div>
-
-            @endif
-
-        </div>
-
-    </div>
-
 </div>
 </div>
 @endsection

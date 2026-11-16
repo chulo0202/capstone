@@ -14,7 +14,9 @@ class EligibilityService
         Program $program,
         ?ProgramBenefit $benefit = null
     ): array {
-        $global = $this->evaluateRule($farmer, $program->eligibilityRule);
+        $global = $program->isPcicCropInsurance()
+            ? $this->evaluateRule($farmer, null)
+            : $this->evaluateRule($farmer, $program->eligibilityRule);
         $benefitResult = [
             'status' => 'eligible',
             'missing_requirements' => [],
@@ -25,7 +27,7 @@ class EligibilityService
         if ($benefit) {
             if ((int) $benefit->program_id !== (int) $program->id) {
                 $benefitResult = $this->notEligible('Benefit does not belong to this program.');
-            } elseif (! $benefit->eligibility_configured_at) {
+            } elseif (! $program->isPcicCropInsurance() && ! $benefit->eligibility_configured_at) {
                 $benefitResult = $this->notEligible('Benefit eligibility has not been configured.');
             } else {
                 $benefitResult = $this->evaluateRule(
