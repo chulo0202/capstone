@@ -2,6 +2,9 @@
 set -eu
 
 echo "Starting FAMS application..."
-echo "Database migrations must be run separately after verification."
+echo "Running verified Phase 2 database migrations..."
 
+php artisan migrate --force --no-interaction
+
+echo "Database migrations completed."
 exec apache2-foreground
