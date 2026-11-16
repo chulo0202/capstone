@@ -76,15 +76,8 @@ return new class extends Migration
             foreach ($programs as $program) {
                 $names = $approved[$program->name];
 
-                // Archive benefits not on the approved list.
-                DB::table('program_benefits')
-                    ->where('program_id', $program->id)
-                    ->whereNotIn('name', $names)
-                    ->whereNull('archived_at')
-                    ->update([
-                        'archived_at' => now(),
-                        'updated_at' => now(),
-                    ]);
+                // Preserve existing production benefits and their eligibility rules.
+                // Add approved Phase 2 benefits without archiving legacy benefits.
 
                 foreach ($names as $name) {
                     $matches = DB::table('program_benefits')
