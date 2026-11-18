@@ -346,15 +346,14 @@
                                             return true;
                                         }
 
-                                        // Legacy PCIC benefits without their own configuration
-                                        // follow the parent program's active schedule.
+                                        // PCIC benefits remain active regardless of program schedule.
                                         if (
                                             $program->isPcicCropInsurance() &&
                                             $benefit->configurations->isEmpty() &&
-                                            $program->start_at !== null &&
-                                            $program->end_at !== null &&
-                                            $program->start_at <= $now &&
-                                            $program->end_at >= $now
+                                            in_array($benefit->name, [
+                                                'New Application',
+                                                'Claim for Indemnity',
+                                            ], true)
                                         ) {
                                             return true;
                                         }

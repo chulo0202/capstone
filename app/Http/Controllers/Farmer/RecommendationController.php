@@ -21,25 +21,26 @@ class RecommendationController extends Controller
             $now = now();
 
             $programs = Program::query()
-                ->whereNull('archived_at')
-                ->whereHas('activeBenefits')
-                ->where(function ($query) use ($now) {
-                    $query->where(function ($normal) use ($now) {
-                        $normal->where('is_active', true)
-                            ->whereNotNull('start_at')
-                            ->whereNotNull('end_at')
-                            ->where('start_at', '<=', $now)
-                            ->where('end_at', '>=', $now);
-                    })->orWhere('name', 'PCIC Crop Insurance')
-                    ->orWhereHas('activeBenefits', function ($benefits) {
-                        $benefits->where('always_active', true);
-                    });
+            ->where('is_active', true)
+            ->whereNull('archived_at')
+            ->whereHas('activeBenefits')
+            ->where(function ($query) use ($now) {
+                $query->where(function ($normal) use ($now) {
+                    $normal->whereNotNull('start_at')
+                        ->whereNotNull('end_at')
+                        ->where('start_at', '<=', $now)
+                        ->where('end_at', '>=', $now);
                 })
-                ->with([
-                    'eligibilityRule',
-                    'activeBenefits.configurations',
-                ])
-                ->get();
+                ->orWhere('name', 'PCIC Crop Insurance')
+                ->orWhereHas('activeBenefits', function ($benefits) {
+                    $benefits->where('always_active', true);
+                });
+            })
+            ->with([
+                'eligibilityRule',
+                'activeBenefits.configurations',
+            ])
+            ->get();
 
             $recommendations = $programs
                 ->flatMap(function ($program) use ($farmer, $eligibilityService, $now) {

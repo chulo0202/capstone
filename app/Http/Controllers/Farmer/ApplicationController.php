@@ -76,7 +76,7 @@ class ApplicationController extends Controller
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                if ($lockedProgram->archived_at !== null) {
+                if ($lockedProgram->archived_at !== null || ! $lockedProgram->is_active) {
                     return null;
                 }
 
@@ -103,8 +103,11 @@ class ApplicationController extends Controller
                 $isPcicClaim = $lockedProgram->name === 'PCIC Crop Insurance'
                     && $benefit->name === 'Claim for Indemnity';
 
-                if (! $normalAvailability
-                    && ! ($isPcicClaim && $benefit->always_active)) {
+                if (
+                    ! $normalAvailability
+                    && ! $lockedProgram->isPcicCropInsurance()
+                    && ! $benefit->always_active
+                ) {
                     return null;
                 }
 
