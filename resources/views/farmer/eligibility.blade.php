@@ -206,7 +206,7 @@
                             </th>
 
                             <th class="py-3">
-                                Program Period
+                                Benefit Period
                             </th>
 
                             <th class="py-3 text-center">
@@ -224,7 +224,11 @@
 
                     <tbody>
 
-                        @forelse($results as $item)
+                        @forelse($results->groupBy('program.id') as $programResults)
+                            <tr>
+                                <th colspan="5" class="px-4 bg-light">{{ $programResults->first()['program']->name }}</th>
+                            </tr>
+                            @foreach($programResults as $item)
 
                             <tr>
 
@@ -232,9 +236,6 @@
                                 <td class="px-4">
 
                                     <div class="fw-semibold">
-                                        {{ $item['program']->name }}
-                                    </div>
-                                    <div class="small text-muted">
                                         {{ $item['benefit']->name }}
                                     </div>
 
@@ -254,7 +255,7 @@
                                 </td>
 
 
-                                {{-- Program Period --}}
+                                {{-- Benefit Period --}}
                                 <td>
 
                                     <div class="small">
@@ -265,7 +266,7 @@
                                             </span>
 
                                             <span class="fw-semibold">
-                                                {{ $item['program']->start_at->format('F d, Y') }}
+                                                {{ $item['start_at']?->format('F d, Y') ?? '—' }}
                                             </span>
                                         </div>
 
@@ -275,7 +276,7 @@
                                             </span>
 
                                             <span class="fw-semibold">
-                                                {{ $item['program']->end_at->format('F d, Y') }}
+                                                {{ $item['end_at']?->format('F d, Y') ?? '—' }}
                                             </span>
                                         </div>
 
@@ -355,6 +356,7 @@
 
                             </tr>
 
+                            @endforeach
                         @empty
 
                             <tr>

@@ -15,39 +15,34 @@ class EligibilityController extends Controller
         $farmer = Auth::user()->farmer;
         $now = now();
 
-        $programs = Program::available()
-            ->whereNotNull('start_at')
-            ->whereNotNull('end_at')
-            ->where('start_at', '<=', $now)
-            ->where('end_at', '>=', $now)
-            ->whereHas('activeBenefits')
-            ->with(['eligibilityRule', 'activeBenefits.eligibilityRules'])
-            ->get();
+        $programs = Program::forFarmerRecommendations()->get();
 
-        $results = $programs->flatMap(function ($program) use ($farmer, $eligibilityService) {
-            return $program->activeBenefits->map(function ($benefit) use (
-                $program,
-                $farmer,
-                $eligibilityService
-            ) {
-                $evaluation = $farmer
-                    ? $eligibilityService->evaluate($farmer, $program, $benefit)
-                    : [
-                        'status' => 'not_eligible',
-                        'missing_requirements' => ['Complete your profile first'],
-                        'global' => ['status' => 'not_eligible', 'missing_requirements' => []],
-                        'benefit' => ['status' => 'not_eligible', 'missing_requirements' => []],
+        $results = $programs->flatMap(function ($program) use ($farmer, $eligibilityService, $now) {
+            return $program->activeBenefits
+                ->filter(fn ($benefit) => $benefit->isAvailableToFarmers($program, $now))
+                ->map(function ($benefit) use ($program, $farmer, $eligibilityService, $now) {
+                    $configuration = $benefit->configurations->first(fn ($configuration) => $configuration->isCurrentAt($now));
+
+                    $evaluation = $farmer
+                        ? $eligibilityService->evaluate($farmer, $program, $benefit)
+                        : [
+                            'status' => 'not_eligible',
+                            'missing_requirements' => ['Complete your profile first'],
+                            'global' => ['status' => 'not_eligible', 'missing_requirements' => []],
+                            'benefit' => ['status' => 'not_eligible', 'missing_requirements' => []],
+                        ];
+
+                    return [
+                        'program' => $program,
+                        'benefit' => $benefit,
+                        'start_at' => $configuration?->start_at ?? $program->start_at,
+                        'end_at' => $configuration?->end_at ?? $program->end_at,
+                        'status' => $evaluation['status'],
+                        'missing' => $evaluation['missing_requirements'],
+                        'global' => $evaluation['global'],
+                        'benefit_evaluation' => $evaluation['benefit'],
                     ];
-
-                return [
-                    'program' => $program,
-                    'benefit' => $benefit,
-                    'status' => $evaluation['status'],
-                    'missing' => $evaluation['missing_requirements'],
-                    'global' => $evaluation['global'],
-                    'benefit_evaluation' => $evaluation['benefit'],
-                ];
-            });
+                });
         })->values();
 
         return view('farmer.eligibility', compact('results', 'farmer'));

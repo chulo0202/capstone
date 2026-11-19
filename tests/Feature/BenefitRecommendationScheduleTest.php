@@ -45,6 +45,10 @@ class BenefitRecommendationScheduleTest extends TestCase
             ->get(route('farmer.recommendations'))
             ->assertOk()
             ->assertDontSeeText($benefit->name);
+
+        $this->get(route('farmer.eligibility'))
+            ->assertOk()
+            ->assertDontSeeText($benefit->name);
     }
 
     public function test_expired_benefit_is_hidden_from_recommendations(): void
@@ -59,6 +63,10 @@ class BenefitRecommendationScheduleTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('farmer.recommendations'))
+            ->assertOk()
+            ->assertDontSeeText($benefit->name);
+
+        $this->get(route('farmer.eligibility'))
             ->assertOk()
             ->assertDontSeeText($benefit->name);
     }
@@ -78,6 +86,10 @@ class BenefitRecommendationScheduleTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('farmer.recommendations'))
+            ->assertOk()
+            ->assertDontSeeText($benefit->name);
+
+        $this->get(route('farmer.eligibility'))
             ->assertOk()
             ->assertDontSeeText($benefit->name);
     }

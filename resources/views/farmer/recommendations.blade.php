@@ -76,7 +76,7 @@
                         <div>
 
                             <div class="text-muted small mb-1">
-                                Eligible Programs
+                                Eligible Benefits
                             </div>
 
                             <h3 class="fw-bold text-success mb-0">
@@ -277,7 +277,7 @@
 
                     <i class="bi bi-grid me-1"></i>
 
-                    All Programs
+                    All Benefits
 
                 </button>
 
@@ -344,12 +344,12 @@
 
                         <i class="bi bi-lightbulb me-2"></i>
 
-                        Recommended Programs
+                        Recommended Benefits
 
                     </h6>
 
                     <small class="text-muted">
-                        Programs based on your current eligibility.
+                        Benefits based on your current eligibility.
                     </small>
 
                 </div>
@@ -357,7 +357,7 @@
 
                 <span class="badge bg-light text-dark">
 
-                    {{ $recommendations->count() }} program(s)
+                    {{ $recommendations->count() }} benefit(s)
 
                 </span>
 
@@ -403,10 +403,15 @@
 
                     <tbody>
 
-                        @forelse($recommendations as $rec)
+                        @forelse($recommendations->groupBy('program.id') as $programRecommendations)
+                            <tr class="recommendation-program" data-program-id="{{ $programRecommendations->first()->program->id }}">
+                                <th colspan="5" class="px-4 bg-light">{{ $programRecommendations->first()->program->name }}</th>
+                            </tr>
+                            @foreach($programRecommendations as $rec)
 
                             <tr
                                 class="recommendation-row"
+                                data-program-id="{{ $rec->program->id }}"
                                 data-status="{{ $rec->eligibility_status }}"
                             >
 
@@ -414,11 +419,6 @@
                                 <td class="px-4">
 
                                     <div class="fw-semibold text-dark">
-
-                                        {{ $rec->program->name }}
-
-                                    </div>
-                                    <div class="small text-muted">
                                         {{ $rec->benefit->name }}
                                     </div>
 
@@ -616,6 +616,7 @@
                             </tr>
 
 
+                            @endforeach
                         @empty
 
                             <tr>
@@ -798,26 +799,18 @@
                     this.classList.add('active');
 
 
-                    // Show / hide rows
+                    const visiblePrograms = new Set();
                     rows.forEach(function (row) {
+                        const visible = filter === 'all' || row.dataset.status === filter;
+                        row.hidden = !visible;
 
-                        const status =
-                            row.dataset.status;
-
-
-                        if (
-                            filter === 'all' ||
-                            status === filter
-                        ) {
-
-                            row.style.display = '';
-
-                        } else {
-
-                            row.style.display = 'none';
-
+                        if (visible) {
+                            visiblePrograms.add(row.dataset.programId);
                         }
+                    });
 
+                    document.querySelectorAll('.recommendation-program').forEach(function (heading) {
+                        heading.hidden = !visiblePrograms.has(heading.dataset.programId);
                     });
 
                 });
