@@ -25,7 +25,7 @@ class ApplicationController extends Controller
         $farmer = Auth::user()->farmer;
 
         $applications = $farmer
-            ? Application::with(['program', 'benefit', 'pcicDamageIncident'])
+            ? Application::withCurrentBenefit()->with(['program', 'benefit', 'pcicDamageIncident'])
                 ->where('farmer_id', $farmer->id)
                 ->latest('applied_at')
                 ->get()
@@ -76,40 +76,17 @@ class ApplicationController extends Controller
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                if ($lockedProgram->archived_at !== null || ! $lockedProgram->is_active) {
-                    return null;
-                }
-
                 $benefit = $lockedProgram->activeBenefits()
                     ->whereKey($validated['program_benefit_id'])
                     ->lockForUpdate()
                     ->first();
 
-                if (! $benefit || (
-                    ! $lockedProgram->isPcicCropInsurance()
-                    && ! $benefit->eligibility_configured_at
-                )) {
+                if (! $benefit || ! $benefit->isAvailableToFarmers($lockedProgram, now())) {
                     return null;
                 }
 
-                $now = now();
-
-                $normalAvailability = $lockedProgram->is_active
-                    && $lockedProgram->start_at
-                    && $lockedProgram->end_at
-                    && $lockedProgram->start_at->lte($now)
-                    && $lockedProgram->end_at->gte($now);
-
-                $isPcicClaim = $lockedProgram->name === 'PCIC Crop Insurance'
+                $isPcicClaim = $lockedProgram->isPcicCropInsurance()
                     && $benefit->name === 'Claim for Indemnity';
-
-                if (
-                    ! $normalAvailability
-                    && ! $lockedProgram->isPcicCropInsurance()
-                    && ! $benefit->always_active
-                ) {
-                    return null;
-                }
 
                 $evaluation = $eligibilityService->evaluate(
                     $lockedFarmer,

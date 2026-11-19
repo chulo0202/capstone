@@ -23,7 +23,7 @@ class ProgramController extends Controller
 
         $query = Program::with([
             'benefits.configurations',
-        ])->latest();
+        ]);
 
         $status = $request->input('status');
 
@@ -38,7 +38,7 @@ class ProgramController extends Controller
         } elseif ($status === 'upcoming') {
 
             $query->whereNull('archived_at')
-                ->whereNotNull('start_at')
+                ->where('is_active', true)
                 ->where('start_at', '>', $now);
 
         } elseif ($status === 'active') {
@@ -61,6 +61,7 @@ class ProgramController extends Controller
                         ->where('end_at', '<', $now);
 
                 })
+                ->orWhere('is_active', false)
                 ->orWhereNull('start_at')
                 ->orWhereNull('end_at');
 
@@ -86,13 +87,15 @@ class ProgramController extends Controller
                 WHEN archived_at IS NOT NULL
                 THEN 3
 
-                WHEN start_at IS NOT NULL
+                WHEN is_active
+                    AND start_at IS NOT NULL
                     AND end_at IS NOT NULL
                     AND start_at <= ?
                     AND end_at >= ?
                 THEN 0
 
-                WHEN start_at IS NOT NULL
+                WHEN is_active
+                    AND start_at IS NOT NULL
                     AND start_at > ?
                 THEN 1
 
@@ -113,11 +116,12 @@ class ProgramController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $query->orderBy('start_at', 'asc');
+        $query->orderBy('start_at')->latest();
 
 
         return view('admin.programs', [
-            'programs' => $query->paginate(10),
+            'programs' => $query->paginate(10)->withQueryString(),
+            'now' => $now,
         ]);
     }
 
@@ -126,20 +130,22 @@ class ProgramController extends Controller
     {
         $now = now();
 
-        $availablePrograms = Program::with([
-            'activeBenefits' => function ($query) use ($now) {
-                $query->whereNotIn('id', function ($subquery) use ($now) {
-                    $subquery->select('program_benefit_id')
-                        ->from('benefit_configurations')
-                        ->where('end_at', '>=', $now);
-                });
-            },
-        ])
+        $availablePrograms = Program::with('activeBenefits.configurations')
+            ->whereNull('archived_at')
             ->orderBy('name')
             ->get();
 
         return view('admin.programs.create', [
             'availablePrograms' => $availablePrograms,
+            'programBenefits' => $availablePrograms->mapWithKeys(fn (Program $program) => [
+                $program->id => $program->activeBenefits->map(fn ($benefit) => [
+                    'id' => $benefit->id,
+                    'name' => $benefit->name,
+                    'status' => $benefit->inventoryStatus($program, $now),
+                    'selectable' => ! $program->isPcicCropInsurance()
+                        && ! $benefit->configurations->contains(fn ($configuration) => $configuration->end_at->gte($now)),
+                ]),
+            ]),
         ]);
     }
 
@@ -254,58 +260,27 @@ class ProgramController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $program = Program::findOrFail(
-            $validated['program_id']
-        );
-
-        if ($program->name === 'PCIC Crop Insurance') {
-            throw ValidationException::withMessages([
-                'program_id' => 'PCIC Crop Insurance is permanently available and cannot be configured through Create Program.',
-            ]);
-        }
-
-        if ($program->archived_at) {
-            throw ValidationException::withMessages([
-                'program_id' => 'Archived programs cannot be configured or reactivated.',
-            ]);
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Get Selected Benefit
-        |--------------------------------------------------------------------------
-        |
-        | Make sure the selected benefit actually belongs
-        | to the selected program.
-        |
-        */
-
-        $benefit = $program->activeBenefits()
-            ->whereKey($validated['program_benefit_id'])
-            ->firstOrFail();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Update Program
-        |--------------------------------------------------------------------------
-        */
-
         $eligibility = $validated['eligibility'] ?? [];
 
-        DB::transaction(function () use (
-            $program,
-            $validated,
-            $eligibility,
-            $request,
-            $benefit
-        ) {
-            $program->activeBenefits()
-                ->whereKey($benefit->id)
+        DB::transaction(function () use ($validated, $eligibility, $request) {
+            $program = Program::query()->lockForUpdate()->findOrFail($validated['program_id']);
+
+            if ($program->isPcicCropInsurance()) {
+                throw ValidationException::withMessages([
+                    'program_id' => 'PCIC Crop Insurance is permanently available and cannot be configured through Create Program.',
+                ]);
+            }
+
+            if ($program->archived_at) {
+                throw ValidationException::withMessages([
+                    'program_id' => 'Archived programs cannot be configured or reactivated.',
+                ]);
+            }
+
+            $benefit = $program->activeBenefits()
+                ->whereKey($validated['program_benefit_id'])
                 ->lockForUpdate()
                 ->firstOrFail();
-
 
             /*
             |--------------------------------------------------------------------------
@@ -315,21 +290,24 @@ class ProgramController extends Controller
 
             $hasExistingConfiguration = DB::table('benefit_configurations')
                 ->where('program_benefit_id', $benefit->id)
-                ->where('end_at', '>=', now())
+                ->where(function ($query) use ($validated) {
+                    $query->where('end_at', '>=', now())
+                        ->orWhere('end_at', '>=', $validated['start_at']);
+                })
                 ->exists();
 
             if ($hasExistingConfiguration) {
                 throw ValidationException::withMessages([
                     'program_benefit_id' =>
-                        'This benefit already has an Active or Upcoming configuration. You can configure it again only after its End Date & Time has passed.',
+                        'This benefit already has a configuration that has not ended or overlaps the requested dates.',
                 ]);
             }
-
 
             $program->update([
                 'description' => $validated['description'],
                 'start_at' => $validated['start_at'],
                 'end_at' => $validated['end_at'],
+                'is_active' => true,
             ]);
 
             $ruleQuery = $program->eligibilityRules()

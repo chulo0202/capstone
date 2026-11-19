@@ -24,13 +24,17 @@ class DashboardController extends Controller
                 ->take(3)
                 ->get(),
             'distributions' => $farmer
-                ? Distribution::with(['program', 'benefit'])->where('farmer_id', $farmer->id)->latest()->take(5)->get()
+                ? Distribution::whereHas('benefit', fn ($benefit) => $benefit->active())
+                    ->whereHas('program', fn ($program) => $program->whereNull('archived_at'))
+                    ->with(['program', 'benefit'])->where('farmer_id', $farmer->id)->latest()->take(5)->get()
                 : collect(),
             'applications' => $farmer
-                ? Application::with(['program', 'benefit'])->where('farmer_id', $farmer->id)->latest('applied_at')->take(5)->get()
+                ? Application::withCurrentBenefit()->with(['program', 'benefit'])->where('farmer_id', $farmer->id)->latest('applied_at')->take(5)->get()
                 : collect(),
             'recommendations' => $farmer
-                ? Recommendation::with(['program', 'benefit'])->where('farmer_id', $farmer->id)->latest()->take(5)->get()
+                ? Recommendation::whereHas('benefit', fn ($benefit) => $benefit->active())
+                    ->whereHas('program', fn ($program) => $program->whereNull('archived_at'))
+                    ->with(['program', 'benefit'])->where('farmer_id', $farmer->id)->latest()->take(5)->get()
                 : collect(),
         ]);
     }

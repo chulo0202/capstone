@@ -15,7 +15,7 @@ class ApplicationController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Application::with([
+        $query = Application::withCurrentBenefit()->with([
             'farmer.user',
             'program',
             'benefit',

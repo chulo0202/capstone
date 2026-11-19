@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -35,6 +36,12 @@ class Application extends Model
             'applied_at' => 'datetime',
             'reviewed_at' => 'datetime',
         ];
+    }
+
+    public function scopeWithCurrentBenefit(Builder $query): Builder
+    {
+        return $query->whereHas('benefit', fn (Builder $benefit) => $benefit->active())
+            ->whereHas('program', fn (Builder $program) => $program->whereNull('archived_at'));
     }
 
     public function farmer(): BelongsTo

@@ -193,8 +193,6 @@
 
                             @php
 
-                                $now = now();
-
                                 if ($program->archived_at) {
 
                                     $status = 'archived';
@@ -319,57 +317,16 @@
                                 </td>
 
 
-                                {{-- =================================================
-                                    ACTIVE BENEFIT NAMES
-                                    ================================================= --}}
                                 <td>
-                                    @php
-                                    $now = now();
-
-                                    $activeBenefitNames = $program->benefits
-                                    ->filter(function ($benefit) use ($program, $now) {
-
-                                        if (
-                                            $program->archived_at !== null ||
-                                            ! $program->is_active ||
-                                            $benefit->archived_at !== null
-                                        ) {
-                                            return false;
-                                        }
-
-                                        // Active benefit-specific configuration
-                                        if ($benefit->configurations->contains(
-                                            fn ($configuration) =>
-                                                $configuration->start_at <= $now &&
-                                                $configuration->end_at >= $now
-                                        )) {
-                                            return true;
-                                        }
-
-                                        // PCIC benefits remain active regardless of program schedule.
-                                        if (
-                                            $program->isPcicCropInsurance() &&
-                                            $benefit->configurations->isEmpty() &&
-                                            in_array($benefit->name, [
-                                                'New Application',
-                                                'Claim for Indemnity',
-                                            ], true)
-                                        ) {
-                                            return true;
-                                        }
-
-                                        return false;
-                                    })
-                                    ->pluck('name');
-                                @endphp
-                                    @forelse($activeBenefitNames as $benefitName)
+                                    @forelse($program->benefits->filter(fn ($benefit) => $program->archived_at || !$benefit->archived_at) as $benefit)
                                         <div class="mb-1">
                                             <span class="badge bg-light text-dark border">
-                                                {{ $benefitName }}
+                                                {{ $benefit->name }}
                                             </span>
+                                            <span class="small text-muted">{{ $benefit->inventoryStatus($program, $now) }}</span>
                                         </div>
                                     @empty
-                                        <span class="text-muted">No active benefits</span>
+                                        <span class="text-muted">No benefits</span>
                                     @endforelse
                                 </td>
 

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Farmer;
 use App\Models\Program;
 use App\Models\User;
+use App\Services\RecommendationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -21,6 +22,8 @@ class BenefitRecommendationScheduleTest extends TestCase
             'start_at' => now()->subDay(),
             'end_at' => now()->addDay(),
         ]);
+
+        $benefit->program->update(['start_at' => now()->addDays(2)]);
 
         $this->actingAs($user)
             ->get(route('farmer.recommendations'))
@@ -58,6 +61,47 @@ class BenefitRecommendationScheduleTest extends TestCase
             ->get(route('farmer.recommendations'))
             ->assertOk()
             ->assertDontSeeText($benefit->name);
+    }
+
+    public function test_inactive_parent_blocks_recommendations_for_current_configuration(): void
+    {
+        [$user, $benefit] = $this->createScenario();
+        $benefit->program->update(['is_active' => false]);
+        $benefit->configurations()->create([
+            'description' => 'Current configuration',
+            'start_at' => now()->subDay(),
+            'end_at' => now()->addDay(),
+        ]);
+
+        app(RecommendationService::class)->generateForFarmer($user->farmer);
+        $this->assertDatabaseMissing('recommendations', ['program_benefit_id' => $benefit->id]);
+
+        $this->actingAs($user)
+            ->get(route('farmer.recommendations'))
+            ->assertOk()
+            ->assertDontSeeText($benefit->name);
+    }
+
+    public function test_only_the_always_active_pcic_claim_is_recommended_when_pcic_is_inactive(): void
+    {
+        [$user] = $this->createScenario();
+
+        $pcic = Program::create([
+            'name' => 'PCIC Crop Insurance',
+            'description' => 'PCIC benefits',
+            'is_active' => false,
+        ]);
+        $claim = $pcic->benefits()->create(['name' => 'Claim for Indemnity', 'always_active' => true]);
+        $newApplication = $pcic->benefits()->create(['name' => 'New Application']);
+        $legacy = $pcic->benefits()->create(['name' => 'Legacy PCIC Benefit', 'always_active' => true]);
+
+        app(RecommendationService::class)->generateForFarmer($user->farmer);
+        $this->assertDatabaseHas('recommendations', ['program_benefit_id' => $claim->id]);
+        $this->assertDatabaseMissing('recommendations', ['program_benefit_id' => $newApplication->id]);
+
+        $response = $this->actingAs($user)->get(route('farmer.recommendations'))->assertOk();
+        $this->assertSame([$claim->id], $response->viewData('recommendations')->where('program.id', $pcic->id)->pluck('benefit.id')->all());
+        $response->assertDontSeeText($legacy->name);
     }
 
     private function createScenario(): array

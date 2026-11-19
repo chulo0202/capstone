@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 class BenefitConfiguration extends Model
 {
@@ -30,6 +31,11 @@ class BenefitConfiguration extends Model
             ProgramBenefit::class,
             'program_benefit_id'
         );
+    }
+
+    public function isCurrentAt(Carbon $now): bool
+    {
+        return $this->start_at->lte($now) && $this->end_at->gte($now);
     }
 
     public function getStatusAttribute(): string

@@ -134,7 +134,7 @@
 
                                 @foreach($availablePrograms as $program)
 
-                                    @if($program->name !== 'PCIC Crop Insurance')
+                                    @if(!$program->isPcicCropInsurance())
                                         <option value="{{ $program->id }}">
                                             {{ $program->name }}
                                         </option>
@@ -173,7 +173,7 @@
                             </select>
 
                             <small class="text-muted">
-                                Available benefits depend on the selected program.
+                                Active and upcoming configurations are shown but cannot be configured again.
                             </small>
 
                         </div>
@@ -670,28 +670,7 @@ document.addEventListener('DOMContentLoaded', function () {
     |--------------------------------------------------------------------------
     */
 
-    const programBenefits = @json(
-
-        $availablePrograms->mapWithKeys(function ($program) {
-
-            return [
-
-                $program->id => $program->activeBenefits
-                    ->map(function ($benefit) {
-
-                        return [
-                            'id' => $benefit->id,
-                            'name' => $benefit->name,
-                        ];
-
-                    })
-                    ->values()
-
-            ];
-
-        })
-
-    );
+    const programBenefits = {{ Illuminate\Support\Js::from($programBenefits) }};
 
 
     /*
@@ -720,49 +699,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
         benefits.forEach(function (benefit) {
-
-            const option =
-                document.createElement('option');
-
-            option.value =
-                benefit.id;
-
-            option.textContent =
-                benefit.name;
-
+            const option = document.createElement('option');
+            option.value = benefit.id;
+            option.textContent = benefit.name + ' (' + benefit.status + ')';
+            option.disabled = !benefit.selectable;
             benefitSelect.appendChild(option);
-
         });
 
+        benefitSelect.disabled = benefits.length === 0;
+        const selectableBenefits = benefits.filter(benefit => benefit.selectable);
 
-        /*
-        |--------------------------------------------------------------------------
-        | One Benefit
-        |--------------------------------------------------------------------------
-        */
-
-        if (benefits.length === 1) {
-
-            benefitSelect.value =
-                benefits[0].id;
-
-            benefitSelect.disabled =
-                false;
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Multiple Benefits
-        |--------------------------------------------------------------------------
-        */
-
-        else if (benefits.length > 1) {
-
-            benefitSelect.disabled =
-                false;
-
+        if (selectableBenefits.length === 1) {
+            benefitSelect.value = selectableBenefits[0].id;
         }
 
     });

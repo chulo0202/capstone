@@ -60,6 +60,14 @@ class Program extends Model
             ->whereNull('archived_at');
     }
 
+    public function scopeForFarmerRecommendations(Builder $query): Builder
+    {
+        return $query->whereNull('archived_at')
+            ->where(fn (Builder $programs) => $programs->where('is_active', true)
+                ->orWhere('name', 'PCIC Crop Insurance'))
+            ->with(['eligibilityRule', 'activeBenefits.configurations']);
+    }
+
     public function recommendations(): HasMany
     {
         return $this->hasMany(Recommendation::class);

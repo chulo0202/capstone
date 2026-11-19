@@ -174,7 +174,7 @@ class BenefitConfigurationTest extends TestCase
         $program = Program::create([
             'name' => 'New Equipment Support Test',
             'description' => 'Original description',
-            'is_active' => true,
+            'is_active' => false,
         ]);
 
         $benefit = $program->benefits()->create([
@@ -199,6 +199,7 @@ class BenefitConfigurationTest extends TestCase
         $response->assertSessionHasNoErrors();
         $response->assertRedirect(route('admin.programs.index'));
 
+        $this->assertTrue($program->refresh()->is_active);
         $this->assertDatabaseCount('benefit_configurations', 1);
 
         $this->assertDatabaseHas('benefit_configurations', [
@@ -209,7 +210,7 @@ class BenefitConfigurationTest extends TestCase
         ]);
     }
 
-    public function test_configure_page_only_shows_available_benefits(): void
+    public function test_inactive_program_shows_all_benefits_and_only_allows_available_choices(): void
     {
         $admin = User::factory()->create([
             'role' => 'admin',
@@ -219,7 +220,7 @@ class BenefitConfigurationTest extends TestCase
         $program = Program::create([
             'name' => 'Dropdown Filtering Test Program',
             'description' => 'Test dropdown availability',
-            'is_active' => true,
+            'is_active' => false,
         ]);
 
         $active = $program->benefits()->create([
@@ -263,28 +264,17 @@ class BenefitConfigurationTest extends TestCase
 
         $response->assertOk();
 
-        $response->assertViewHas('availablePrograms', function ($programs) use (
-            $program,
-            $active,
-            $upcoming,
-            $expired,
-            $neverConfigured
-        ) {
-            $selectedProgram = $programs->firstWhere('id', $program->id);
+        $entries = $response->viewData('programBenefits')->get($program->id)->keyBy('id');
 
-            if (!$selectedProgram) {
-                return false;
-            }
-
-            $availableIds = $selectedProgram
-                ->activeBenefits
-                ->pluck('id');
-
-            return !$availableIds->contains($active->id)
-                && !$availableIds->contains($upcoming->id)
-                && $availableIds->contains($expired->id)
-                && $availableIds->contains($neverConfigured->id);
-        });
+        foreach ([
+            [$active, 'Inactive', false],
+            [$upcoming, 'Upcoming', false],
+            [$expired, 'Expired', true],
+            [$neverConfigured, 'Available', true],
+        ] as [$benefit, $status, $selectable]) {
+            $this->assertSame($status, $entries[$benefit->id]['status']);
+            $this->assertSame($selectable, $entries[$benefit->id]['selectable']);
+        }
 
         $this->assertDatabaseCount('benefit_configurations', 3);
     }
