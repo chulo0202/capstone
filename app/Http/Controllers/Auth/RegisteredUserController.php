@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Farmer;
 use App\Models\RsbsaFarmer;
 use App\Models\User;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -122,10 +121,8 @@ class RegisteredUserController extends Controller
             ]);
         });
 
-        event(new Registered($user));
-
         Auth::login($user);
 
-        return redirect()->route('verification.notice');
+        return redirect()->route('farmer.dashboard');
     }
 }

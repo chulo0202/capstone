@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Models\RsbsaFarmer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class RegistrationTest extends TestCase
@@ -19,6 +20,8 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register(): void
     {
+        Notification::fake();
+
         RsbsaFarmer::create([
             'rsbsa_number' => 'RSBSA-TEST-REG-001',
             'full_name' => 'Test User',
@@ -37,7 +40,9 @@ class RegistrationTest extends TestCase
         $this->assertAuthenticated();
 
         $response->assertRedirect(
-            route('verification.notice', absolute: false)
+            route('farmer.dashboard', absolute: false)
         );
+
+        Notification::assertNothingSent();
     }
 }

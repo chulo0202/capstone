@@ -163,7 +163,7 @@ class PendingAdminEmailVerificationTest extends TestCase
         $response->assertRedirect(route('admin.dashboard'));
     }
 
-    public function test_farmer_login_and_email_verification_redirect_remain_unchanged(): void
+    public function test_unverified_farmer_can_log_in_and_access_dashboard(): void
     {
         $farmer = User::factory()->unverified()->create([
             'role' => 'farmer',
@@ -190,15 +190,13 @@ class PendingAdminEmailVerificationTest extends TestCase
         $this->assertAuthenticatedAs($farmer);
         $loginResponse->assertRedirect(route('farmer.dashboard'));
 
-        $verificationUrl = URL::temporarySignedRoute(
-            'verification.verify',
-            now()->addMinutes(60),
-            ['id' => $farmer->id, 'hash' => sha1($farmer->email)]
-        );
+        $this->get(route('verification.notice'))
+            ->assertRedirect(route('farmer.dashboard'));
 
-        $verificationResponse = $this->get($verificationUrl);
+        $this->post(route('verification.send'))
+            ->assertRedirect(route('farmer.dashboard'));
 
-        $this->assertTrue($farmer->fresh()->hasVerifiedEmail());
-        $verificationResponse->assertRedirect(route('dashboard').'?verified=1');
+        $this->get(route('farmer.dashboard'))->assertOk();
+        $this->assertFalse($farmer->fresh()->hasVerifiedEmail());
     }
 }

@@ -13,6 +13,10 @@ class EmailVerificationNotificationController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+
+        if ($request->user()->isFarmer()) {
+            return redirect()->route('farmer.dashboard');
+        }
         if ($request->user()->hasVerifiedEmail()) {
             if (
                 $request->user()->role === 'admin'

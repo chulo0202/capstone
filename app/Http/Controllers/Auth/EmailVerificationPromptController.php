@@ -16,6 +16,10 @@ class EmailVerificationPromptController extends Controller
     {
         $user = $request->user();
 
+        if ($user->isFarmer()) {
+            return redirect()->route('farmer.dashboard');
+        }
+
         if (
             $user->role === 'admin'
             && $user->admin_registration_status === 'pending'

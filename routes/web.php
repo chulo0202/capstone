@@ -259,7 +259,7 @@ Route::middleware(['auth'])->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::prefix('farmer')->name('farmer.')->middleware(['farmer', 'verified'])->group(function () {
+    Route::prefix('farmer')->name('farmer.')->middleware('farmer')->group(function () {
 
         Route::get('/dashboard', [FarmerDashboardController::class, 'index'])
             ->name('dashboard');
