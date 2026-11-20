@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -37,6 +38,7 @@ class RegisteredUserController extends Controller
                 'required',
                 'string',
                 'max:50',
+                Rule::unique(Farmer::class, 'rsbsa_number'),
             ],
 
             'email' => [
@@ -54,6 +56,8 @@ class RegisteredUserController extends Controller
                 'confirmed',
                 Rules\Password::min(8)->mixedCase()->numbers()->symbols(),
             ],
+        ], [
+            'rsbsa_number.unique' => 'This RSBSA Number Is Already Registered',
         ]);
 
         /*
@@ -70,23 +74,6 @@ class RegisteredUserController extends Controller
         if (! $rsbsaFarmer) {
             throw ValidationException::withMessages([
                 'rsbsa_number' => 'RSBSA number not found. Please verify your RSBSA number or contact the MAO.',
-            ]);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Prevent Duplicate FAMS Farmer Registration
-        |--------------------------------------------------------------------------
-        */
-
-        $existingFarmer = Farmer::where(
-            'rsbsa_number',
-            $rsbsaFarmer->rsbsa_number
-        )->exists();
-
-        if ($existingFarmer) {
-            throw ValidationException::withMessages([
-                'rsbsa_number' => 'This RSBSA number is already registered in FAMS.',
             ]);
         }
 

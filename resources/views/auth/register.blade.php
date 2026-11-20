@@ -62,6 +62,7 @@
                         <input
                             type="text"
                             id="rsbsa_number"
+                            autocomplete="off"
                             class="form-control @error('rsbsa_number') is-invalid @enderror"
                             value="{{ old('rsbsa_number') }}"
                             placeholder="Enter your RSBSA Number"
@@ -363,14 +364,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (!response.ok) {
 
-                rsbsaMessage.innerHTML = `
-                    <div class="alert alert-danger">
-                        ${
-                            data.message ??
-                            'RSBSA number not found. Please verify your RSBSA number or contact the MAO.'
-                        }
-                    </div>
-                `;
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-danger';
+                alert.setAttribute('role', 'alert');
+                alert.textContent = data.message ?? 'Unable to check RSBSA number. Please try again.';
+                rsbsaMessage.replaceChildren(alert);
+                rsbsaInput.focus();
 
                 return;
             }

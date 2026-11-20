@@ -49,12 +49,21 @@ class RegistrationTest extends TestCase
 
         auth()->logout();
 
+        $this->postJson('/register/check-rsbsa', ['rsbsa_number' => 'RSBSA-DEMO-0020'])
+            ->assertConflict()
+            ->assertExactJson([
+                'success' => false,
+                'message' => 'This RSBSA Number Is Already Registered',
+            ]);
+
         $this->post('/register', [
             'rsbsa_number' => 'RSBSA-DEMO-0020',
             'email' => 'anotherdemo@gmail.com',
             'password' => 'Farmer123!',
             'password_confirmation' => 'Farmer123!',
-        ])->assertSessionHasErrors('rsbsa_number');
+        ])->assertSessionHasErrors([
+            'rsbsa_number' => 'This RSBSA Number Is Already Registered',
+        ]);
 
         Notification::assertNothingSent();
     }

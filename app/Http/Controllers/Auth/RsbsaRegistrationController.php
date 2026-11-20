@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Farmer;
 use App\Models\RsbsaFarmer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,10 +20,16 @@ class RsbsaRegistrationController extends Controller
             ],
         ]);
 
-        $rsbsaFarmer = RsbsaFarmer::where(
-            'rsbsa_number',
-            trim($validated['rsbsa_number'])
-        )->first();
+        $number = trim($validated['rsbsa_number']);
+
+        if (Farmer::where('rsbsa_number', $number)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This RSBSA Number Is Already Registered',
+            ], 409);
+        }
+
+        $rsbsaFarmer = RsbsaFarmer::where('rsbsa_number', $number)->first();
 
         if (! $rsbsaFarmer) {
             return response()->json([
