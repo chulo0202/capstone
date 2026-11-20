@@ -37,9 +37,12 @@
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label">Password <span class="text-danger" aria-hidden="true">*</span></label>
-                    <input type="password" name="password" autocomplete="new-password"
-                           class="form-control" required>
+                    <label class="form-label" for="farmer-account-password">Password <span class="text-danger" aria-hidden="true">*</span></label>
+                    <div class="input-group">
+                        <input type="password" name="password" id="farmer-account-password" autocomplete="new-password"
+                               class="form-control" required>
+                        @include('partials.password-visibility-button', ['inputId' => 'farmer-account-password'])
+                    </div>
                     @error('password')<div class="text-danger small">{{ $message }}</div>@enderror
                     @include('partials.farmer-password-help')
                 </div>

@@ -683,16 +683,15 @@ preserved exactly as-is)
                                     <input type="password" name="{{ $field }}" id="{{ $inputId }}"
                                         class="form-control" placeholder="{{ $placeholder }}"
                                         aria-label="{{ $placeholder }}" autocomplete="new-password">
-                                    <button type="button" class="btn btn-outline-secondary" data-password-toggle
-                                        aria-controls="{{ $inputId }}" aria-label="Show {{ strtolower($placeholder) }}"
-                                        title="Show {{ strtolower($placeholder) }}">
-                                        <i class="bi bi-eye" aria-hidden="true"></i>
-                                    </button>
+                                    @include('partials.password-visibility-button', [
+                                        'inputId' => $inputId,
+                                        'passwordLabel' => strtolower($placeholder),
+                                    ])
                                 </div>
                             </div>
                         @endforeach
                     </div>
-                    <small class="text-muted d-block mt-2">Use at least 8 characters, with uppercase and lowercase letters, a number, and a symbol.</small>
+                    @include('partials.farmer-password-help')
                 </div>
             </div>
             <div class="mt-4 pt-3 border-top d-flex gap-2">
@@ -707,22 +706,6 @@ preserved exactly as-is)
 
 <script>
     (function () {
-        document.querySelectorAll('[data-password-toggle]').forEach(button => {
-            const input = document.getElementById(button.getAttribute('aria-controls'));
-            const icon = button.querySelector('i');
-
-            button.addEventListener('click', () => {
-                const show = input.type === 'password';
-                const label = (show ? 'Hide ' : 'Show ') + input.placeholder.toLowerCase();
-
-                input.type = show ? 'text' : 'password';
-                icon.classList.toggle('bi-eye', !show);
-                icon.classList.toggle('bi-eye-slash', show);
-                button.setAttribute('aria-label', label);
-                button.title = label;
-            });
-        });
-
         var viewMode = document.getElementById('profileViewMode');
         var editMode = document.getElementById('profileEditMode');
         var btnEdit = document.getElementById('btnEditProfile');

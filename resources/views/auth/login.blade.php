@@ -37,10 +37,11 @@
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Password</label>
-                    <div class="input-group">
+                    <label class="form-label" for="login-password">Password</label>
+                    <div class="input-group has-validation">
                         <span class="input-group-text bg-white border-end-0"><i class="bi bi-lock text-muted"></i></span>
-                        <input type="password" name="password" class="form-control border-start-0 ps-0 @error('password') is-invalid @enderror" placeholder="Enter your password" required>
+                        <input type="password" name="password" id="login-password" autocomplete="current-password" class="form-control border-start-0 ps-0 @error('password') is-invalid @enderror" placeholder="Enter your password" required>
+                        @include('partials.password-visibility-button', ['inputId' => 'login-password'])
                         @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>

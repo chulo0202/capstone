@@ -217,42 +217,37 @@
 
                     {{-- PASSWORD --}}
                     <div class="mb-3">
-                        <label class="form-label">
+                        <label class="form-label" for="register-password">
                             Password <span class="text-danger" aria-hidden="true">*</span>
                         </label>
 
-                        <input
-                            type="password"
-                            name="password"
-                            class="form-control @error('password') is-invalid @enderror"
-                            placeholder="Minimum 8 characters"
-                            required
-                        >
-                            @include("partials.farmer-password-help")
-
-                        @error('password')
-                            <div class="invalid-feedback">
-                                {{ $message }}
-                            </div>
-                        @enderror
+                        <div class="input-group has-validation">
+                            <input type="password" name="password" id="register-password"
+                                class="form-control @error('password') is-invalid @enderror"
+                                autocomplete="new-password" placeholder="Minimum 8 characters" required>
+                            @include('partials.password-visibility-button', ['inputId' => 'register-password'])
+                            @error('password')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        @include('partials.farmer-password-help')
                     </div>
-
 
                     {{-- CONFIRM PASSWORD --}}
                     <div class="mb-4">
-                        <label class="form-label">
+                        <label class="form-label" for="register-password-confirmation">
                             Confirm password <span class="text-danger" aria-hidden="true">*</span>
                         </label>
 
-                        <input
-                            type="password"
-                            name="password_confirmation"
-                            class="form-control"
-                            placeholder="Re-enter password"
-                            required
-                        >
+                        <div class="input-group">
+                            <input type="password" name="password_confirmation" id="register-password-confirmation"
+                                class="form-control" autocomplete="new-password" placeholder="Re-enter password" required>
+                            @include('partials.password-visibility-button', [
+                                'inputId' => 'register-password-confirmation',
+                                'passwordLabel' => 'confirmation password',
+                            ])
+                        </div>
                     </div>
-
 
                     {{-- CREATE ACCOUNT --}}
                     <button
