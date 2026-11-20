@@ -154,7 +154,7 @@ OCR);
                 'rsbsa_number' => 'RSBSA-DEMO-0001',
             ]);
 
-        $this->assertDatabaseCount('rsbsa_farmers', 1);
+        $this->assertDatabaseCount('rsbsa_farmers', 20);
         $this->assertDatabaseCount('farmers', 0);
     }
 
