@@ -127,7 +127,8 @@
                 {{-- CONTACT NUMBER --}}
                 <div class="col-md-6">
                     <label class="form-label" for="contact-number">Contact Number</label>
-                    <input type="text" name="contact_number" inputmode="numeric" pattern="[0-9]{11}" maxlength="11"
+                    <input type="text" name="contact_number" inputmode="numeric" pattern="[0-9]{11}"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)"
                            id="contact-number"
                            class="form-control"
                            value="{{ old('contact_number', $farmer->contact_number) }}"

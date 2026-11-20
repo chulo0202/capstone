@@ -468,7 +468,8 @@ preserved exactly as-is)
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="profile-contact-number">Contact Number <span class="text-danger">*</span></label>
-                        <input type="text" name="contact_number" inputmode="numeric" pattern="[0-9]{11}" maxlength="11" id="profile-contact-number" class="form-control @error('contact_number') is-invalid @enderror" value="{{ old('contact_number', $farmer?->contact_number) }}" placeholder="09XXXXXXXXX" required>
+                        <input type="text" name="contact_number" inputmode="numeric" pattern="[0-9]{11}"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)" id="profile-contact-number" class="form-control @error('contact_number') is-invalid @enderror" value="{{ old('contact_number', $farmer?->contact_number) }}" placeholder="09XXXXXXXXX" required>
                         @error('contact_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-12">

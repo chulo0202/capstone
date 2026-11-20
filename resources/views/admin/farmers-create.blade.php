@@ -76,7 +76,8 @@
 
                 <div class="col-md-6">
                     <label class="form-label">Contact Number <span class="text-danger" aria-hidden="true">*</span></label>
-                    <input type="text" name="contact_number" inputmode="numeric" pattern="[0-9]{11}" maxlength="11"
+                    <input type="text" name="contact_number" inputmode="numeric" pattern="[0-9]{11}"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)"
                            class="form-control"
                            value="{{ old('contact_number') }}"
                            placeholder="09XXXXXXXXX" required>
