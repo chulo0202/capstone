@@ -13,7 +13,13 @@ class RsbsaFarmer extends Model
         'rsbsa_number',
         'full_name',
         'barangay',
+        'address',
+        'birthdate',
         'crop_type',
         'land_size',
+    ];
+
+    protected $casts = [
+        'birthdate' => 'date',
     ];
 }

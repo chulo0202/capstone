@@ -44,6 +44,18 @@
                     @include('partials.farmer-password-help')
                 </div>
 
+                <div class="col-12">
+                    <label class="form-label" for="farmer-rsbsa-number">RSBSA Number <span class="text-danger" aria-hidden="true">*</span></label>
+                    <div class="input-group">
+                        <input type="text" name="rsbsa_number" id="farmer-rsbsa-number" class="form-control"
+                            value="{{ old('rsbsa_number') }}" maxlength="50" required>
+                        <button type="button" class="btn btn-outline-secondary"
+                            data-rsbsa-lookup="{{ route('admin.farmers.rsbsa-lookup') }}">Look up</button>
+                    </div>
+                    <div class="form-text" data-rsbsa-status role="status">Enter the RSBSA number to fill in the farmer details.</div>
+                    @error('rsbsa_number')<div class="text-danger small">{{ $message }}</div>@enderror
+                </div>
+
                 {{-- FARMER INFORMATION --}}
                 <div class="col-12 mt-4">
                     <h6 class="text-fams border-bottom pb-2">
@@ -212,14 +224,6 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label">RSBSA Number <span class="text-danger" aria-hidden="true">*</span></label>
-                    <input type="text" name="rsbsa_number" class="form-control"
-                           value="{{ old('rsbsa_number') }}"
-                           placeholder="Enter RSBSA Number" required>
-                    @error('rsbsa_number')<div class="text-danger small">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="col-md-4">
                     <div class="form-check mt-4">
                         <input type="checkbox" name="association_membership"
                                value="1" class="form-check-input"
@@ -341,6 +345,95 @@ document.addEventListener('DOMContentLoaded', function () {
             if (isImage) image.src = previewUrl;
             if (file && !isImage) link.href = previewUrl;
         });
+    });
+
+    const lookup = document.querySelector('[data-rsbsa-lookup]');
+    const registryNumber = lookup.form.elements.namedItem('rsbsa_number');
+    const registryStatus = document.querySelector('[data-rsbsa-status]');
+    const populated = new Map();
+    let pendingLookup;
+
+    registryNumber.addEventListener('input', () => {
+        pendingLookup?.abort();
+        for (const [field, value] of populated) {
+            if (field.value === value) field.value = '';
+        }
+        populated.clear();
+        registryStatus.textContent = 'Enter the RSBSA number to fill in the farmer details.';
+    });
+
+    async function lookupFarmer() {
+        const number = registryNumber.value.trim();
+        if (!number) return;
+
+        pendingLookup?.abort();
+        const request = new AbortController();
+        pendingLookup = request;
+        registryStatus.textContent = 'Looking up RSBSA number…';
+
+        try {
+            const response = await fetch(lookup.dataset.rsbsaLookup, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': lookup.form.elements._token.value,
+                },
+                body: JSON.stringify({rsbsa_number: number}),
+                signal: request.signal,
+            });
+            const result = await response.json();
+            if (request.signal.aborted || registryNumber.value.trim() !== number) return;
+
+            if (!response.ok) {
+                registryStatus.textContent = result.message || 'Could not look up the RSBSA number.';
+                return;
+            }
+
+            registryNumber.value = result.rsbsa_number;
+            const fields = ['full_name', 'address', 'barangay', 'birthdate', 'crop_type', 'land_size'];
+            const missing = [];
+
+            for (const name of fields) {
+                const field = lookup.form.elements.namedItem(name);
+                const value = result[name];
+                if (value === null || value === undefined || value === '') {
+                    missing.push(name);
+                    continue;
+                }
+
+                if (field instanceof HTMLSelectElement) {
+                    const match = [...field.options].find(option => option.value.toLowerCase() === String(value).toLowerCase());
+                    if (!match) {
+                        missing.push(name);
+                        continue;
+                    }
+                    field.value = match.value;
+                } else {
+                    field.value = value;
+                }
+                populated.set(field, field.value);
+            }
+
+            const address = lookup.form.elements.namedItem('address');
+            lookup.form.elements.namedItem('barangay').dispatchEvent(new Event('change'));
+            if (populated.has(address)) populated.set(address, address.value);
+
+            registryStatus.textContent = missing.length
+                ? 'Some registry fields are unavailable on this form. Review and enter the missing details.'
+                : 'Farmer details filled from the RSBSA registry. Review them before saving.';
+        } catch (error) {
+            if (error.name !== 'AbortError') registryStatus.textContent = 'Could not look up the RSBSA number. Please try again.';
+        }
+    }
+
+    lookup.addEventListener('click', lookupFarmer);
+    registryNumber.addEventListener('change', lookupFarmer);
+    registryNumber.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            lookupFarmer();
+        }
     });
 
     const ocr = document.querySelector('[data-national-id-ocr]');

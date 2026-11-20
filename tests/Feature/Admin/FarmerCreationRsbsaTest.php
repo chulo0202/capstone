@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Farmer;
 use App\Models\RsbsaFarmer;
 use App\Models\User;
+use Database\Seeders\DemoRsbsaFarmerSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Process;
@@ -129,6 +130,31 @@ OCR);
                 'birthdate' => '1990-01-02',
             ]);
 
+        $this->assertDatabaseCount('farmers', 0);
+    }
+
+    public function test_admin_can_look_up_the_demo_rsbsa_record_without_creating_an_account(): void
+    {
+        $this->seed(DemoRsbsaFarmerSeeder::class);
+        $this->seed(DemoRsbsaFarmerSeeder::class);
+
+        $data = ['rsbsa_number' => 'RSBSA-DEMO-0001'];
+        $url = route('admin.farmers.rsbsa-lookup');
+
+        $this->postJson($url, $data)->assertUnauthorized();
+        $this->actingAs($this->createAdmin())->postJson($url, $data)
+            ->assertOk()
+            ->assertJson([
+                'full_name' => 'Juan Demo Dela Cruz',
+                'address' => 'Purok 5',
+                'barangay' => 'Gate',
+                'birthdate' => '1990-01-15',
+                'crop_type' => 'Rice',
+                'land_size' => 1.25,
+                'rsbsa_number' => 'RSBSA-DEMO-0001',
+            ]);
+
+        $this->assertDatabaseCount('rsbsa_farmers', 1);
         $this->assertDatabaseCount('farmers', 0);
     }
 

@@ -17,7 +17,7 @@
             const current = selectedLocality();
 
             // Remove the previous auto-filled locality and keep any street or purok.
-            for (const locality of [previous, previous.slice(-2), current]) {
+            for (const locality of [current, previous, previous.slice(-2)]) {
                 if (!locality.length) continue;
 
                 const index = parts.findIndex((_, start) => locality.every(

@@ -111,6 +111,10 @@ Route::middleware(['auth'])->group(function () {
             [\App\Http\Controllers\Admin\ApplicationController::class, 'show']
         )->name('applications.show');
 
+        Route::post('/farmers/rsbsa-lookup', \App\Http\Controllers\Admin\RsbsaFarmerLookupController::class)
+            ->middleware('throttle:20,1')
+            ->name('farmers.rsbsa-lookup');
+
         Route::post('/farmers/national-id/ocr', \App\Http\Controllers\Admin\NationalIdOcrController::class)
             ->middleware('throttle:6,1')
             ->name('farmers.national-id.ocr');
