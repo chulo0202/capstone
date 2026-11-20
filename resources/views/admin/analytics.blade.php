@@ -71,16 +71,6 @@
         height: 235px;
     }
 
-    .analytics-page .small-chart-card {
-        height: 275px;
-    }
-
-    .analytics-page .small-chart-wrapper {
-        position: relative;
-        width: 100%;
-        height: 195px;
-    }
-
     .analytics-page .table {
         font-size: 0.8rem;
     }
@@ -436,10 +426,8 @@
     </div>
 
 
-    {{-- FARMERS BY CROP + BARANGAY --}}
-
+    {-- FARMER DISTRIBUTION AND MEMBERSHIP --}
     <div class="row g-3 mb-4">
-
         <div class="col-lg-6">
 
             <div class="card chart-card">
@@ -463,38 +451,6 @@
             </div>
 
         </div>
-
-
-        <div class="col-lg-6">
-
-            <div class="card chart-card">
-
-                <div class="card-body">
-
-                    <div class="chart-title">
-                        Farmers by Barangay
-                    </div>
-
-                    <div class="chart-description">
-                        Farmer distribution by barangay
-                    </div>
-
-                    <div class="chart-wrapper">
-                        <canvas id="barangayChart"></canvas>
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-    {{-- MEMBERSHIP OVERVIEW --}}
-
-    <div class="row g-3 mb-4">
 
         <div class="col-lg-6">
 
@@ -520,6 +476,29 @@
 
         </div>
 
+        <div class="col-12">
+
+            <div class="card chart-card">
+
+                <div class="card-body">
+
+                    <div class="chart-title">
+                        Farmers by Barangay
+                    </div>
+
+                    <div class="chart-description">
+                        Farmer distribution by barangay
+                    </div>
+
+                    <div class="chart-wrapper">
+                        <canvas id="barangayChart"></canvas>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
     </div>
 
 
@@ -682,9 +661,9 @@
 
     <div class="row g-3 mb-4">
 
-        <div class="col-lg-8">
+        <div class="col-12">
 
-            <div class="card small-chart-card">
+            <div class="card chart-card">
 
                 <div class="card-body">
 
@@ -696,7 +675,7 @@
                         Applications received per program
                     </div>
 
-                    <div class="small-chart-wrapper">
+                    <div class="chart-wrapper">
                         <canvas id="enrollmentChart"></canvas>
                     </div>
 
