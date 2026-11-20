@@ -38,7 +38,7 @@
 
                 <div class="col-md-6">
                     <label class="form-label">Password <span class="text-danger" aria-hidden="true">*</span></label>
-                    <input type="password" name="password"
+                    <input type="password" name="password" autocomplete="new-password"
                            class="form-control" required>
                     @error('password')<div class="text-danger small">{{ $message }}</div>@enderror
                     @include('partials.farmer-password-help')
@@ -221,18 +221,6 @@
 
                 <div class="col-md-4">
                     <div class="form-check mt-4">
-                        <input type="checkbox" name="rsbsa_status"
-                               value="1" class="form-check-input"
-                               id="rsbsa"
-                               {{ old('rsbsa_status') ? 'checked' : '' }}>
-                        <label class="form-check-label" for="rsbsa">
-                            RSBSA Registered
-                        </label>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="form-check mt-4">
                         <input type="checkbox" name="association_membership"
                                value="1" class="form-check-input"
                                id="association"
@@ -293,7 +281,7 @@
                                     data-national-id-ocr="{{ route('admin.farmers.national-id.ocr') }}">
                                     Read National ID
                                 </button>
-                                <div class="form-text" data-ocr-status role="status">Use a clear JPG or PNG of the front of the National ID.</div>
+                                <div class="form-text" data-ocr-status role="status">Use a clear JPG or PNG of the ID front. Crop close to the card, keep it straight, and avoid glare.</div>
                             @endif
                             <a class="d-none mt-2" target="_blank" rel="noopener">Preview document</a>
                             <img class="d-none img-fluid rounded mt-2" alt="{{ $label }} preview">
@@ -402,7 +390,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
             ocrStatus.textContent = result.full_name && result.birthdate
                 ? 'Review the name and birthdate before saving.'
-                : 'Some details could not be read. Check the name and birthdate against the ID.';
+                : result.full_name || result.birthdate
+                    ? 'Only some details were read. Review the filled fields and enter the missing information.'
+                    : 'No name or birthdate was read. Try a closer, straight photo with less glare, or enter the details manually.';
         } catch {
             ocrStatus.textContent = 'The ID could not be read. Enter the details manually.';
         } finally {

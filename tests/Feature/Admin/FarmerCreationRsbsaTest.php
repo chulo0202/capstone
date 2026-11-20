@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Farmer;
+use App\Models\RsbsaFarmer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -22,6 +23,7 @@ class FarmerCreationRsbsaTest extends TestCase
             ->get(route('admin.farmers.create'))
             ->assertOk()
             ->assertSee('Read National ID')
+            ->assertDontSee('name="rsbsa_status"', false)
             ->assertSee('max="'.today()->subDay()->toDateString().'"', false);
     }
 
@@ -69,6 +71,13 @@ class FarmerCreationRsbsaTest extends TestCase
     {
         $admin = $this->createAdmin();
         $data = $this->validFarmerData();
+        RsbsaFarmer::create([
+            'rsbsa_number' => $data['rsbsa_number'],
+            'full_name' => $data['full_name'],
+            'barangay' => $data['barangay'],
+            'crop_type' => $data['crop_type'],
+            'land_size' => $data['land_size'],
+        ]);
 
         $this->actingAs($admin)
             ->post(route('admin.farmers.store'), $data)
@@ -77,6 +86,7 @@ class FarmerCreationRsbsaTest extends TestCase
         $this->assertDatabaseHas('farmers', [
             'full_name' => $data['full_name'],
             'rsbsa_number' => $data['rsbsa_number'],
+            'rsbsa_status' => true,
         ]);
 
         $farmer = Farmer::where('rsbsa_number', $data['rsbsa_number'])->firstOrFail();
@@ -89,7 +99,13 @@ class FarmerCreationRsbsaTest extends TestCase
 
     public function test_admin_can_read_name_and_birthdate_from_national_id(): void
     {
-        Process::fake(fn () => Process::result(output: <<<'OCR'
+        $runs = 0;
+        Process::fake(function () use (&$runs) {
+            if (++$runs === 1) {
+                return Process::result(output: "Petsa ng Kapanganakan\nJANUARY 02, 1990");
+            }
+
+            return Process::result(output: <<<'OCR'
 Apelyido / Last Name
 
 DELA CRUZ
@@ -99,10 +115,8 @@ JUAN MIGUEL
 Gitnang Apelyido / Middle Name
 
 SANTOS
-Petsa ng Kapanganakan / Date of Birth
-
-JANUARY 02, 1990
-OCR));
+OCR);
+        });
 
         $this->actingAs($this->createAdmin())
             ->postJson(route('admin.farmers.national-id.ocr'), [

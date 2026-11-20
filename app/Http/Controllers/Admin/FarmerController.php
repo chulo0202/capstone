@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Farmer;
+use App\Models\RsbsaFarmer;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -72,7 +73,6 @@ class FarmerController extends Controller
                 'max:50',
                 Rule::unique('farmers', 'rsbsa_number'),
             ],
-            'rsbsa_status' => 'nullable|boolean',
             'association_membership' => 'nullable|boolean',
             'four_ps_membership' => 'nullable|boolean',
 
@@ -142,7 +142,7 @@ class FarmerController extends Controller
                     'land_size' => $validated['land_size'],
 
                     'rsbsa_number' => $validated['rsbsa_number'] ?? null,
-                    'rsbsa_status' => $request->boolean('rsbsa_status'),
+                    'rsbsa_status' => RsbsaFarmer::where('rsbsa_number', $validated['rsbsa_number'])->exists(),
                     'association_membership' => $isAssociationMember,
                     'four_ps_membership' => $request->boolean('four_ps_membership'),
 
