@@ -18,6 +18,27 @@ class RegistrationTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_invalid_password_keeps_the_checked_rsbsa_record_on_the_account_step(): void
+    {
+        $this->seed(DemoRsbsaFarmerSeeder::class);
+
+        $this->from(route('register'))->post(route('register'), [
+            'rsbsa_number' => 'RSBSA-DEMO-0002',
+            'email' => 'demo.registration@gmail.com',
+            'password' => 'password123!',
+            'password_confirmation' => 'password123!',
+        ])->assertRedirect(route('register'))->assertSessionHasErrors('password');
+
+        $this->get(route('register'))
+            ->assertOk()
+            ->assertSee('id="rsbsaStep"  style="display: none;"', false)
+            ->assertDontSee('id="accountStep"  style="display: none;"', false)
+            ->assertSee('Maria Demo Santos')
+            ->assertSee('RSBSA-DEMO-0002')
+            ->assertSee('demo.registration@gmail.com')
+            ->assertDontSee('password123!');
+    }
+
     public function test_new_users_can_register(): void
     {
         Notification::fake();

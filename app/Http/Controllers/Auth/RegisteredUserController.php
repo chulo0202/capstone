@@ -21,9 +21,23 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('auth.register');
+        $number = $request->old('rsbsa_number');
+        $errors = $request->session()->get('errors');
+        $rsbsaFarmer = null;
+
+        if (
+            is_string($number)
+            && $errors
+            && ! $errors->has('rsbsa_number')
+            && ($errors->has('email') || $errors->has('password'))
+            && ! Farmer::where('rsbsa_number', $number)->exists()
+        ) {
+            $rsbsaFarmer = RsbsaFarmer::where('rsbsa_number', $number)->first();
+        }
+
+        return view('auth.register', compact('rsbsaFarmer'));
     }
 
     /**

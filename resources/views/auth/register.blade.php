@@ -52,7 +52,7 @@
                 @csrf
 
                 {{-- STEP 1: RSBSA VERIFICATION --}}
-                <div id="rsbsaStep">
+                <div id="rsbsaStep" @if($rsbsaFarmer) style="display: none;" @endif>
 
                     <div class="mb-4">
                         <label class="form-label">
@@ -95,7 +95,7 @@
 
 
                 {{-- STEP 2: ACCOUNT INFORMATION --}}
-                <div id="accountStep" style="display: none;">
+                <div id="accountStep" @unless($rsbsaFarmer) style="display: none;" @endunless>
 
                     <div class="alert alert-success">
                         <i class="bi bi-check-circle-fill"></i>
@@ -114,6 +114,7 @@
                             type="text"
                             name="rsbsa_number"
                             id="verified_rsbsa_number"
+                            value="{{ $rsbsaFarmer?->rsbsa_number }}"
                             class="form-control"
                             readonly
                         >
@@ -130,6 +131,7 @@
                             type="text"
                             name="name"
                             id="rsbsa_full_name"
+                            value="{{ $rsbsaFarmer?->full_name }}"
                             class="form-control"
                             readonly
                         >
@@ -145,6 +147,7 @@
                         <input
                             type="text"
                             id="rsbsa_barangay"
+                            value="{{ $rsbsaFarmer?->barangay }}"
                             class="form-control"
                             readonly
                         >
@@ -160,6 +163,7 @@
                         <input
                             type="text"
                             id="rsbsa_crop_type"
+                            value="{{ $rsbsaFarmer?->crop_type }}"
                             class="form-control"
                             readonly
                         >
@@ -176,6 +180,7 @@
                             <input
                                 type="text"
                                 id="rsbsa_land_size"
+                                value="{{ $rsbsaFarmer?->land_size }}"
                                 class="form-control"
                                 readonly
                             >
