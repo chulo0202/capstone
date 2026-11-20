@@ -150,14 +150,21 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">
+                            <label class="form-label" for="pcic-area-to-insure">
                                 Area to be Insured (hectares)
                             </label>
                             <input type="number"
+                                   id="pcic-area-to-insure"
                                    name="area_to_insure"
                                    min="0.01"
+                                   max="{{ $farmer?->land_size ?? 0 }}"
                                    step="0.01"
-                                   class="form-control">
+                                   aria-describedby="pcic-area-limit"
+                                   class="form-control"
+                                   required>
+                            <div id="pcic-area-limit" class="form-text">
+                                Maximum from My Profile: {{ $farmer?->land_size ?? 0 }} hectares.
+                            </div>
                         </div>
 
                         <div class="mb-3">

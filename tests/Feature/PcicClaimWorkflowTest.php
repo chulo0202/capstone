@@ -80,6 +80,39 @@ class PcicClaimWorkflowTest extends TestCase
         return [$user, $farmer, $program, $benefit, $coverage];
     }
 
+    public function test_pcic_insured_area_cannot_exceed_the_farmer_profile_land_size(): void
+    {
+        [$user, $farmer, $program] = $this->setupClaim();
+        $farmer->update(['land_size' => 2.25]);
+        $program->update(['is_active' => true, 'end_at' => now()->addDay()]);
+
+        $benefit = $program->benefits()->create(['name' => 'New Application']);
+        $benefit->eligibility_configured_at = now();
+        $benefit->save();
+
+        $data = [
+            'program_benefit_id' => $benefit->id,
+            'variety_planted' => 'Inbred',
+            'actual_planting_date' => now()->subDays(30)->toDateString(),
+            'expected_harvest_date' => now()->addDays(30)->toDateString(),
+            'adjacent_north' => 'Farm A',
+            'adjacent_south' => 'Farm B',
+            'adjacent_east' => 'Farm C',
+            'adjacent_west' => 'Farm D',
+        ];
+
+        $this->actingAs($user)
+            ->post(route('farmer.applications.store', $program), $data + ['area_to_insure' => 2.26])
+            ->assertSessionHas('error', 'Area to be insured cannot exceed the land size in My Profile (2.25 hectares).');
+
+        $this->assertDatabaseCount('applications', 0);
+
+        $this->post(route('farmer.applications.store', $program), $data + ['area_to_insure' => 2.25])
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseCount('applications', 1);
+    }
+
     private function claimData($benefit, $coverage): array
     {
         return [

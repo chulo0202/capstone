@@ -92,6 +92,16 @@ class ApplicationController extends Controller
                 $isPcic = $lockedProgram->isPcicCropInsurance();
                 $isPcicClaim = $isPcic && $benefit->name === 'Claim for Indemnity';
 
+                if (
+                    $isPcic
+                    && $benefit->name === 'New Application'
+                    && (float) $validated['area_to_insure'] > (float) $lockedFarmer->land_size
+                ) {
+                    return [
+                        'error' => "Area to be insured cannot exceed the land size in My Profile ({$lockedFarmer->land_size} hectares).",
+                    ];
+                }
+
                 $profileDetails = [
                     'farmer_name' => $lockedFarmer->full_name,
                     'farmer_barangay' => $lockedFarmer->barangay,
