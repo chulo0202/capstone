@@ -294,8 +294,23 @@
                 </aside>
             </div>
 
+            @foreach ($errors->get('id_comparison') as $message)
+                <p class="text-danger mb-1">{{ $message }}</p>
+            @endforeach
+            @error('id_manually_reviewed')
+                <p class="text-danger mb-1" role="alert">{{ $message }}</p>
+            @enderror
+            <div id="id-comparison" class="alert mt-3" role="status" hidden>
+                <strong data-comparison-title></strong>
+                <ul data-comparison-details class="mb-0"></ul>
+                <label class="form-check mt-2" data-manual-review hidden>
+                    <input class="form-check-input" type="checkbox" name="id_manually_reviewed" value="1">
+                    <span class="form-check-label">I compared the original Valid ID and RSBSA record and verified the missing or unreadable details.</span>
+                </label>
+            </div>
+
             <div class="mt-4 pt-3 border-top">
-                <button type="submit" class="btn btn-fams">
+                <button type="submit" class="btn btn-fams" id="save-farmer">
                     <i class="bi bi-check-lg me-1"></i>
                     Save Farmer
                 </button>
@@ -353,6 +368,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const registryFields = new Set();
     const idFields = new Set();
     let idDetails = {};
+    let registryDetails = null;
     let pendingLookup;
 
     function setLocked(field, locked) {
@@ -389,6 +405,8 @@ document.addEventListener('DOMContentLoaded', function () {
         fillFromId();
         lookup.textContent = 'Look up';
         registryStatus.textContent = 'Enter the RSBSA number to fill in the farmer details.';
+        registryDetails = null;
+        compareSources(true);
     }
 
     registryNumber.addEventListener('input', resetRegistry);
@@ -421,6 +439,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
+            registryDetails = result;
+            compareSources(true);
             const fields = ['rsbsa_number', 'full_name', 'address', 'barangay', 'birthdate', 'crop_type', 'land_size'];
             const missing = [];
 
@@ -478,8 +498,70 @@ document.addEventListener('DOMContentLoaded', function () {
     const idInput = document.getElementById('valid_id');
     const ocrStatus = document.querySelector('[data-ocr-status]');
     let runningScans = 0;
+    const comparison = document.getElementById('id-comparison');
+    const comparisonTitle = comparison.querySelector('[data-comparison-title]');
+    const comparisonDetails = comparison.querySelector('[data-comparison-details]');
+    const reviewLabel = comparison.querySelector('[data-manual-review]');
+    const reviewed = reviewLabel.querySelector('input');
+    const save = document.getElementById('save-farmer');
+
+    function normalizeName(value) {
+        const index = value.indexOf(',');
+        if (index >= 0) value = value.slice(index + 1) + ' ' + value.slice(0, index);
+
+        return value.trim().replace(/\s+/g, ' ').toLowerCase();
+    }
+
+    function compareSources(resetReview = false) {
+        if (resetReview) reviewed.checked = false;
+
+        comparison.hidden = !registryDetails || !idInput.files[0] || runningScans > 0;
+        reviewLabel.hidden = true;
+        save.disabled = false;
+        if (comparison.hidden) return;
+
+        const mismatches = [];
+        const missing = [];
+
+        for (const [field, label] of [['full_name', 'Full name'], ['birthdate', 'Birthdate']]) {
+            const registryValue = registryDetails[field];
+            const idValue = idDetails[field];
+
+            if (!registryValue) missing.push(label + ' is missing from the RSBSA record.');
+            if (!idValue) missing.push(label + ' could not be read from the Valid ID.');
+            if (!registryValue || !idValue) continue;
+
+            const matches = field === 'full_name'
+                ? normalizeName(registryValue) === normalizeName(idValue)
+                : registryValue === idValue;
+
+            if (!matches) mismatches.push(label + ' mismatch. RSBSA: ' + registryValue + '. Valid ID: ' + idValue + '.');
+        }
+
+        const hasMismatch = mismatches.length > 0;
+        const needsReview = !hasMismatch && missing.length > 0;
+
+        comparison.className = 'alert mt-3 ' + (hasMismatch ? 'alert-danger' : needsReview ? 'alert-warning' : 'alert-success');
+        comparisonTitle.textContent = hasMismatch ? 'RSBSA and Valid ID details do not match.'
+            : needsReview ? 'Review the RSBSA record and original Valid ID.'
+                : 'RSBSA and Valid ID details match.';
+        comparisonDetails.replaceChildren(...[...mismatches, ...missing].map(message => {
+            const item = document.createElement('li');
+            item.textContent = message;
+            return item;
+        }));
+        reviewLabel.hidden = !needsReview;
+        save.disabled = hasMismatch || (needsReview && !reviewed.checked);
+    }
+
+    reviewed.addEventListener('change', () => compareSources());
 
     lookup.form.addEventListener('submit', event => {
+        if (save.disabled) {
+            event.preventDefault();
+            return;
+        }
+
         if (pendingLookup || runningScans) {
             event.preventDefault();
             (pendingLookup ? registryStatus : ocrStatus).textContent = 'Wait for the lookup or ID scan to finish before saving.';
@@ -494,6 +576,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         runningScans++;
+        compareSources(true);
         ocr.disabled = true;
         ocrStatus.textContent = 'Reading National ID…';
         const body = new FormData();
@@ -532,6 +615,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } finally {
             runningScans--;
             ocr.disabled = runningScans > 0;
+            compareSources();
         }
     }
 
@@ -539,6 +623,7 @@ document.addEventListener('DOMContentLoaded', function () {
     idInput.addEventListener('change', () => {
         releaseFields(idFields);
         idDetails = {};
+        compareSources(true);
         const file = idInput.files[0];
         if (file && /\.(jpe?g|png)$/i.test(file.name)) readNationalId();
     });

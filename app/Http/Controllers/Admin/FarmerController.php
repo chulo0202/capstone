@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class FarmerController extends Controller
@@ -68,6 +69,41 @@ class FarmerController extends Controller
         }
 
         $registryDetails = array_filter($record?->registrationDetails() ?? [], fn ($value) => filled($value));
+        if ($record && $file instanceof \Illuminate\Http\UploadedFile && $file->isValid()) {
+            $mismatches = [];
+            $missing = false;
+
+            foreach (['full_name' => 'Full name', 'birthdate' => 'Birthdate'] as $field => $label) {
+                $registryValue = $registryDetails[$field] ?? null;
+                $idValue = $idDetails[$field] ?? null;
+
+                if (! $registryValue || ! $idValue) {
+                    $missing = true;
+                    continue;
+                }
+
+                $matches = $field === 'full_name'
+                    ? $this->normalizeIdName($registryValue) === $this->normalizeIdName($idValue)
+                    : $registryValue === $idValue;
+
+                if (! $matches) {
+                    $mismatches[] = "$label mismatch. RSBSA: $registryValue. Valid ID: $idValue.";
+                }
+            }
+
+            if ($mismatches) {
+                throw ValidationException::withMessages([
+                    'id_comparison' => ['RSBSA and Valid ID details do not match.', ...$mismatches],
+                ]);
+            }
+
+            if ($missing) {
+                $request->validate(['id_manually_reviewed' => ['accepted']], [
+                    'id_manually_reviewed.accepted' => 'Review the original Valid ID and RSBSA record, then confirm the manual check before saving.',
+                ]);
+            }
+        }
+
         $request->merge(array_replace($idDetails, $registryDetails));
 
         $isAssociationMember = $request->boolean('association_membership');
@@ -545,4 +581,15 @@ public function update(Request $request, Farmer $farmer): RedirectResponse
             $farmer->valid_id_path
         );
     }
+    private function normalizeIdName(string $name): string
+    {
+        $parts = explode(',', $name, 2);
+
+        if (count($parts) === 2) {
+            $name = $parts[1].' '.$parts[0];
+        }
+
+        return mb_strtolower(trim(preg_replace('/\s+/u', ' ', $name)));
+    }
+
 }

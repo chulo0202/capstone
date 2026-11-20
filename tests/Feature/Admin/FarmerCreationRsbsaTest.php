@@ -167,20 +167,20 @@ OCR);
             'rsbsa_number' => 'RSBSA-DEMO-0001',
             'full_name' => 'Manually overwritten name',
             'birthdate' => '1980-01-01',
-            'valid_id' => UploadedFile::fake()->createWithContent('id.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRk8AAAAASUVORK5CYII=')),
+            'valid_id' => $this->sampleValidId(),
         ]);
         $digest = hash_file('sha256', $data['valid_id']->getRealPath());
         unset($data['crop_type'], $data['barangay']);
 
         $this->actingAs($this->createAdmin())
             ->withSession(['farmer_id_scans' => [$digest => [
-                'full_name' => 'Scanned Account Name',
-                'birthdate' => '1985-01-01',
+                'full_name' => 'DELA CRUZ, JUAN  DEMO',
+                'birthdate' => '1990-01-15',
             ]]])
             ->post(route('admin.farmers.store'), $data)
             ->assertRedirect(route('admin.farmers.index'));
 
-        $this->assertDatabaseHas('users', ['email' => $data['email'], 'name' => 'Scanned Account Name']);
+        $this->assertDatabaseHas('users', ['email' => $data['email'], 'name' => 'DELA CRUZ, JUAN  DEMO']);
         $this->assertDatabaseHas('farmers', [
             'rsbsa_number' => 'RSBSA-DEMO-0001',
             'full_name' => 'Juan Demo Dela Cruz',
@@ -189,6 +189,55 @@ OCR);
             'crop_type' => 'Rice',
         ]);
         $this->assertSame('1990-01-15', Farmer::where('rsbsa_number', 'RSBSA-DEMO-0001')->firstOrFail()->birthdate->toDateString());
+    }
+
+    public function test_an_id_mismatch_blocks_saving_even_with_manual_confirmation(): void
+    {
+        $this->seed(DemoRsbsaFarmerSeeder::class);
+
+        $file = $this->sampleValidId();
+        $digest = hash_file('sha256', $file->getRealPath());
+        $this->actingAs($this->createAdmin())
+            ->withSession(['farmer_id_scans' => [$digest => [
+                'full_name' => 'Another Farmer',
+                'birthdate' => '1990-01-16',
+            ]]])
+            ->post(route('admin.farmers.store'), $this->validFarmerData([
+                'rsbsa_number' => 'RSBSA-DEMO-0001',
+                'valid_id' => $file,
+                'id_manually_reviewed' => '1',
+            ]))
+            ->assertSessionHasErrors(['id_comparison' => 'RSBSA and Valid ID details do not match.']);
+
+        $messages = session('errors')->get('id_comparison');
+        $this->assertContains('Full name mismatch. RSBSA: Juan Demo Dela Cruz. Valid ID: Another Farmer.', $messages);
+        $this->assertContains('Birthdate mismatch. RSBSA: 1990-01-15. Valid ID: 1990-01-16.', $messages);
+        $this->assertDatabaseCount('farmers', 0);
+    }
+
+    public function test_an_unreadable_id_requires_manual_review_before_saving(): void
+    {
+        $this->seed(DemoRsbsaFarmerSeeder::class);
+        \Illuminate\Support\Facades\Storage::fake('private');
+
+        $data = $this->validFarmerData([
+            'rsbsa_number' => 'RSBSA-DEMO-0001',
+            'valid_id' => $this->sampleValidId(),
+        ]);
+
+        $this->actingAs($this->createAdmin())
+            ->post(route('admin.farmers.store'), $data)
+            ->assertSessionHasErrors('id_manually_reviewed');
+
+        $data['valid_id'] = $this->sampleValidId();
+        $this->post(route('admin.farmers.store'), $data + ['id_manually_reviewed' => '1'])
+            ->assertRedirect(route('admin.farmers.index'));
+        $this->assertDatabaseCount('farmers', 1);
+    }
+
+    private function sampleValidId(): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent('id.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRk8AAAAASUVORK5CYII='));
     }
 
     private function createAdmin(): User
