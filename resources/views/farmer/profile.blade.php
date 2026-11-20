@@ -303,7 +303,15 @@ READ-ONLY VIEW
             <div class="fams-overview-meta">
                 <span><i class="bi bi-telephone"></i> {{ $farmer?->contact_number ?? 'Not provided' }}</span>
                 <span><i class="bi bi-envelope"></i> {{ auth()->user()->email }}</span>
-                <span><i class="bi bi-geo-alt"></i> {{ trim(collect([$farmer?->barangay, $farmer?->address])->filter()->join(', ')) ?: 'Not provided' }}</span>
+                <span><i class="bi bi-geo-alt"></i> @php
+                    $address = $farmer?->address ?? '';
+                    $barangay = $farmer?->barangay ?? '';
+                    $parts = array_map(fn ($part) => mb_strtolower(trim($part)), explode(',', $address));
+                    $displayAddress = $barangay && ! in_array(mb_strtolower(trim($barangay)), $parts, true)
+                        ? collect([$address, $barangay])->filter()->join(', ')
+                        : $address;
+                @endphp
+                {{ $displayAddress ?: 'Not provided' }}</span>
             </div>
 
             <div>
@@ -741,4 +749,5 @@ preserved exactly as-is)
     })();
 </script>
 
+@include('partials.farmer-address-autofill')
 @endsection

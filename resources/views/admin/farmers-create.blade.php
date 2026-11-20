@@ -417,4 +417,5 @@ document.addEventListener('DOMContentLoaded', function () {
     toggleAssociationField();
 });
 </script>
+@include('partials.farmer-address-autofill')
 @endsection
