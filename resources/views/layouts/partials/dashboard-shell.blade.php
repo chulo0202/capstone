@@ -37,6 +37,23 @@
                 @endif
             </div>
 
+            @if (auth()->user()->isFarmer() && ($notificationFarmer = auth()->user()->farmer))
+                @php
+                    $unreadCount = app(\App\Services\FarmerNotifications::class)->unreadCount($notificationFarmer);
+                @endphp
+                <a href="{{ route('farmer.notifications.index') }}"
+                    class="btn btn-light position-relative flex-shrink-0"
+                    aria-label="Notifications{{ $unreadCount ? ', '.$unreadCount.' unread' : '' }}"
+                    @if (request()->routeIs('farmer.notifications.index')) aria-current="page" @endif>
+                    <i class="bi bi-bell-fill" aria-hidden="true"></i>
+                    @if ($unreadCount)
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" aria-hidden="true">
+                            {{ $unreadCount }}
+                        </span>
+                    @endif
+                </a>
+            @endif
+
             <div class="fams-user-chip d-none d-sm-flex">
     @php
         $farmer = auth()->user()->farmer;
