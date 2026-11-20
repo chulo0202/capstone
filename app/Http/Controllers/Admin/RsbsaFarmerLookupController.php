@@ -24,14 +24,6 @@ class RsbsaFarmerLookupController extends Controller
             return response()->json(['message' => 'A farmer is already registered with this RSBSA number.'], 409);
         }
 
-        return response()->json([
-            'full_name' => $record->full_name,
-            'address' => $record->address,
-            'barangay' => $record->barangay,
-            'birthdate' => $record->birthdate?->toDateString(),
-            'crop_type' => $record->crop_type,
-            'land_size' => $record->land_size,
-            'rsbsa_number' => $record->rsbsa_number,
-        ]);
+        return response()->json($record->registrationDetails());
     }
 }

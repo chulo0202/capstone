@@ -65,6 +65,12 @@ class NationalIdOcrController extends Controller
             return response()->json(['message' => 'The ID could not be read. Enter the details manually.'], 422);
         }
 
+        $scans = $request->session()->get('farmer_id_scans', []);
+        $digest = hash_file('sha256', $photo);
+        unset($scans[$digest]);
+        $scans[$digest] = $details;
+        $request->session()->put('farmer_id_scans', array_slice($scans, -5, preserve_keys: true));
+
         return response()->json($details);
     }
 

@@ -146,7 +146,7 @@ OCR);
             ->assertOk()
             ->assertJson([
                 'full_name' => 'Juan Demo Dela Cruz',
-                'address' => 'Purok 5',
+                'address' => 'Purok 5, Gate, Bulan, Sorsogon',
                 'barangay' => 'Gate',
                 'birthdate' => '1990-01-15',
                 'crop_type' => 'Rice',
@@ -156,6 +156,39 @@ OCR);
 
         $this->assertDatabaseCount('rsbsa_farmers', 1);
         $this->assertDatabaseCount('farmers', 0);
+    }
+
+    public function test_saving_uses_registry_and_id_values_instead_of_posted_overrides(): void
+    {
+        $this->seed(DemoRsbsaFarmerSeeder::class);
+        \Illuminate\Support\Facades\Storage::fake('private');
+
+        $data = $this->validFarmerData([
+            'rsbsa_number' => 'RSBSA-DEMO-0001',
+            'full_name' => 'Manually overwritten name',
+            'birthdate' => '1980-01-01',
+            'valid_id' => UploadedFile::fake()->createWithContent('id.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRk8AAAAASUVORK5CYII=')),
+        ]);
+        $digest = hash_file('sha256', $data['valid_id']->getRealPath());
+        unset($data['crop_type'], $data['barangay']);
+
+        $this->actingAs($this->createAdmin())
+            ->withSession(['farmer_id_scans' => [$digest => [
+                'full_name' => 'Scanned Account Name',
+                'birthdate' => '1985-01-01',
+            ]]])
+            ->post(route('admin.farmers.store'), $data)
+            ->assertRedirect(route('admin.farmers.index'));
+
+        $this->assertDatabaseHas('users', ['email' => $data['email'], 'name' => 'Scanned Account Name']);
+        $this->assertDatabaseHas('farmers', [
+            'rsbsa_number' => 'RSBSA-DEMO-0001',
+            'full_name' => 'Juan Demo Dela Cruz',
+            'address' => 'Purok 5, Gate, Bulan, Sorsogon',
+            'barangay' => 'Gate',
+            'crop_type' => 'Rice',
+        ]);
+        $this->assertSame('1990-01-15', Farmer::where('rsbsa_number', 'RSBSA-DEMO-0001')->firstOrFail()->birthdate->toDateString());
     }
 
     private function createAdmin(): User

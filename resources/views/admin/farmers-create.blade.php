@@ -350,21 +350,52 @@ document.addEventListener('DOMContentLoaded', function () {
     const lookup = document.querySelector('[data-rsbsa-lookup]');
     const registryNumber = lookup.form.elements.namedItem('rsbsa_number');
     const registryStatus = document.querySelector('[data-rsbsa-status]');
-    const populated = new Map();
+    const registryFields = new Set();
+    const idFields = new Set();
+    let idDetails = {};
     let pendingLookup;
 
-    registryNumber.addEventListener('input', () => {
-        pendingLookup?.abort();
-        for (const [field, value] of populated) {
-            if (field.value === value) field.value = '';
+    function setLocked(field, locked) {
+        if (field instanceof HTMLSelectElement) {
+            field.disabled = locked;
+        } else {
+            field.readOnly = locked;
         }
-        populated.clear();
+    }
+
+    function releaseFields(fields) {
+        for (const field of fields) {
+            setLocked(field, false);
+            field.value = '';
+        }
+        fields.clear();
+    }
+
+    function fillFromId() {
+        for (const [name, value] of Object.entries(idDetails)) {
+            const field = lookup.form.elements.namedItem(name);
+            if (value && !registryFields.has(field)) {
+                field.value = value;
+                setLocked(field, true);
+                idFields.add(field);
+            }
+        }
+    }
+
+    function resetRegistry() {
+        pendingLookup?.abort();
+        pendingLookup = null;
+        releaseFields(registryFields);
+        fillFromId();
+        lookup.textContent = 'Look up';
         registryStatus.textContent = 'Enter the RSBSA number to fill in the farmer details.';
-    });
+    }
+
+    registryNumber.addEventListener('input', resetRegistry);
 
     async function lookupFarmer() {
         const number = registryNumber.value.trim();
-        if (!number) return;
+        if (!number || registryNumber.readOnly) return;
 
         pendingLookup?.abort();
         const request = new AbortController();
@@ -390,8 +421,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            registryNumber.value = result.rsbsa_number;
-            const fields = ['full_name', 'address', 'barangay', 'birthdate', 'crop_type', 'land_size'];
+            const fields = ['rsbsa_number', 'full_name', 'address', 'barangay', 'birthdate', 'crop_type', 'land_size'];
             const missing = [];
 
             for (const name of fields) {
@@ -404,30 +434,38 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (field instanceof HTMLSelectElement) {
                     const match = [...field.options].find(option => option.value.toLowerCase() === String(value).toLowerCase());
-                    if (!match) {
-                        missing.push(name);
-                        continue;
-                    }
-                    field.value = match.value;
+                    if (!match) field.add(new Option(value, value));
+                    field.value = match?.value ?? value;
                 } else {
                     field.value = value;
                 }
-                populated.set(field, field.value);
+
+                idFields.delete(field);
+                registryFields.add(field);
+                setLocked(field, true);
             }
 
-            const address = lookup.form.elements.namedItem('address');
             lookup.form.elements.namedItem('barangay').dispatchEvent(new Event('change'));
-            if (populated.has(address)) populated.set(address, address.value);
-
+            lookup.textContent = 'Change number';
             registryStatus.textContent = missing.length
-                ? 'Some registry fields are unavailable on this form. Review and enter the missing details.'
-                : 'Farmer details filled from the RSBSA registry. Review them before saving.';
+                ? 'Registry details are locked. Enter any missing information manually.'
+                : 'Details from the RSBSA registry are locked.';
         } catch (error) {
             if (error.name !== 'AbortError') registryStatus.textContent = 'Could not look up the RSBSA number. Please try again.';
+        } finally {
+            if (pendingLookup === request) pendingLookup = null;
         }
     }
 
-    lookup.addEventListener('click', lookupFarmer);
+    lookup.addEventListener('click', () => {
+        if (registryNumber.readOnly) {
+            resetRegistry();
+            registryNumber.focus();
+            return;
+        }
+
+        lookupFarmer();
+    });
     registryNumber.addEventListener('change', lookupFarmer);
     registryNumber.addEventListener('keydown', event => {
         if (event.key === 'Enter') {
@@ -439,14 +477,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const ocr = document.querySelector('[data-national-id-ocr]');
     const idInput = document.getElementById('valid_id');
     const ocrStatus = document.querySelector('[data-ocr-status]');
+    let runningScans = 0;
 
-    ocr.addEventListener('click', async function () {
+    lookup.form.addEventListener('submit', event => {
+        if (pendingLookup || runningScans) {
+            event.preventDefault();
+            (pendingLookup ? registryStatus : ocrStatus).textContent = 'Wait for the lookup or ID scan to finish before saving.';
+        }
+    });
+
+    async function readNationalId() {
         const file = idInput.files[0];
         if (!file) {
             ocrStatus.textContent = 'Choose a National ID image first.';
             return;
         }
 
+        runningScans++;
         ocr.disabled = true;
         ocrStatus.textContent = 'Reading National ID…';
         const body = new FormData();
@@ -473,25 +520,29 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            if (result.full_name) {
-                if (!ocr.form.elements.full_name.value) ocr.form.elements.full_name.value = result.full_name;
-                if (!ocr.form.elements.name.value) ocr.form.elements.name.value = result.full_name;
-            }
-            if (result.birthdate && !ocr.form.elements.birthdate.value) {
-                ocr.form.elements.birthdate.value = result.birthdate;
-            }
+            releaseFields(idFields);
+            idDetails = {name: result.full_name, full_name: result.full_name, birthdate: result.birthdate};
+            fillFromId();
 
-            ocrStatus.textContent = result.full_name && result.birthdate
-                ? 'Review the name and birthdate before saving.'
-                : result.full_name || result.birthdate
-                    ? 'Only some details were read. Review the filled fields and enter the missing information.'
-                    : 'No name or birthdate was read. Try a closer, straight photo with less glare, or enter the details manually.';
+            ocrStatus.textContent = result.full_name || result.birthdate
+                ? 'Details read from the ID are locked. Replace the image if the scan is incorrect.'
+                : 'No name or birthdate was read. Try a clearer photo or enter the details manually.';
         } catch {
             ocrStatus.textContent = 'The ID could not be read. Enter the details manually.';
         } finally {
-            ocr.disabled = false;
+            runningScans--;
+            ocr.disabled = runningScans > 0;
         }
+    }
+
+    ocr.addEventListener('click', readNationalId);
+    idInput.addEventListener('change', () => {
+        releaseFields(idFields);
+        idDetails = {};
+        const file = idInput.files[0];
+        if (file && /\.(jpe?g|png)$/i.test(file.name)) readNationalId();
     });
+
 
     const membershipCheckbox = document.getElementById('association');
     const associationContainer = document.getElementById('association-container');
@@ -508,6 +559,7 @@ document.addEventListener('DOMContentLoaded', function () {
     membershipCheckbox.addEventListener('change', toggleAssociationField);
 
     toggleAssociationField();
+    if (registryNumber.value.trim()) lookupFarmer();
 });
 </script>
 @include('partials.farmer-address-autofill')

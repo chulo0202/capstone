@@ -15,6 +15,10 @@
         function updateAddress() {
             const parts = addressParts();
             const current = selectedLocality();
+            if (address.readOnly) {
+                previous = current;
+                return;
+            }
 
             // Remove the previous auto-filled locality and keep any street or purok.
             for (const locality of [current, previous, previous.slice(-2)]) {

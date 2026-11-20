@@ -49,6 +49,27 @@ class FarmerController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $number = $request->input('rsbsa_number');
+        $record = is_string($number) && mb_strlen($number) <= 50
+            ? RsbsaFarmer::where('rsbsa_number', $number)->first()
+            : null;
+
+        $idDetails = [];
+        $file = $request->file('valid_id');
+
+        if ($file instanceof \Illuminate\Http\UploadedFile && $file->isValid() && $file->getSize() <= 5120 * 1024) {
+            $digest = hash_file('sha256', $file->getRealPath());
+            $scan = $request->session()->get('farmer_id_scans.'.$digest, []);
+            $idDetails = array_filter([
+                'name' => $scan['full_name'] ?? null,
+                'full_name' => $scan['full_name'] ?? null,
+                'birthdate' => $scan['birthdate'] ?? null,
+            ], fn ($value) => filled($value));
+        }
+
+        $registryDetails = array_filter($record?->registrationDetails() ?? [], fn ($value) => filled($value));
+        $request->merge(array_replace($idDetails, $registryDetails));
+
         $isAssociationMember = $request->boolean('association_membership');
 
         $validated = $request->validate([
@@ -97,6 +118,7 @@ class FarmerController extends Controller
         try {
             DB::transaction(function () use (
                 $request,
+                $record,
                 $validated,
                 $isAssociationMember,
                 &$user,
@@ -142,7 +164,7 @@ class FarmerController extends Controller
                     'land_size' => $validated['land_size'],
 
                     'rsbsa_number' => $validated['rsbsa_number'] ?? null,
-                    'rsbsa_status' => RsbsaFarmer::where('rsbsa_number', $validated['rsbsa_number'])->exists(),
+                    'rsbsa_status' => $record !== null,
                     'association_membership' => $isAssociationMember,
                     'four_ps_membership' => $request->boolean('four_ps_membership'),
 
