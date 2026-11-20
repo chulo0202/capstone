@@ -14,6 +14,17 @@ class FarmerCreationRsbsaTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_admin_can_open_add_farmer_form(): void
+    {
+        $this->withoutExceptionHandling();
+
+        $this->actingAs($this->createAdmin())
+            ->get(route('admin.farmers.create'))
+            ->assertOk()
+            ->assertSee('Read National ID')
+            ->assertSee('max="'.today()->subDay()->toDateString().'"', false);
+    }
+
     public function test_admin_farmer_creation_rejects_a_missing_rsbsa_number(): void
     {
         $admin = $this->createAdmin();
@@ -67,6 +78,13 @@ class FarmerCreationRsbsaTest extends TestCase
             'full_name' => $data['full_name'],
             'rsbsa_number' => $data['rsbsa_number'],
         ]);
+
+        $farmer = Farmer::where('rsbsa_number', $data['rsbsa_number'])->firstOrFail();
+
+        $this->get(route('admin.farmers.edit', $farmer))
+            ->assertOk()
+            ->assertSee('max="'.today()->subDay()->toDateString().'"', false)
+            ->assertSee($data['contact_number']);
     }
 
     public function test_admin_can_read_name_and_birthdate_from_national_id(): void

@@ -174,9 +174,9 @@
 
                 <div class="col-md-4">
                     <label class="form-label">Birthdate</label>
-                    <input type="date" name="birthdate" max="{{ today()->
-                    @error('birthdate')<div class="text-danger small">{{ $message }}</div>@enderrorsubDay()->toDateString() }}" class="form-control"
+                    <input type="date" name="birthdate" max="{{ today()->subDay()->toDateString() }}" class="form-control"
                            value="{{ old('birthdate') }}" required>
+                    @error('birthdate')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 {{-- FARM INFORMATION --}}

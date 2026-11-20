@@ -130,10 +130,10 @@
                     <input type="text" name="contact_number" inputmode="numeric" pattern="[0-9]{11}" maxlength="11"
                            id="contact-number"
                            class="form-control"
-                           value="{{ old('contact_number', $farmer->
-                    @error('contact_number')<div class="text-danger small">{{ $message }}</div>@enderrorcontact_number) }}"
+                           value="{{ old('contact_number', $farmer->contact_number) }}"
                            placeholder="09XXXXXXXXX"
                            required>
+                    @error('contact_number')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 {{-- ADDRESS --}}
@@ -178,12 +178,12 @@
                 {{-- BIRTHDATE --}}
                 <div class="col-md-4">
                     <label class="form-label" for="birthdate">Birthdate</label>
-                    <input type="date" name="birthdate" max="{{ today()->
-                    @error('birthdate')<div class="text-danger small">{{ $message }}</div>@enderrorsubDay()->toDateString() }}"
+                    <input type="date" name="birthdate" max="{{ today()->subDay()->toDateString() }}"
                            id="birthdate"
                            class="form-control"
                            value="{{ old('birthdate', $farmer->birthdate?->format('Y-m-d')) }}"
                            required>
+                    @error('birthdate')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 {{-- CROP TYPE --}}
@@ -199,9 +199,9 @@
                     <label class="form-label" for="land-size">Land Size (hectares)</label>
                     <input type="number" step="0.01" min="0.01"
                            name="land_size" id="land-size" class="form-control"
-                           value="{{ old('land_size', $farmer->
-                    @error('land_size')<div class="text-danger small">{{ $message }}</div>@enderrorland_size) }}"
+                           value="{{ old('land_size', $farmer->land_size) }}"
                            required>
+                    @error('land_size')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 {{-- RSBSA NUMBER --}}
