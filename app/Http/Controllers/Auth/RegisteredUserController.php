@@ -52,7 +52,7 @@ class RegisteredUserController extends Controller
             'password' => [
                 'required',
                 'confirmed',
-                Rules\Password::defaults(),
+                Rules\Password::min(8)->mixedCase()->numbers()->symbols(),
             ],
         ]);
 

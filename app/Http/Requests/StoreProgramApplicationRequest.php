@@ -108,19 +108,15 @@ class StoreProgramApplicationRequest extends FormRequest
         }
 
         if ($benefitName === 'Claim for Indemnity') {
+            $rules = [];
 
             $rules['date_of_loss'] = [
                 'required',
                 'date',
-                'after_or_equal:actual_planting_date',
                 'before_or_equal:today',
             ];
 
-            $rules['insurance_reference'] = [
-                'required',
-                'string',
-                'max:100',
-            ];
+            $rules['pcic_coverage_id'] = ['required', 'integer', 'min:1'];
 
             $rules['cause_of_loss'] = [
                 'required',

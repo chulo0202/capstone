@@ -54,14 +54,14 @@ class FarmerController extends Controller
             // Account information
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8',
+            'password' => ['required', \Illuminate\Validation\Rules\Password::min(8)->mixedCase()->numbers()->symbols()],
 
             // Farmer information
             'full_name' => 'required|string|max:255',
             'address' => 'required|string|max:500',
             'barangay' => 'required|string|max:255',
-            'contact_number' => 'required|string|max:20',
-            'birthdate' => 'required|date',
+            'contact_number' => 'required|digits:11',
+            'birthdate' => 'required|date|before:today',
             'crop_type' => 'required|string|max:255',
             'land_size' => 'required|numeric|min:0.01',
 
@@ -233,8 +233,8 @@ public function update(Request $request, Farmer $farmer): RedirectResponse
         // Farmer information
         'address' => 'required|string|max:500',
         'barangay' => 'required|string|max:255',
-        'contact_number' => 'required|string|max:20',
-        'birthdate' => 'required|date',
+        'contact_number' => 'required|digits:11',
+        'birthdate' => 'required|date|before:today',
         'land_size' => 'required|numeric|min:0.01',
 
         // Eligibility information

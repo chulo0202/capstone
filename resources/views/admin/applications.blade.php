@@ -5,6 +5,17 @@
 
 @section('main')
 
+@if ($errors->any())
+    <div class="alert alert-danger" role="alert">
+        <ul class="mb-0">
+            @foreach ($errors->all() as $message)
+                <li>{{ $message }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
+
 <div class="fams-card">
 
     <div class="fams-card-header d-flex flex-wrap justify-content-between align-items-center gap-3">
@@ -213,6 +224,31 @@
                                 >
                                     <div class="p-3 border rounded m-2">
                                         <h6 class="mb-3">Application Details</h6>
+                                        @if ($application->program?->isPcicCropInsurance())
+                                            <form method="POST" action="{{ route('admin.applications.pcic-tracking', $application) }}" class="border rounded p-3 mb-3">
+                                                @csrf
+                                                <h6>Post PCIC tracking update</h6>
+                                                <div class="row g-2">
+                                                    <label class="col-md-6">Status
+                                                        <select class="form-select" name="status" required>
+                                                            @foreach (\App\Models\PcicTrackingUpdate::ADMIN_STATUSES as $status)
+                                                                <option value="{{ $status }}">{{ \App\Models\PcicTrackingUpdate::STATUSES[$status] }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </label>
+                                                    <label class="col-md-6">Expected release date
+                                                        <input class="form-control" type="date" name="expected_release_date">
+                                                    </label>
+                                                    <label class="col-12">Official PCIC reference (required for PCIC decisions and release updates)
+                                                        <input class="form-control" name="pcic_reference" maxlength="255">
+                                                    </label>
+                                                    <label class="col-12">Remarks visible to the farmer
+                                                        <textarea class="form-control" name="remarks" maxlength="2000" rows="2"></textarea>
+                                                    </label>
+                                                </div>
+                                                <button class="btn btn-fams mt-2">Post update</button>
+                                            </form>
+                                        @endif
 
                                         @php
                                             $formType = $application->detail?->form_type;

@@ -25,7 +25,11 @@ class ApplicationController extends Controller
         $farmer = Auth::user()->farmer;
 
         $applications = $farmer
-            ? Application::withCurrentBenefit()->with(['program', 'benefit', 'pcicDamageIncident'])
+            ? Application::with(['program', 'benefit', 'pcicDamageIncident', 'latestPcicTrackingUpdate'])
+                ->where(fn ($query) => $query->withCurrentBenefit()->orWhereHas(
+                    'program',
+                    fn ($program) => $program->where('name', 'PCIC Crop Insurance')
+                ))
                 ->where('farmer_id', $farmer->id)
                 ->latest('applied_at')
                 ->get()
@@ -85,8 +89,18 @@ class ApplicationController extends Controller
                     return null;
                 }
 
-                $isPcicClaim = $lockedProgram->isPcicCropInsurance()
-                    && $benefit->name === 'Claim for Indemnity';
+                $isPcic = $lockedProgram->isPcicCropInsurance();
+                $isPcicClaim = $isPcic && $benefit->name === 'Claim for Indemnity';
+
+                $profileDetails = [
+                    'farmer_name' => $lockedFarmer->full_name,
+                    'farmer_barangay' => $lockedFarmer->barangay,
+                    'crop_type' => $lockedFarmer->crop_type,
+                ];
+
+                if ($isPcic && collect($profileDetails)->contains(fn ($value) => blank($value))) {
+                    return ['error' => 'Complete your name, barangay, and crop type in your farmer profile before applying.'];
+                }
 
                 $evaluation = $eligibilityService->evaluate(
                     $lockedFarmer,
@@ -120,7 +134,7 @@ class ApplicationController extends Controller
                 if ($isPcicClaim) {
                     $coverage = PcicInsuranceCoverage::query()
                         ->where('farmer_id', $lockedFarmer->id)
-                        ->where('policy_number', $validated['insurance_reference'])
+                        ->whereKey($validated['pcic_coverage_id'])
                         ->where('verification_status', 'verified')
                         ->lockForUpdate()
                         ->first();
@@ -190,8 +204,22 @@ class ApplicationController extends Controller
                 }
 
                 $details = collect($validated)
-                    ->except(['program_benefit_id', 'damage_photo'])
+                    ->except(['program_benefit_id', 'damage_photo', 'pcic_coverage_id'])
                     ->all();
+
+                if ($isPcic) {
+                    $details += $profileDetails;
+                }
+
+                if ($isPcicClaim) {
+                    $details = array_replace($details, [
+                        'insurance_reference' => $coverage->policy_number,
+                        'crop_type' => $coverage->crop_type,
+                        'area_insured' => $coverage->area_insured,
+                        'coverage_start_date' => $coverage->coverage_start_date->toDateString(),
+                        'coverage_end_date' => $coverage->coverage_end_date->toDateString(),
+                    ]);
+                }
 
                 // Store claim evidence in the private R2 bucket.
                 if ($isPcicClaim && $request->hasFile('damage_photo')) {
@@ -219,8 +247,7 @@ class ApplicationController extends Controller
 
                 $formType = match (true) {
                     $isPcicClaim => 'pcic_claim',
-                    $lockedProgram->name === 'PCIC Crop Insurance'
-                        => 'pcic_new_application',
+                    $isPcic => 'pcic_new_application',
                     $lockedProgram->name === 'Agricultural Loans'
                         => 'agricultural_loan',
                     in_array($lockedProgram->name, [
@@ -323,6 +350,12 @@ class ApplicationController extends Controller
 
         if (! $result['created']) {
             return back()->with('info', 'You already applied for this benefit.');
+        }
+
+        if ($result['application']->detail?->form_type === 'pcic_claim') {
+            return redirect()
+                ->to(route('farmer.applications.index').'#application-'.$result['application']->id)
+                ->with('success', 'Your indemnity claim was submitted successfully. Track your claim below.');
         }
 
         return back()->with('success', 'Application submitted successfully.');

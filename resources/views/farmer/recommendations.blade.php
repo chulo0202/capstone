@@ -4,6 +4,17 @@
 
 @section('main')
 
+@if ($errors->any())
+    <div class="alert alert-danger" role="alert">
+        <ul class="mb-0">
+            @foreach ($errors->all() as $message)
+                <li>{{ $message }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
+
 @if(!$farmer || !$farmer->profile_completed)
 
     <div class="alert alert-warning border-0 shadow-sm">
@@ -678,6 +689,13 @@
             const modalDescription = document.getElementById('modalBenefitDescription');
             const submitButton = document.getElementById('modalSubmitButton');
 
+            const coverageSelect = document.getElementById('pcic-coverage');
+            const coverageSummary = document.getElementById('pcic-coverage-summary');
+            const updateCoverageSummary = () => {
+                coverageSummary.value = coverageSelect.selectedOptions[0]?.dataset.summary || '';
+            };
+            coverageSelect.addEventListener('change', updateCoverageSummary);
+
             modal.addEventListener('show.bs.modal', function (event) {
                 const button = event.relatedTarget;
 
@@ -692,6 +710,7 @@
 
                 // Clear previous application information.
                 form.reset();
+                updateCoverageSummary();
                 form.removeAttribute('action');
                 benefitId.value = '';
 

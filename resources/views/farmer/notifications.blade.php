@@ -10,8 +10,31 @@
     $announcementCount = $announcements->count();
     $distributionCount = $distributions->count();
 
-    $totalUpdates = $smsCount + $announcementCount + $distributionCount;
+    $totalUpdates = $smsCount + $announcementCount + $distributionCount + $pcicUpdates->count();
 @endphp
+
+@if ($pcicUpdates->isNotEmpty())
+    <section class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5">PCIC updates</h2>
+            <ul class="list-group list-group-flush">
+                @foreach ($pcicUpdates as $update)
+                    <li class="list-group-item px-0">
+                        <a href="{{ route('farmer.applications.index') }}#application-{{ $update->application_id }}">
+                            {{ $update->application->benefit?->name ?? 'PCIC application' }}
+                            · {{ \App\Models\PcicTrackingUpdate::STATUSES[$update->status] }}
+                        </a>
+                        <div class="small text-muted">{{ $update->created_at->format('M d, Y h:i A') }}</div>
+                        @if ($update->remarks)<div>{{ $update->remarks }}</div>@endif
+                        @if ($update->expected_release_date)
+                            <div>Expected release {{ $update->expected_release_date->format('M d, Y') }}</div>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    </section>
+@endif
 
 {{-- =========================================================
     SUMMARY CARDS

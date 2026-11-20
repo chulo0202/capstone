@@ -102,6 +102,11 @@ class PcicDamageIncidentController extends Controller
                 'review_notes' => $validated['review_notes'],
             ]);
 
+            $lockedIncident->application?->pcicTrackingUpdates()->create([
+                'user_id' => $request->user()->id,
+                'status' => 'incident_verified',
+            ]);
+
             AuditLog::create([
                 'user_id' => $request->user()->id,
                 'action' => 'PCIC_INCIDENT_VERIFIED',
@@ -151,6 +156,11 @@ class PcicDamageIncidentController extends Controller
                 'reviewed_by' => $request->user()->id,
                 'reviewed_at' => now(),
                 'review_notes' => $validated['rejection_reason'],
+            ]);
+
+            $lockedIncident->application?->pcicTrackingUpdates()->create([
+                'user_id' => $request->user()->id,
+                'status' => 'incident_rejected',
             ]);
 
             AuditLog::create([

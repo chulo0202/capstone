@@ -351,7 +351,7 @@ READ-ONLY VIEW
                     <span class="fams-info-value">{{ $farmer?->birthdate?->format('F j, Y') ?? '—' }}</span>
                 </div>
                 <div class="col-12 fams-info-item">
-                    <span class="fams-info-label">Address</span>
+                    <span class="fams-info-label">Street / Address</span>
                     <span class="fams-info-value">{{ $farmer?->address ?? '—' }}</span>
                 </div>
                 <div class="col-md-6 fams-info-item">
@@ -460,7 +460,7 @@ preserved exactly as-is)
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="profile-contact-number">Contact Number <span class="text-danger">*</span></label>
-                        <input type="text" name="contact_number" id="profile-contact-number" class="form-control @error('contact_number') is-invalid @enderror" value="{{ old('contact_number', $farmer?->contact_number) }}" placeholder="09XXXXXXXXX" required>
+                        <input type="text" name="contact_number" inputmode="numeric" pattern="[0-9]{11}" maxlength="11" id="profile-contact-number" class="form-control @error('contact_number') is-invalid @enderror" value="{{ old('contact_number', $farmer?->contact_number) }}" placeholder="09XXXXXXXXX" required>
                         @error('contact_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-12">
@@ -468,6 +468,19 @@ preserved exactly as-is)
                         <textarea name="address" id="profile-address" class="form-control @error('address') is-invalid @enderror" rows="2" required>{{ old('address', $farmer?->address) }}</textarea>
                         @error('address')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="farmer-province">Province</label>
+                    <select class="form-select" id="farmer-province">
+                        <option>Sorsogon</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="farmer-municipality">Municipality</label>
+                    <select class="form-select" id="farmer-municipality">
+                        <option>Bulan</option>
+                    </select>
+                </div>
+
                    <div class="col-md-4">
     <label class="form-label" for="profile-barangay">Barangay <span class="text-danger">*</span></label>
 
@@ -552,7 +565,7 @@ preserved exactly as-is)
 </div>
                     <div class="col-md-4">
                         <label class="form-label" for="profile-birthdate">Birthdate <span class="text-danger">*</span></label>
-                        <input type="date" name="birthdate" id="profile-birthdate" class="form-control @error('birthdate') is-invalid @enderror" value="{{ old('birthdate', $farmer?->birthdate?->format('Y-m-d')) }}" required>
+                        <input type="date" name="birthdate" max="{{ today()->subDay()->toDateString() }}" id="profile-birthdate" class="form-control @error('birthdate') is-invalid @enderror" value="{{ old('birthdate', $farmer?->birthdate?->format('Y-m-d')) }}" required>
                         @error('birthdate')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-4">
@@ -654,6 +667,7 @@ preserved exactly as-is)
                     <div class="row g-3">
                         <div class="col-md-6">
                             <input type="password" name="password" id="profile-password" class="form-control" placeholder="New password">
+                            @include("partials.farmer-password-help")
                         </div>
                         <div class="col-md-6">
                             <input type="password" name="password_confirmation" class="form-control" placeholder="Confirm password">

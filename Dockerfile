@@ -32,6 +32,8 @@ RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.l
     libpq-dev \
     libxml2-dev \
     libzip-dev \
+    tesseract-ocr \
+    tesseract-ocr-eng \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" \
         bcmath \

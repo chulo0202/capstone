@@ -55,9 +55,20 @@ class RecommendationController extends Controller
                 ]);
         }
 
+        $claimCoverages = $farmer
+            ? \App\Models\PcicInsuranceCoverage::where('farmer_id', $farmer->id)
+                ->where('verification_status', 'verified')
+                ->whereNotNull('verified_by')
+                ->whereNotNull('verified_at')
+                ->latest('coverage_start_date')
+                ->get()
+                ->filter(fn ($coverage) => strcasecmp(trim($coverage->crop_type), trim((string) $farmer->crop_type)) === 0)
+            : collect();
+
         return view('farmer.recommendations', compact(
             'recommendations',
             'farmer',
+            'claimCoverages',
             'applicationStatuses'
         ));
     }

@@ -56,7 +56,7 @@
 
                     <div class="mb-4">
                         <label class="form-label">
-                            RSBSA Number
+                            RSBSA Number <span class="text-danger" aria-hidden="true">*</span>
                         </label>
 
                         <input
@@ -189,7 +189,7 @@
                     {{-- EMAIL --}}
                     <div class="mb-3">
                         <label class="form-label">
-                            Email address
+                            Email address <span class="text-danger" aria-hidden="true">*</span>
                         </label>
 
                         <input
@@ -212,7 +212,7 @@
                     {{-- PASSWORD --}}
                     <div class="mb-3">
                         <label class="form-label">
-                            Password
+                            Password <span class="text-danger" aria-hidden="true">*</span>
                         </label>
 
                         <input
@@ -222,6 +222,7 @@
                             placeholder="Minimum 8 characters"
                             required
                         >
+                            @include("partials.farmer-password-help")
 
                         @error('password')
                             <div class="invalid-feedback">
@@ -234,7 +235,7 @@
                     {{-- CONFIRM PASSWORD --}}
                     <div class="mb-4">
                         <label class="form-label">
-                            Confirm password
+                            Confirm password <span class="text-danger" aria-hidden="true">*</span>
                         </label>
 
                         <input

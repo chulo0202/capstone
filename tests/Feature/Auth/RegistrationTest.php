@@ -33,8 +33,8 @@ class RegistrationTest extends TestCase
         $response = $this->post('/register', [
             'rsbsa_number' => 'RSBSA-TEST-REG-001',
             'email' => 'testregistration@gmail.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'Farmer123!',
+            'password_confirmation' => 'Farmer123!',
         ]);
 
         $this->assertAuthenticated();

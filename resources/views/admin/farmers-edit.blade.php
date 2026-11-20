@@ -127,25 +127,40 @@
                 {{-- CONTACT NUMBER --}}
                 <div class="col-md-6">
                     <label class="form-label" for="contact-number">Contact Number</label>
-                    <input type="text" name="contact_number"
+                    <input type="text" name="contact_number" inputmode="numeric" pattern="[0-9]{11}" maxlength="11"
                            id="contact-number"
                            class="form-control"
-                           value="{{ old('contact_number', $farmer->contact_number) }}"
+                           value="{{ old('contact_number', $farmer->
+                    @error('contact_number')<div class="text-danger small">{{ $message }}</div>@enderrorcontact_number) }}"
                            placeholder="09XXXXXXXXX"
                            required>
                 </div>
 
                 {{-- ADDRESS --}}
                 <div class="col-12">
-                    <label class="form-label" for="farmer-address">Address</label>
+                    <label class="form-label" for="farmer-address">Address <span class="text-danger" aria-hidden="true">*</span></label>
                     <textarea name="address" id="farmer-address" class="form-control"
                               rows="2"
                               required>{{ old('address', $farmer->address) }}</textarea>
+                    @error('address')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 {{-- BARANGAY --}}
                 <div class="col-md-4">
-                    <label class="form-label" for="barangay">Barangay</label>
+                    <label class="form-label" for="farmer-province">Province</label>
+                    <select class="form-select" id="farmer-province">
+                        <option>Sorsogon</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="farmer-municipality">Municipality</label>
+                    <select class="form-select" id="farmer-municipality">
+                        <option>Bulan</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" for="barangay">Barangay <span class="text-danger" aria-hidden="true">*</span></label>
                     <select name="barangay" id="barangay"
                             class="form-select" required>
                         <option value="">Select Barangay</option>
@@ -157,12 +172,14 @@
                             </option>
                         @endforeach
                     </select>
+                    @error('barangay')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 {{-- BIRTHDATE --}}
                 <div class="col-md-4">
                     <label class="form-label" for="birthdate">Birthdate</label>
-                    <input type="date" name="birthdate"
+                    <input type="date" name="birthdate" max="{{ today()->
+                    @error('birthdate')<div class="text-danger small">{{ $message }}</div>@enderrorsubDay()->toDateString() }}"
                            id="birthdate"
                            class="form-control"
                            value="{{ old('birthdate', $farmer->birthdate?->format('Y-m-d')) }}"
@@ -182,7 +199,8 @@
                     <label class="form-label" for="land-size">Land Size (hectares)</label>
                     <input type="number" step="0.01" min="0.01"
                            name="land_size" id="land-size" class="form-control"
-                           value="{{ old('land_size', $farmer->land_size) }}"
+                           value="{{ old('land_size', $farmer->
+                    @error('land_size')<div class="text-danger small">{{ $message }}</div>@enderrorland_size) }}"
                            required>
                 </div>
 
@@ -235,6 +253,7 @@
                             </option>
                         @endforeach
                     </select>
+                    @error('farmer_association')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 {{-- 4PS --}}
@@ -250,6 +269,7 @@
                             Yes
                         </option>
                     </select>
+                    @error('four_ps_membership')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 {{-- FARMER PHOTO --}}
@@ -274,6 +294,7 @@
                            id="farmer-photo"
                            class="form-control mt-2"
                            accept=".jpg,.jpeg,.png">
+                    @error('farmer_photo')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 {{-- VALID ID --}}
@@ -283,6 +304,7 @@
                            id="valid-id"
                            class="form-control mt-2"
                            accept=".jpg,.jpeg,.png,.pdf">
+                    @error('valid_id')<div class="text-danger small">{{ $message }}</div>@enderror
 
                     @if($farmer->valid_id_path)
                         <small class="text-muted d-block mt-2">
@@ -308,6 +330,7 @@
                             Verified
                         </option>
                     </select>
+                    @error('profile_completed')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
             </div>

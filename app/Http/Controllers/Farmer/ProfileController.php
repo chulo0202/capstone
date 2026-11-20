@@ -52,7 +52,7 @@ class ProfileController extends Controller
                  ],
             'contact_number' => [
                   'required',
-                  'regex:/^09\d{9}$/',
+                  'digits:11',
                   ],
             'birthdate' => 'required|date|before:today',
             'land_size' => 'required|numeric|min:0.01',
@@ -70,7 +70,7 @@ class ProfileController extends Controller
 
             'valid_id' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'farmer_photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
-            'password' => 'nullable|string|min:8|confirmed',
+            'password' => ['nullable', 'confirmed', \Illuminate\Validation\Rules\Password::min(8)->mixedCase()->numbers()->symbols()],
         ]);
 
         $validated['association_membership'] = $isAssociationMember;

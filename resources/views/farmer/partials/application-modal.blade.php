@@ -126,9 +126,18 @@
                     <div class="application-fields d-none"
                          data-form-type="pcic_new_application pcic_claim">
 
+                        <div class="pcic-new-only">
                         <h6 class="fw-bold mb-3">
                             PCIC Crop Information
                         </h6>
+                        <dl class="row">
+                            <dt class="col-sm-4">Farmer</dt>
+                            <dd class="col-sm-8">{{ $farmer?->full_name }}</dd>
+                            <dt class="col-sm-4">Crop</dt>
+                            <dd class="col-sm-8">{{ $farmer?->crop_type }}</dd>
+                            <dt class="col-sm-4">Barangay</dt>
+                            <dd class="col-sm-8">{{ $farmer?->barangay }}</dd>
+                        </dl>
 
                         <div class="mb-3">
                             <label class="form-label">Variety Planted</label>
@@ -140,7 +149,7 @@
                             </select>
                         </div>
 
-                        <div class="mb-3 pcic-new-only">
+                        <div class="mb-3">
                             <label class="form-label">
                                 Area to be Insured (hectares)
                             </label>
@@ -172,6 +181,7 @@
                         <h6 class="fw-semibold mt-4">
                             Adjacent Lots
                         </h6>
+                        <p class="form-text">Describe the neighboring lot or landmark on each side of the farm.</p>
 
                         @foreach (['north', 'south', 'east', 'west'] as $direction)
                             <div class="mb-3">
@@ -180,9 +190,12 @@
                                 </label>
                                 <input type="text"
                                        name="adjacent_{{ $direction }}"
+                                       placeholder="e.g. irrigation canal or neighboring rice field"
                                        class="form-control">
                             </div>
                         @endforeach
+
+                        </div>
 
                         {{-- Claim-specific fields --}}
                         <div class="pcic-claim-only">
@@ -192,12 +205,22 @@
                             </h6>
 
                             <div class="mb-3">
-                                <label class="form-label">
-                                    Insurance Reference Number
-                                </label>
-                                <input type="text"
-                                       name="insurance_reference"
-                                       class="form-control">
+                                <label class="form-label" for="pcic-coverage">Verified insurance coverage <span aria-hidden="true">*</span></label>
+                                <select class="form-select" id="pcic-coverage" name="pcic_coverage_id" required>
+                                    <option value="">Select coverage</option>
+                                    @foreach ($claimCoverages as $coverage)
+                                        <option value="{{ $coverage->id }}"
+                                            data-summary="{{ $coverage->crop_type }} · {{ $coverage->area_insured }} ha · {{ $coverage->coverage_start_date->toFormattedDateString() }} to {{ $coverage->coverage_end_date->toFormattedDateString() }}"
+                                            @selected($claimCoverages->count() === 1)>
+                                            {{ $coverage->crop_type }} · {{ $coverage->area_insured }} ha · {{ $coverage->coverage_start_date->toFormattedDateString() }} to {{ $coverage->coverage_end_date->toFormattedDateString() }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <label class="form-label mt-2" for="pcic-coverage-summary">Coverage details</label>
+                                <input class="form-control" id="pcic-coverage-summary" type="text" readonly>
+                                @if ($claimCoverages->isEmpty())
+                                    <p class="form-text">A verified policy matching your crop is required. Contact the administrator to review your coverage.</p>
+                                @endif
                             </div>
 
                             <div class="mb-3">

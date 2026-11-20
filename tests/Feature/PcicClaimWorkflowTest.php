@@ -92,7 +92,7 @@ class PcicClaimWorkflowTest extends TestCase
             'adjacent_east' => 'Farm C',
             'adjacent_west' => 'Farm D',
             'date_of_loss' => now()->subDays(5)->toDateString(),
-            'insurance_reference' => $coverage->policy_number,
+            'pcic_coverage_id' => $coverage->id,
             'cause_of_loss' => 'Flood',
             'area_damaged' => 0.5,
             'degree_of_damage' => 40,
@@ -201,6 +201,54 @@ class PcicClaimWorkflowTest extends TestCase
             'status' => 'verified',
             'reviewed_by' => $admin->id,
         ]);
+    }
+
+    public function test_admin_release_update_is_visible_only_to_the_claim_owner(): void
+    {
+        [$user, $farmer, $incident] = $this->submitClaimAndGetIncident();
+        $admin = $this->makeAdmin();
+        $application = $incident->application;
+
+        $this->actingAs($admin)
+            ->patch(route('admin.pcic-incidents.verify', $incident), [
+                'verification_confirmed' => '1',
+                'review_notes' => 'Internal review notes for the administrator.',
+            ])
+            ->assertSessionHas('success');
+
+        $update = [
+            'status' => 'release_scheduled',
+            'pcic_reference' => 'PCIC-DECISION-001',
+            'remarks' => 'Bring a valid ID when collecting the indemnity.',
+            'expected_release_date' => now()->addWeek()->toDateString(),
+        ];
+
+        $url = route('admin.applications.pcic-tracking', $application);
+        $this->post($url, $update)->assertSessionHas('success');
+        $this->post($url, $update)->assertSessionHas('success');
+        $this->assertDatabaseCount('pcic_tracking_updates', 2);
+
+        $this->actingAs($user)
+            ->get(route('farmer.applications.index'))
+            ->assertOk()
+            ->assertSee('Release scheduled')
+            ->assertSee($update['remarks'])
+            ->assertDontSee('Internal review notes');
+
+        $this->get(route('farmer.notifications.index'))
+            ->assertOk()
+            ->assertSee($update['remarks'])
+            ->assertSee('#application-'.$application->id);
+
+        $other = User::factory()->create(['role' => 'farmer']);
+        $otherFarmer = $farmer->replicate(['rsbsa_number', 'qr_code_token']);
+        $otherFarmer->user_id = $other->id;
+        $otherFarmer->rsbsa_number = 'RSBSA-PCIC-OTHER';
+        $otherFarmer->save();
+
+        $this->actingAs($other)->get(route('farmer.notifications.index'))
+            ->assertOk()
+            ->assertDontSee($update['remarks']);
     }
 
     public function test_admin_can_reject_pending_pcic_incident(): void

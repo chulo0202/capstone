@@ -111,6 +111,13 @@ Route::middleware(['auth'])->group(function () {
             [\App\Http\Controllers\Admin\ApplicationController::class, 'show']
         )->name('applications.show');
 
+        Route::post('/farmers/national-id/ocr', \App\Http\Controllers\Admin\NationalIdOcrController::class)
+            ->middleware('throttle:6,1')
+            ->name('farmers.national-id.ocr');
+
+        Route::post('/applications/{application}/pcic-tracking', [\App\Http\Controllers\Admin\PcicTrackingController::class, 'store'])
+            ->name('applications.pcic-tracking');
+
         // PCIC Damage Incident Management
         Route::get(
             '/pcic-incidents/{incident}/damage-photo',

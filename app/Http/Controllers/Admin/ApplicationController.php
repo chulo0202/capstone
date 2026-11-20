@@ -15,7 +15,10 @@ class ApplicationController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Application::withCurrentBenefit()->with([
+        $query = Application::where(fn ($query) => $query->withCurrentBenefit()->orWhereHas(
+            'program',
+            fn ($program) => $program->where('name', 'PCIC Crop Insurance')
+        ))->with([
             'farmer.user',
             'program',
             'benefit',
@@ -72,7 +75,7 @@ class ApplicationController extends Controller
         EligibilityService $eligibilityService,
         AuditLogService $auditLogService
     ): RedirectResponse {
-        $result = DB::transaction(function () use ($application, $eligibilityService, $auditLogService) {
+        $result = DB::transaction(function () use ($application, $request, $eligibilityService, $auditLogService) {
             $locked = Application::query()
                 ->with(['farmer', 'program', 'benefit'])
                 ->whereKey($application->id)
@@ -111,6 +114,14 @@ class ApplicationController extends Controller
                 'reviewed_at' => now(),
                 'remarks' => 'Application approved by admin.',
             ]);
+
+            if ($locked->program?->isPcicCropInsurance()) {
+                $locked->pcicTrackingUpdates()->create([
+                    'user_id' => $request->user()->id,
+                    'status' => 'application_approved',
+                    'remarks' => $locked->remarks,
+                ]);
+            }
 
             $auditLogService->log(
                 'APPLICATION_APPROVED',
@@ -151,7 +162,7 @@ class ApplicationController extends Controller
             $auditLogService
         ) {
             $locked = Application::query()
-                ->with('benefit')
+                ->with(['program', 'benefit'])
                 ->whereKey($application->id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -165,6 +176,14 @@ class ApplicationController extends Controller
                 'reviewed_at' => now(),
                 'remarks' => $validated['remarks'] ?? 'Application rejected by admin.',
             ]);
+
+            if ($locked->program?->isPcicCropInsurance()) {
+                $locked->pcicTrackingUpdates()->create([
+                    'user_id' => $request->user()->id,
+                    'status' => 'application_rejected',
+                    'remarks' => $locked->remarks,
+                ]);
+            }
 
             $auditLogService->log(
                 'APPLICATION_REJECTED',

@@ -11,7 +11,8 @@
               enctype="multipart/form-data">
             @csrf
 
-            <div class="row g-3">
+            <div class="row g-4">
+                <div class="col-lg-8"><div class="row g-3">
 
                 {{-- ACCOUNT INFORMATION --}}
                 <div class="col-12">
@@ -22,21 +23,25 @@
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label">Account Name</label>
+                    <label class="form-label">Account Name <span class="text-danger" aria-hidden="true">*</span></label>
                     <input type="text" name="name" class="form-control"
                            value="{{ old('name') }}" required>
+                    @error('name')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label">Email</label>
+                    <label class="form-label">Email <span class="text-danger" aria-hidden="true">*</span></label>
                     <input type="email" name="email" class="form-control"
                            value="{{ old('email') }}" required>
+                    @error('email')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label">Password</label>
+                    <label class="form-label">Password <span class="text-danger" aria-hidden="true">*</span></label>
                     <input type="password" name="password"
                            class="form-control" required>
+                    @error('password')<div class="text-danger small">{{ $message }}</div>@enderror
+                    @include('partials.farmer-password-help')
                 </div>
 
                 {{-- FARMER INFORMATION --}}
@@ -48,27 +53,43 @@
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label">Full Name</label>
+                    <label class="form-label">Full Name <span class="text-danger" aria-hidden="true">*</span></label>
                     <input type="text" name="full_name" class="form-control"
                            value="{{ old('full_name') }}" required>
+                    @error('full_name')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label">Contact Number</label>
-                    <input type="text" name="contact_number"
+                    <label class="form-label">Contact Number <span class="text-danger" aria-hidden="true">*</span></label>
+                    <input type="text" name="contact_number" inputmode="numeric" pattern="[0-9]{11}" maxlength="11"
                            class="form-control"
                            value="{{ old('contact_number') }}"
                            placeholder="09XXXXXXXXX" required>
+                    @error('contact_number')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="col-12">
-                    <label class="form-label">Address</label>
+                    <label class="form-label">Address <span class="text-danger" aria-hidden="true">*</span></label>
                     <textarea name="address" class="form-control"
                               rows="2" required>{{ old('address') }}</textarea>
+                    @error('address')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label">Barangay</label>
+                    <label class="form-label" for="farmer-province">Province</label>
+                    <select class="form-select" id="farmer-province">
+                        <option>Sorsogon</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="farmer-municipality">Municipality</label>
+                    <select class="form-select" id="farmer-municipality">
+                        <option>Bulan</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Barangay <span class="text-danger" aria-hidden="true">*</span></label>
                     <select name="barangay" id="barangay"
                             class="form-select" required>
                         <option value="">Select Barangay</option>
@@ -148,11 +169,13 @@
                             </option>
                         @endforeach
                     </select>
+                    @error('barangay')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="col-md-4">
                     <label class="form-label">Birthdate</label>
-                    <input type="date" name="birthdate" class="form-control"
+                    <input type="date" name="birthdate" max="{{ today()->
+                    @error('birthdate')<div class="text-danger small">{{ $message }}</div>@enderrorsubDay()->toDateString() }}" class="form-control"
                            value="{{ old('birthdate') }}" required>
                 </div>
 
@@ -165,7 +188,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label">Crop Type</label>
+                    <label class="form-label">Crop Type <span class="text-danger" aria-hidden="true">*</span></label>
                     <select name="crop_type" class="form-select" required>
                         <option value="">Select Crop</option>
 
@@ -176,21 +199,24 @@
                             </option>
                         @endforeach
                     </select>
+                    @error('crop_type')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label">Land Size (hectares)</label>
+                    <label class="form-label">Land Size (hectares) <span class="text-danger" aria-hidden="true">*</span></label>
                     <input type="number" name="land_size" class="form-control"
                            value="{{ old('land_size') }}"
                            step="0.01" min="0"
                            placeholder="e.g. 0.50" required>
+                    @error('land_size')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label">RSBSA Number</label>
+                    <label class="form-label">RSBSA Number <span class="text-danger" aria-hidden="true">*</span></label>
                     <input type="text" name="rsbsa_number" class="form-control"
                            value="{{ old('rsbsa_number') }}"
                            placeholder="Enter RSBSA Number" required>
+                    @error('rsbsa_number')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="col-md-4">
@@ -229,6 +255,7 @@
                             Yes
                         </option>
                     </select>
+                    @error('four_ps_membership')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
                 {{-- ASSOCIATION DROPDOWN --}}
@@ -247,28 +274,32 @@
                             </option>
                         @endforeach
                     </select>
+                    @error('farmer_association')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
 
-                {{-- DOCUMENTS --}}
-                <div class="col-12 mt-4">
-                    <h6 class="text-fams border-bottom pb-2">
-                        <i class="bi bi-file-earmark me-2"></i>
-                        Documents
-                    </h6>
-                </div>
+                </div></div>
 
-                <div class="col-md-6">
-                    <label class="form-label">Valid ID</label>
-                    <input type="file" name="valid_id" class="form-control"
-                           accept=".jpg,.jpeg,.png,.pdf">
-                </div>
-
-                <div class="col-md-6">
-                    <label class="form-label">Farmer Photo</label>
-                    <input type="file" name="farmer_photo" class="form-control"
-                           accept=".jpg,.jpeg,.png">
-                </div>
-
+                <aside class="col-lg-4">
+                    <h6 class="text-fams border-bottom pb-2">Upload Documents</h6>
+                    @foreach (['valid_id' => 'Valid ID', 'farmer_photo' => 'Farmer Photo'] as $field => $label)
+                        <div class="mb-3 rounded border p-3" data-document-preview>
+                            <label for="{{ $field }}" class="form-label">{{ $label }}</label>
+                            <input type="file" id="{{ $field }}" name="{{ $field }}" class="form-control @error($field) is-invalid @enderror"
+                                accept="{{ $field === 'valid_id' ? '.jpg,.jpeg,.png,.pdf' : '.jpg,.jpeg,.png' }}">
+                            <small class="form-text">Choose a file or drop it here.</small>
+                            @error($field)<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @if ($field === 'valid_id')
+                                <button type="button" class="btn btn-outline-secondary btn-sm mt-2"
+                                    data-national-id-ocr="{{ route('admin.farmers.national-id.ocr') }}">
+                                    Read National ID
+                                </button>
+                                <div class="form-text" data-ocr-status role="status">Use a clear JPG or PNG of the front of the National ID.</div>
+                            @endif
+                            <a class="d-none mt-2" target="_blank" rel="noopener">Preview document</a>
+                            <img class="d-none img-fluid rounded mt-2" alt="{{ $label }} preview">
+                        </div>
+                    @endforeach
+                </aside>
             </div>
 
             <div class="mt-4 pt-3 border-top">
@@ -290,6 +321,95 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-document-preview]').forEach(function (preview) {
+        const input = preview.querySelector('input');
+        const image = preview.querySelector('img');
+        const link = preview.querySelector('a');
+        let previewUrl;
+
+        preview.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+        });
+        preview.addEventListener('drop', (event) => {
+            event.preventDefault();
+            const files = event.dataTransfer.files;
+            if (files.length !== 1) return;
+            input.files = files;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        input.addEventListener('change', function () {
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            const file = input.files[0];
+            previewUrl = file ? URL.createObjectURL(file) : null;
+            const isImage = Boolean(file && file.type.startsWith('image/'));
+
+            link.classList.toggle('d-none', !file || isImage);
+            image.classList.toggle('d-none', !isImage);
+
+            link.removeAttribute('href');
+            image.removeAttribute('src');
+            if (isImage) image.src = previewUrl;
+            if (file && !isImage) link.href = previewUrl;
+        });
+    });
+
+    const ocr = document.querySelector('[data-national-id-ocr]');
+    const idInput = document.getElementById('valid_id');
+    const ocrStatus = document.querySelector('[data-ocr-status]');
+
+    ocr.addEventListener('click', async function () {
+        const file = idInput.files[0];
+        if (!file) {
+            ocrStatus.textContent = 'Choose a National ID image first.';
+            return;
+        }
+
+        ocr.disabled = true;
+        ocrStatus.textContent = 'Reading National ID…';
+        const body = new FormData();
+        body.append('valid_id', file);
+
+        try {
+            const response = await fetch(ocr.dataset.nationalIdOcr, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': ocr.form.elements._token.value,
+                },
+                body,
+            });
+            const result = await response.json();
+
+            if (idInput.files[0] !== file) {
+                ocrStatus.textContent = 'The file changed. Read the selected ID again.';
+                return;
+            }
+
+            if (!response.ok) {
+                ocrStatus.textContent = result.message || 'Enter the details manually.';
+                return;
+            }
+
+            if (result.full_name) {
+                if (!ocr.form.elements.full_name.value) ocr.form.elements.full_name.value = result.full_name;
+                if (!ocr.form.elements.name.value) ocr.form.elements.name.value = result.full_name;
+            }
+            if (result.birthdate && !ocr.form.elements.birthdate.value) {
+                ocr.form.elements.birthdate.value = result.birthdate;
+            }
+
+            ocrStatus.textContent = result.full_name && result.birthdate
+                ? 'Review the name and birthdate before saving.'
+                : 'Some details could not be read. Check the name and birthdate against the ID.';
+        } catch {
+            ocrStatus.textContent = 'The ID could not be read. Enter the details manually.';
+        } finally {
+            ocr.disabled = false;
+        }
+    });
+
     const membershipCheckbox = document.getElementById('association');
     const associationContainer = document.getElementById('association-container');
     const associationSelect = document.getElementById('farmer_association');

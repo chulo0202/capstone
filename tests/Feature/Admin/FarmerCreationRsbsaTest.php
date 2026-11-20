@@ -5,6 +5,8 @@ namespace Tests\Feature\Admin;
 use App\Models\Farmer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -67,6 +69,36 @@ class FarmerCreationRsbsaTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_read_name_and_birthdate_from_national_id(): void
+    {
+        Process::fake(fn () => Process::result(output: <<<'OCR'
+Apelyido / Last Name
+
+DELA CRUZ
+Mga Pangalan / Given Names
+
+JUAN MIGUEL
+Gitnang Apelyido / Middle Name
+
+SANTOS
+Petsa ng Kapanganakan / Date of Birth
+
+JANUARY 02, 1990
+OCR));
+
+        $this->actingAs($this->createAdmin())
+            ->postJson(route('admin.farmers.national-id.ocr'), [
+                'valid_id' => UploadedFile::fake()->image('national-id.png'),
+            ])
+            ->assertOk()
+            ->assertExactJson([
+                'full_name' => 'JUAN MIGUEL SANTOS DELA CRUZ',
+                'birthdate' => '1990-01-02',
+            ]);
+
+        $this->assertDatabaseCount('farmers', 0);
+    }
+
     private function createAdmin(): User
     {
         return User::factory()->create([
@@ -80,7 +112,7 @@ class FarmerCreationRsbsaTest extends TestCase
         return array_merge([
             'name' => 'Admin Created Farmer',
             'email' => 'farmer-' . Str::uuid() . '@example.test',
-            'password' => 'password123',
+            'password' => 'Farmer123!',
             'full_name' => 'Test Admin Farmer',
             'address' => 'Sample Address',
             'barangay' => 'Gate',

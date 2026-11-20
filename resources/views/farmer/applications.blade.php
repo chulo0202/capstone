@@ -332,6 +332,7 @@ APPLICATION HISTORY
 
                     <tr
                         class="application-row"
+                        id="application-{{ $application->id }}" style="scroll-margin-top: 6rem"
                         data-status="{{ $application->status }}"
                     >
 
@@ -440,6 +441,18 @@ APPLICATION HISTORY
                             >
 
                                 {{ $application->remarks ?? 'No remarks provided.' }}
+                                @if ($update = $application->latestPcicTrackingUpdate)
+                                    <div class="mt-2">
+                                        <strong>{{ \App\Models\PcicTrackingUpdate::STATUSES[$update->status] }}</strong>
+                                        <div>{{ $update->created_at->format('M d, Y h:i A') }}</div>
+                                        @if ($update->remarks)
+                                            <div>{{ $update->remarks }}</div>
+                                        @endif
+                                        @if ($update->expected_release_date)
+                                            <div>Expected release {{ $update->expected_release_date->format('M d, Y') }}</div>
+                                        @endif
+                                    </div>
+                                @endif
 
                             </div>
 
