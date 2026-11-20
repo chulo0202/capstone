@@ -109,7 +109,7 @@ class FarmerCreationRsbsaTest extends TestCase
 Apelyido / Last Name
 
 DELA CRUZ
-Mga Pangalan / Given Names
+Mga Pangalan / Given Names pe
 
 JUAN MIGUEL
 Gitnang Apelyido / Middle Name

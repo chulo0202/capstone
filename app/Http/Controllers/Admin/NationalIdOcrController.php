@@ -121,12 +121,12 @@ class NationalIdOcrController extends Controller
 
     private function parseDetails(string $text, bool $focused): array
     {
-        $given = $this->readField($text, 'Given[ \t]*Names?|Mga[ \t]+Pangalan');
-        $middle = $this->readField($text, 'Middle[ \t]*Name|Gitnang[ \t]+Apelyido');
-        $family = $this->readField($text, 'Last[ \t]*Name|^Apelyido');
+        $given = $this->readName($text, 'Given[ \t]*Names?|Mga[ \t]+Pangalan');
+        $middle = $this->readName($text, 'Middle[ \t]*Name|Gitnang[ \t]+Apelyido');
+        $family = $this->readName($text, 'Last[ \t]*Name|^Apelyido');
 
         $names = array_filter([$given, $middle, $family]);
-        $fullName = $given && $family && collect($names)->every(fn ($name) => preg_match('/^[\p{L} .\x{2019}\x{0027}-]+$/u', $name))
+        $fullName = $given && $family
             ? implode(' ', $names)
             : null;
 
@@ -159,6 +159,29 @@ class NationalIdOcrController extends Controller
             'full_name' => $fullName,
             'birthdate' => $birthdate,
         ];
+    }
+
+    private function readName(string $text, string $label): ?string
+    {
+        // Prefer the value printed below the label over stray text on the label line.
+        foreach (['[^\r\n]*\R[\r\n \t]*', '[ \t]*[:\-]?[ \t]*'] as $separator) {
+            $pattern = '/^[^\r\n]*\b(?:'.$label.')(?!\p{L})'.$separator.'([^\r\n]+)$/miu';
+
+            if (! preg_match($pattern, $text, $match)) {
+                continue;
+            }
+
+            $value = trim($match[1]);
+
+            if (
+                preg_match('/^\p{Lu}[\p{Lu}\p{M} .\x{2019}\x{0027}-]*$/u', $value)
+                && ! preg_match('/\b(?:Last[ \t]*Name|Given[ \t]*Names?|Middle[ \t]*Name|Apelyido|Pangalan|Kapanganakan|Tirahan|Address)\b/i', $value)
+            ) {
+                return $value;
+            }
+        }
+
+        return null;
     }
 
     private function readField(string $text, string $label): ?string
