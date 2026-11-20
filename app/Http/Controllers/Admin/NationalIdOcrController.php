@@ -18,33 +18,47 @@ class NationalIdOcrController extends Controller
         ]);
 
         $photo = $request->file('valid_id')->getRealPath();
-        $prepared = $this->preparePhoto($photo);
+        $prepared = [];
         $details = ['full_name' => null, 'birthdate' => null];
         $read = false;
+        $timedOut = false;
 
         try {
-            foreach ([[$prepared ?: $photo, '11'], [$photo, '6']] as [$path, $mode]) {
-                $result = Process::timeout(8)->env(['OMP_THREAD_LIMIT' => '1'])->run([
-                    'tesseract', $path, 'stdout', '-l', 'eng', '--psm', $mode,
-                ]);
+            $prepared = $this->preparePhoto($photo);
+            $passes = [
+                [$prepared['full'] ?? $photo, '11', false],
+                [$prepared['text'] ?? $photo, '6', isset($prepared['text'])],
+                [$photo, '6', false],
+            ];
+
+            foreach (array_unique($passes, SORT_REGULAR) as [$path, $mode, $focused]) {
+                try {
+                    $result = Process::timeout(5)->env(['OMP_THREAD_LIMIT' => '1'])->run([
+                        'tesseract', $path, 'stdout', '-l', 'eng', '--psm', $mode,
+                    ]);
+                } catch (ProcessTimedOutException) {
+                    $timedOut = true;
+
+                    continue;
+                }
 
                 if ($result->successful()) {
                     $read = true;
-                    $details = array_replace($this->parseDetails($result->output()), array_filter($details));
+                    $details = array_replace($this->parseDetails($result->output(), $focused), array_filter($details));
 
                     if ($details['full_name'] && $details['birthdate']) {
                         break;
                     }
                 }
             }
-        } catch (ProcessTimedOutException) {
-            if (! $read) {
-                return response()->json(['message' => 'The ID took too long to read. Try a clearer image or enter the details manually.'], 422);
-            }
         } finally {
-            if ($prepared) {
-                unlink($prepared);
+            foreach ($prepared as $file) {
+                unlink($file);
             }
+        }
+
+        if (! $read && $timedOut) {
+            return response()->json(['message' => 'The ID took too long to read. Try a clearer image or enter the details manually.'], 422);
         }
 
         if (! $read) {
@@ -54,24 +68,42 @@ class NationalIdOcrController extends Controller
         return response()->json($details);
     }
 
-    private function preparePhoto(string $path): ?string
+    private function preparePhoto(string $path): array
     {
         $image = @imagecreatefromstring(file_get_contents($path));
 
         if (! $image) {
-            return null;
+            return [];
         }
 
         $scale = min(3, 2200 / max(imagesx($image), imagesy($image)));
         $image = imagescale($image, max(1, (int) round(imagesx($image) * $scale)), max(1, (int) round(imagesy($image) * $scale)));
 
         if (! $image) {
-            return null;
+            return [];
         }
 
         imagefilter($image, IMG_FILTER_GRAYSCALE);
         imagefilter($image, IMG_FILTER_CONTRAST, -25);
 
+        $width = imagesx($image);
+        $height = imagesy($image);
+        // The name and birthdate sit to the right of the portrait on the physical PhilID.
+        $text = imagecrop($image, [
+            'x' => (int) floor($width * 0.43),
+            'y' => (int) floor($height * 0.28),
+            'width' => max(1, (int) floor($width * 0.52)),
+            'height' => max(1, (int) floor($height * 0.55)),
+        ]);
+
+        return array_filter([
+            'full' => $this->saveTemporaryImage($image),
+            'text' => $text ? $this->saveTemporaryImage($text) : null,
+        ]);
+    }
+
+    private function saveTemporaryImage(\GdImage $image): ?string
+    {
         $file = tempnam(sys_get_temp_dir(), 'fams-id-');
 
         if ($file === false) {
@@ -87,7 +119,7 @@ class NationalIdOcrController extends Controller
         return $file;
     }
 
-    private function parseDetails(string $text): array
+    private function parseDetails(string $text, bool $focused): array
     {
         $given = $this->readField($text, 'Given[ \t]*Names?|Mga[ \t]+Pangalan');
         $middle = $this->readField($text, 'Middle[ \t]*Name|Gitnang[ \t]+Apelyido');
@@ -99,9 +131,19 @@ class NationalIdOcrController extends Controller
             : null;
 
         $birthdate = null;
-        $date = preg_replace('/[ \t]+/', ' ', $this->readField($text, 'Date[ \t]*of[ \t]*Birth|Petsa[ \t]+ng[ \t]+Kapanganakan') ?? '');
+        $datePattern = '/\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)[ \t]+\d{1,2},?[ \t]+\d{4}\b/i';
+        $dateField = $this->readField($text, 'Date[ \t]*of[ \t]*Birth|Petsa[ \t]+ng[ \t]+Kapanganakan');
+        preg_match_all($datePattern, $dateField ?? '', $matches);
+        $dates = array_unique($matches[0]);
 
-        if ($date && preg_match('/^[a-z]{3,9} \d{1,2},? \d{4}$/i', $date)) {
+        // Recover a clear date when the small label disappeared in the cropped pass.
+        if ($focused && $dateField === null) {
+            preg_match_all($datePattern, $text, $matches);
+            $dates = array_unique($matches[0]);
+        }
+
+        if (count($dates) === 1) {
+            $date = reset($dates);
             $parsed = date_parse(str_replace(',', '', $date));
 
             if (

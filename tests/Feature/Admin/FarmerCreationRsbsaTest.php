@@ -102,7 +102,7 @@ class FarmerCreationRsbsaTest extends TestCase
         $runs = 0;
         Process::fake(function () use (&$runs) {
             if (++$runs === 1) {
-                return Process::result(output: "Petsa ng Kapanganakan\nJANUARY 02, 1990");
+                return Process::result(output: "PAMBANSANG PAGKAKAKILANLAN");
             }
 
             return Process::result(output: <<<'OCR'
@@ -115,6 +115,7 @@ JUAN MIGUEL
 Gitnang Apelyido / Middle Name
 
 SANTOS
+JANUARY 02, 1990
 OCR);
         });
 
