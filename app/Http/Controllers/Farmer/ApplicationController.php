@@ -119,7 +119,9 @@ class ApplicationController extends Controller
                 );
 
                 if ($evaluation['status'] !== 'eligible') {
-                    return null;
+                    $requirements = implode('; ', array_unique($evaluation['missing_requirements']));
+
+                    return ['error' => 'You cannot apply for this benefit yet. Missing requirements: '.$requirements.'.'];
                 }
 
                 // Preserve one-application-per-benefit behavior for

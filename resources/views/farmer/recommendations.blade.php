@@ -545,8 +545,13 @@
                                             Already applied
                                         </button>
 
-                                    @else
+                                    @elseif ($rec->eligibility_status !== 'eligible')
 
+                                        <span class="small fw-semibold text-warning-emphasis">
+                                            Complete missing requirements to apply.
+                                        </span>
+
+                                    @else
 
                                     @php
                                         $programName = $rec->program->name;
@@ -581,12 +586,7 @@
 
                                     <button
                                         type="button"
-                                        class="btn btn-sm
-                                            {{ $rec->eligibility_status === 'eligible'
-                                                ? 'btn-fams'
-                                                : 'btn-outline-warning'
-                                            }}
-                                            px-3"
+                                        class="btn btn-sm btn-fams px-3"
                                         data-bs-toggle="modal"
                                         data-bs-target="#programApplicationModal"
                                         data-application-url="{{ route(
@@ -606,21 +606,6 @@
 
                                     @endif
 
-
-                                    @if(
-                                        $rec->eligibility_status ===
-                                        'partially_eligible'
-                                        &&
-                                        $rec->missing_requirements
-                                    )
-
-                                        <div class="small text-muted mt-1">
-
-                                            Some requirements are still missing.
-
-                                        </div>
-
-                                    @endif
 
                                 </td>
 
@@ -776,8 +761,6 @@
                     service_request: 'Submit Service Request'
                 }[formType] || 'Submit Application';
 
-                // Keep submissions disabled until backend safeguards
-                // and functional testing are completed.
                 submitButton.disabled = false;
             });
         });

@@ -327,21 +327,30 @@
                         </h6>
 
                         <div class="mb-3">
-                            <label class="form-label">
+                            <label class="form-label" for="service-description">
                                 Service Request Description
                             </label>
                             <textarea name="service_description"
+                                      id="service-description"
                                       class="form-control"
-                                      rows="3"></textarea>
+                                      minlength="10"
+                                      maxlength="2000"
+                                      aria-describedby="service-description-help"
+                                      rows="3"
+                                      required></textarea>
+                            <div id="service-description-help" class="form-text">Enter at least 10 characters.</div>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">
+                            <label class="form-label" for="preferred-service-date">
                                 Preferred Service Date
                             </label>
                             <input type="date"
                                    name="preferred_service_date"
-                                   class="form-control">
+                                   id="preferred-service-date"
+                                   min="{{ today()->toDateString() }}"
+                                   class="form-control"
+                                   required>
                         </div>
                     </div>
 

@@ -116,6 +116,42 @@ class BenefitRecommendationScheduleTest extends TestCase
         $response->assertDontSeeText($legacy->name);
     }
 
+    public function test_service_request_requires_all_eligibility_requirements(): void
+    {
+        [$user, $benefit] = $this->createScenario();
+        $program = $benefit->program;
+        $program->update(['name' => 'Equipment and Machinery Support']);
+        $benefit->eligibilityRules()->create([
+            'program_id' => $program->id,
+            'crop_types' => ['Rice'],
+            'requires_association' => true,
+        ]);
+
+        $this->actingAs($user)->get(route('farmer.recommendations'))
+            ->assertOk()
+            ->assertSeeText('Complete missing requirements to apply.')
+            ->assertDontSee('data-benefit-id="'.$benefit->id.'"', false);
+
+        $data = [
+            'program_benefit_id' => $benefit->id,
+            'service_description' => 'Requesting a combine harvester for the rice field.',
+            'preferred_service_date' => now()->addDay()->toDateString(),
+        ];
+
+        $this->post(route('farmer.applications.store', $program), $data)
+            ->assertSessionHas('error', 'You cannot apply for this benefit yet. Missing requirements: Farmers association membership required.');
+        $this->assertDatabaseCount('applications', 0);
+
+        $user->farmer->update(['association_membership' => true]);
+
+        $this->get(route('farmer.recommendations'))
+            ->assertSee('data-benefit-id="'.$benefit->id.'"', false);
+
+        $this->post(route('farmer.applications.store', $program), $data)
+            ->assertSessionHas('success');
+        $this->assertDatabaseCount('applications', 1);
+    }
+
     private function createScenario(): array
     {
         $user = User::factory()->create(['role' => 'farmer']);
