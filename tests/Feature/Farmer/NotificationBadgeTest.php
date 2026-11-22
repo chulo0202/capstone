@@ -59,6 +59,30 @@ class NotificationBadgeTest extends TestCase
             ->assertSee('aria-label="Notifications, 2 unread"', false);
     }
 
+    public function test_farmer_announcements_open_in_notifications_and_preserve_older_posts(): void
+    {
+        $farmer = $this->createFarmer('RSBSA-NOTIFICATIONS-003');
+        $admin = User::factory()->create(['role' => 'admin']);
+        $content = str_repeat('Distribution schedule information. ', 10);
+
+        foreach (range(1, 11) as $number) {
+            Announcement::create([
+                'title' => 'Notice '.$number,
+                'content' => $content,
+                'publish_date' => now()->subHours(12 - $number),
+                'is_published' => true,
+                'created_by' => $admin->id,
+            ]);
+        }
+
+        $archive = route('farmer.notifications.index', ['category' => 'announcement']);
+        $this->actingAs($farmer->user)->get(route('farmer.announcements'))
+            ->assertRedirect($archive);
+        $this->get($archive)->assertOk()->assertSee('aria-current="true"', false)
+            ->assertSee($content)->assertDontSee(route('farmer.announcements'), false);
+        $this->get($archive.'&page=2')->assertOk()->assertSee('Notice 1')->assertDontSee('Notice 11');
+    }
+
     private function createFarmer(string $number): Farmer
     {
         $user = User::factory()->create(['role' => 'farmer']);

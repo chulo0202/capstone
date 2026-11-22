@@ -15,7 +15,6 @@ use App\Http\Controllers\Admin\SmsNotificationController;
 use App\Http\Controllers\Admin\AdminRegistrationController;
 use App\Http\Controllers\Auth\AdminRegistrationController as AuthAdminRegistrationController;
 use App\Http\Controllers\Auth\RsbsaRegistrationController;
-use App\Http\Controllers\Farmer\AnnouncementController as FarmerAnnouncementController;
 use App\Http\Controllers\Farmer\ApplicationController;
 use App\Http\Controllers\Farmer\DashboardController as FarmerDashboardController;
 use App\Http\Controllers\Farmer\EligibilityController;
@@ -318,7 +317,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/notifications/distributions/{distribution}', [NotificationController::class, 'distributionReceipt'])
             ->whereNumber('distribution')->name('notifications.distribution-receipt');
 
-        Route::get('/announcements', [FarmerAnnouncementController::class, 'index'])
+        Route::get('/announcements', fn () => to_route('farmer.notifications.index', ['category' => 'announcement']))
             ->name('announcements');
     });
 });

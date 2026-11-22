@@ -25,18 +25,24 @@ class FarmerNotifications
         return $count;
     }
 
-    public function feed(Farmer $farmer, bool $markRead): array
+    public function feed(Farmer $farmer, bool $markRead, bool $browseAnnouncements = false): array
     {
         $items = [];
         $receipts = [];
 
         foreach ($this->sources($farmer) as $source => [$query, $order, $limit]) {
             $reads = $this->reads($farmer, $source, $query);
-            $items[$source] = $query->select($query->getModel()->getTable().'.*')
+            $items[$source] = $browseAnnouncements && $source === 'announcements'
+                ? $query->latest($order)->latest('id')->paginate(10)->appends(['category' => 'announcement'])
+                : $query->select($query->getModel()->getTable().'.*')
                 ->orderByRaw('CASE WHEN EXISTS ('.$reads->toSql().') THEN 1 ELSE 0 END', $reads->getBindings())
                 ->latest($order)
                 ->take($limit)
                 ->get();
+
+            if ($browseAnnouncements && $source !== 'announcements') {
+                continue;
+            }
 
             foreach ($items[$source] as $item) {
                 $receipts[] = [

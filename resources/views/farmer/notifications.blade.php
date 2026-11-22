@@ -11,6 +11,7 @@
         'announcement' => ['Announcements', 'bi-megaphone', $announcements->count()],
         'sms' => ['SMS History', 'bi-chat-left-text', $notifications->count()],
     ];
+    $activeCategory = $browseAnnouncements ? 'announcement' : 'all';
     $total = array_sum(array_column($categories, 2));
 @endphp
 
@@ -28,8 +29,16 @@
 <div class="farmer-notifications">
     <div class="d-flex gap-2 flex-wrap mb-3" role="group" aria-label="Filter notifications">
         @foreach (['all' => ['All', '', $total], ...$categories] as $key => [$label, $icon, $count])
-            <button type="button" class="btn btn-sm rounded-pill px-3 {{ $key === 'all' ? 'btn-fams' : 'btn-outline-secondary' }}"
-                data-notification-filter="{{ $key }}" aria-pressed="{{ $key === 'all' ? 'true' : 'false' }}">
+            @if ($key === 'announcement')
+                <a href="{{ route('farmer.notifications.index', ['category' => 'announcement']) }}"
+                    class="btn btn-sm rounded-pill px-3 {{ $browseAnnouncements ? 'btn-fams' : 'btn-outline-secondary' }}"
+                    data-notification-announcements @if ($browseAnnouncements) aria-current="true" @endif>
+                    Announcements <span class="badge text-bg-light ms-1">{{ $count }}</span>
+                </a>
+                @continue
+            @endif
+            <button type="button" class="btn btn-sm rounded-pill px-3 {{ $key === $activeCategory ? 'btn-fams' : 'btn-outline-secondary' }}"
+                data-notification-filter="{{ $key }}" aria-pressed="{{ $key === $activeCategory ? 'true' : 'false' }}">
                 {{ $key === 'distribution' ? 'Distribution' : ($key === 'pcic' ? 'PCIC' : ($key === 'sms' ? 'SMS' : $label)) }}
                 <span class="badge text-bg-light ms-1">{{ $count }}</span>
             </button>
@@ -38,7 +47,7 @@
 
     @foreach ($categories as $key => [$label, $icon, $count])
         <section class="card shadow-sm mb-3" data-notification-category="{{ $key }}" data-count="{{ $count }}"
-            aria-labelledby="notification-{{ $key }}" @if (!$count && ($total || $key !== 'distribution')) hidden @endif>
+            aria-labelledby="notification-{{ $key }}" @if ($browseAnnouncements ? $key !== 'announcement' : (!$count && ($total || $key !== 'distribution'))) hidden @endif>
             <div class="card-body p-3 p-md-4">
                 <h2 class="h6 mb-3 d-flex align-items-center gap-2" id="notification-{{ $key }}">
                     <i class="bi {{ $icon }} text-success" aria-hidden="true"></i> {{ $label }}
@@ -80,9 +89,12 @@
                         @foreach ($announcements as $announcement)
                             @include('farmer.partials.notification-item', [
                                 'itemIcon' => $icon, 'title' => $announcement->title,
-                                'description' => Str::limit($announcement->content, 180),
+                                'description' => $announcement->content,
                             ])
                         @endforeach
+                        @if ($browseAnnouncements)
+                            {{ $announcements->links() }}
+                        @endif
                     @else
                         @foreach ($notifications as $notification)
                             @include('farmer.partials.notification-item', [
@@ -107,6 +119,9 @@
         const sections = [...document.querySelectorAll('[data-notification-category]')];
         filters.forEach(button => button.addEventListener('click', () => {
             const category = button.dataset.notificationFilter;
+            const announcements = document.querySelector('[data-notification-announcements]');
+            announcements.removeAttribute('aria-current');
+            announcements.classList.replace('btn-fams', 'btn-outline-secondary');
             filters.forEach(filter => {
                 const selected = filter === button;
                 filter.setAttribute('aria-pressed', selected);

@@ -15,9 +15,12 @@ class NotificationController extends Controller
     {
         $farmer = $request->user()->farmer;
 
+        $browseAnnouncements = $request->query('category') === 'announcement';
+
         return view('farmer.notifications', [
             'farmer' => $farmer,
-            ...$notifications->feed($farmer, $request->isMethod('GET')),
+            'browseAnnouncements' => $browseAnnouncements,
+            ...$notifications->feed($farmer, $request->isMethod('GET'), $browseAnnouncements),
         ]);
     }
 

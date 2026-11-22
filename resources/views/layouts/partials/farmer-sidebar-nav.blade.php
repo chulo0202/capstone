@@ -24,6 +24,3 @@
 <a class="fams-nav-link {{ request()->routeIs('farmer.notifications.*') ? 'active' : '' }}" href="{{ route('farmer.notifications.index') }}">
     <i class="bi bi-bell-fill"></i> Notifications
 </a>
-<a class="fams-nav-link {{ request()->routeIs('farmer.announcements') ? 'active' : '' }}" href="{{ route('farmer.announcements') }}">
-    <i class="bi bi-megaphone-fill"></i> Announcements
-</a>

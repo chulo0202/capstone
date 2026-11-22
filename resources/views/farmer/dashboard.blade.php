@@ -297,7 +297,7 @@
     <div class="fams-card fams-dash-card">
       <div class="fams-card-header">
         <h6><i class="bi bi-megaphone me-2 text-fams"></i>Latest Announcements</h6>
-        <a href="{{ route('farmer.announcements') }}" class="auth-link small">View all</a>
+        <a href="{{ route('farmer.notifications.index', ['category' => 'announcement']) }}" class="auth-link small">View all</a>
       </div>
       <div class="fams-card-body p-0">
         @forelse($announcements as $a)
