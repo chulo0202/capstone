@@ -9,6 +9,7 @@ use App\Models\DistributionBatch;
 use App\Models\Program;
 use App\Services\AuditLogService;
 use App\Services\DistributionReleaseService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,15 +26,17 @@ class DistributionBatchController extends Controller
         ]);
     }
 
-    public function create(Request $request, DistributionReleaseService $releases): View
+    public function create(Request $request, DistributionReleaseService $releases): View|JsonResponse
     {
         $programs = Program::with('activeBenefits')
             ->whereNull('archived_at')
             ->whereHas('activeBenefits')
             ->orderBy('name')
             ->get();
-        $program = $programs->find($request->integer('program'));
-        $benefit = $program?->activeBenefits->firstWhere('id', $request->integer('benefit'));
+        $programId = $request->integer('program', (int) $request->old('program_id'));
+        $benefitId = $request->integer('benefit', (int) $request->old('program_benefit_id'));
+        $program = $programs->find($programId);
+        $benefit = $program?->activeBenefits->firstWhere('id', $benefitId);
 
         $applications = $benefit
             ? Application::with(['farmer', 'program', 'benefit'])
@@ -45,12 +48,24 @@ class DistributionBatchController extends Controller
                 ->filter(fn ($application) => $application->farmer && ! $releases->applicationError($application, $application->farmer))
             : collect();
 
-        return view('admin.distribution-batches.form', [
+        $beneficiaries = $applications->map(fn (Application $application) => [
+            'id' => $application->id,
+            'farmerId' => $application->farmer_id,
+            'name' => $application->farmer->full_name,
+            'barangay' => $application->farmer->barangay,
+        ])->values();
+
+        if ($request->expectsJson()) {
+            abort_unless($benefit, 422, 'Select a valid program and specific benefit.');
+
+            return response()->json($beneficiaries);
+        }
+
+        return view('admin.distribution-batches.create', [
             'programs' => $programs,
             'program' => $program,
             'benefit' => $benefit,
-            'applications' => $applications,
-            'batch' => null,
+            'beneficiaries' => $beneficiaries,
         ]);
     }
 

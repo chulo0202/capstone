@@ -654,8 +654,8 @@ class BenefitSpecificWorkflowTest extends TestCase
             'benefit' => $urea->id,
         ]))->assertOk()
             ->assertSee('Irrigation Repair')
-            ->assertDontSee('Urea')
-            ->assertDontSee('Create Draft');
+            ->assertViewHas('benefit', null)
+            ->assertViewHas('beneficiaries', fn ($rows) => $rows->isEmpty());
 
         $this->get(route('admin.distribution-batches.create', [
             'program' => $infrastructure->id,
@@ -663,14 +663,59 @@ class BenefitSpecificWorkflowTest extends TestCase
         ]))->assertOk()
             ->assertSee('Irrigation Repair')
             ->assertDontSee('Legacy Infrastructure Grant')
-            ->assertDontSee('Create Draft');
+            ->assertViewHas('benefit', null);
 
         $this->get(route('admin.distribution-batches.create', [
             'program' => $infrastructure->id,
             'benefit' => $irrigation->id,
         ]))->assertOk()
-            ->assertSee('Application #'.$application->id)
+            ->assertViewHas('benefit', fn ($selected) => $selected->is($irrigation))
             ->assertSee('Create Draft');
+
+        $this->getJson(route('admin.distribution-batches.create', [
+            'program' => $infrastructure->id,
+            'benefit' => $irrigation->id,
+        ]))->assertOk()->assertJsonCount(1)->assertJsonPath('0.id', $application->id);
+
+        $this->getJson(route('admin.distribution-batches.create', [
+            'program' => $infrastructure->id,
+            'benefit' => $urea->id,
+        ]))->assertUnprocessable();
+    }
+
+    public function test_distribution_draft_restores_wizard_inputs_and_redirects_after_success(): void
+    {
+        [, $farmer] = $this->createFarmer();
+        $program = $this->createProgram();
+        $benefit = $this->createBenefit($program, 'Schedule benefit');
+        $application = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
+        $this->actingAs($this->createAdmin());
+        $create = route('admin.distribution-batches.create');
+        $store = route('admin.distribution-batches.store');
+        $data = $this->distributionBatchData($application);
+
+        $this->from($create)->post($store, array_replace($data, ['end_time' => '08:00']))
+            ->assertRedirect($create)
+            ->assertSessionHasErrors('end_time')
+            ->assertSessionHasInput('application_ids', [$application->id]);
+
+        $this->get($create)->assertOk()
+            ->assertViewHas('benefit', fn ($selected) => $selected->is($benefit))
+            ->assertSee('value="'.$data['name'].'"', false)
+            ->assertSee('End time must be later than start time.');
+
+        $response = $this->post($store, $data);
+        $this->assertDatabaseCount('distribution_batches', 1);
+        $this->assertDatabaseCount('distribution_assignments', 1);
+        $this->assertDatabaseCount('distributions', 0);
+        $batch = \App\Models\DistributionBatch::sole();
+        $response->assertRedirect(route('admin.distribution-batches.show', $batch))
+            ->assertSessionHas('success', 'Distribution draft created.');
+        $this->assertSame('draft', $batch->status);
+        $this->assertSame('approved', $application->fresh()->status);
+
+        $this->get(route('admin.distribution-batches.edit', $batch))
+            ->assertOk()->assertSee('Save Schedule')->assertDontSee('distribution-wizard');
     }
 
     public function test_distribution_batch_enforces_assignment_on_web_and_scanner_and_preserves_direct_release(): void
