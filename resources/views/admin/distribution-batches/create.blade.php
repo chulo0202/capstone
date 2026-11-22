@@ -108,18 +108,34 @@
 
     <section data-step aria-labelledby="distribution-review-heading" hidden>
         <h2 id="distribution-review-heading" class="h5 mb-3" tabindex="-1">Review &amp; Create Draft</h2>
-        <dl class="row mb-3">
+        <div class="row g-3 mb-3">
             @foreach ([
-                'program_id' => 'Program', 'program_benefit_id' => 'Specific Benefit', 'name' => 'Distribution Name',
-                'scheduled_date' => 'Distribution Date', 'start_time' => 'Start Time', 'end_time' => 'End Time',
-                'location' => 'Distribution Location', 'instructions' => 'Additional Instructions',
-            ] as $field => $label)
-                <dt class="col-sm-4">{{ $label }}</dt>
-                <dd class="col-sm-8 text-break" data-review="{{ $field }}" style="white-space: pre-wrap"></dd>
+                'Program & Benefit' => ['bi-grid', ['program_id' => 'Program', 'program_benefit_id' => 'Specific Benefit']],
+                'Distribution Schedule' => ['bi-calendar-event', [
+                    'name' => 'Distribution Name', 'scheduled_date' => 'Distribution Date',
+                    'start_time' => 'Start Time', 'end_time' => 'End Time',
+                    'location' => 'Distribution Location', 'instructions' => 'Additional Instructions',
+                ]],
+            ] as $title => [$icon, $fields])
+                <div class="col-lg-6">
+                    <section class="border rounded-3 p-3 h-100">
+                        <h3 class="h6 text-success mb-3"><i class="bi {{ $icon }} me-2" aria-hidden="true"></i>{{ $title }}</h3>
+                        <dl class="row g-2 mb-0">
+                            @foreach ($fields as $field => $label)
+                                <div class="{{ in_array($field, ['start_time', 'end_time'], true) ? 'col-6' : 'col-12' }}">
+                                    <dt class="small text-muted">{{ $label }}</dt>
+                                    <dd class="fw-semibold text-break mb-1" data-review="{{ $field }}" style="white-space: pre-wrap"></dd>
+                                </div>
+                            @endforeach
+                        </dl>
+                    </section>
+                </div>
             @endforeach
-        </dl>
-        <h3 class="h6" data-review-count></h3>
-        <ul data-review-beneficiaries></ul>
+        </div>
+        <section class="border rounded-3 p-3 mb-3">
+            <h3 class="h6 text-success mb-2" data-review-count></h3>
+            <ul class="mb-0 ps-3" data-review-beneficiaries></ul>
+        </section>
         <p class="alert alert-info mb-0">Creating a draft does not publish the schedule or release assistance.</p>
     </section>
 

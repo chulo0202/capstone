@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Announcement;
 use App\Models\Distribution;
+use App\Models\DistributionAssignment;
 use App\Models\Farmer;
 use App\Models\PcicTrackingUpdate;
 use App\Models\SmsNotification;
@@ -63,6 +64,7 @@ class FarmerNotifications
                 Announcement::where('is_published', true)->where('publish_date', '<=', now()),
                 'publish_date', 5,
             ],
+            'schedules' => [$this->distributionSchedules($farmer)->whereNull('released_at'), 'updated_at', 10],
             'distributions' => [
                 Distribution::with(['program', 'benefit'])->where('farmer_id', $farmer->id),
                 'distributed_at', 5,
@@ -73,6 +75,15 @@ class FarmerNotifications
                 'id', 10,
             ],
         ];
+    }
+
+    public function distributionSchedules(Farmer $farmer): Builder
+    {
+        return DistributionAssignment::query()
+            ->whereNotNull('active_application_id')
+            ->whereHas('application', fn ($query) => $query->where('farmer_id', $farmer->id))
+            ->whereHas('batch', fn ($query) => $query->whereIn('status', ['published', 'completed']))
+            ->with('batch.program', 'batch.benefit');
     }
 
     private function reads(Farmer $farmer, string $source, Builder $query): QueryBuilder

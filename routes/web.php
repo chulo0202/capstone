@@ -313,6 +313,10 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/notifications', [NotificationController::class, 'index'])
             ->name('notifications.index');
+        Route::get('/notifications/distribution-schedules/{assignment}', [NotificationController::class, 'distributionSchedule'])
+            ->whereNumber('assignment')->name('notifications.distribution-schedule');
+        Route::get('/notifications/distributions/{distribution}', [NotificationController::class, 'distributionReceipt'])
+            ->whereNumber('distribution')->name('notifications.distribution-receipt');
 
         Route::get('/announcements', [FarmerAnnouncementController::class, 'index'])
             ->name('announcements');

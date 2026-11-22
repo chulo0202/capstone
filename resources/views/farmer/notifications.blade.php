@@ -1,645 +1,125 @@
 @extends('layouts.farmer')
 
 @section('page-title', 'Notifications')
-@section('page-subtitle', 'Stay updated with your applications, benefits, and announcements')
+@section('page-subtitle', 'Distribution schedules, application updates, and messages')
 
 @section('main')
-
 @php
-    $smsCount = $notifications->count();
-    $announcementCount = $announcements->count();
-    $distributionCount = $distributions->count();
-
-    $totalUpdates = $smsCount + $announcementCount + $distributionCount + $pcicUpdates->count();
+    $categories = [
+        'distribution' => ['Distribution Updates', 'bi-box-seam', $schedules->count() + $distributions->count()],
+        'pcic' => ['PCIC Updates', 'bi-shield-check', $pcicUpdates->count()],
+        'announcement' => ['Announcements', 'bi-megaphone', $announcements->count()],
+        'sms' => ['SMS History', 'bi-chat-left-text', $notifications->count()],
+    ];
+    $total = array_sum(array_column($categories, 2));
 @endphp
 
-@if ($pcicUpdates->isNotEmpty())
-    <section class="card border-0 shadow-sm mb-4">
-        <div class="card-body">
-            <h2 class="h5">PCIC updates</h2>
-            <ul class="list-group list-group-flush">
-                @foreach ($pcicUpdates as $update)
-                    <li class="list-group-item px-0">
-                        <a href="{{ route('farmer.applications.index') }}#application-{{ $update->application_id }}">
-                            {{ $update->application->benefit?->name ?? 'PCIC application' }}
-                            · {{ \App\Models\PcicTrackingUpdate::STATUSES[$update->status] }}
-                        </a>
-                        <div class="small text-muted">{{ $update->created_at->format('M d, Y h:i A') }}</div>
-                        @if ($update->remarks)<div>{{ $update->remarks }}</div>@endif
-                        @if ($update->expected_release_date)
-                            <div>Expected release {{ $update->expected_release_date->format('M d, Y') }}</div>
-                        @endif
-                    </li>
-                @endforeach
-            </ul>
-        </div>
-    </section>
-@endif
+<style>
+    .farmer-notifications [hidden] { display: none !important; }
+    .farmer-notifications .feed-row { min-width: 0; }
+    .farmer-notifications .feed-row:hover { background: #f0f8f3; }
+    .farmer-notifications .feed-row:focus-visible { outline: 2px solid #198754; outline-offset: 2px; }
+    .farmer-notifications .feed-icon {
+        width: 2.5rem; height: 2.5rem; display: grid; place-items: center;
+        border-radius: .75rem; background: #e7f4eb; color: #17633f;
+    }
+</style>
 
-{{-- =========================================================
-    SUMMARY CARDS
-========================================================= --}}
-<div class="row g-3 mb-4">
-
-    {{-- ALL NOTIFICATIONS --}}
-    <div class="col-md-6 col-xl-3">
-
-        <div class="card border-0 shadow-sm h-100">
-
-            <div class="card-body">
-
-                <div class="d-flex justify-content-between align-items-center">
-
-                    <div>
-
-                        <div class="small text-muted mb-1">
-                            All Updates
-                        </div>
-
-                        <h3 class="fw-bold mb-0">
-                            {{ $totalUpdates }}
-                        </h3>
-
-                        <small class="text-muted">
-                            Notifications
-                        </small>
-
-                    </div>
-
-                    <div
-                        class="rounded-circle bg-primary bg-opacity-10
-                               d-flex align-items-center justify-content-center"
-                        style="width:50px;height:50px;"
-                    >
-                        <i class="bi bi-bell text-primary fs-4"></i>
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
+<div class="farmer-notifications">
+    <div class="d-flex gap-2 flex-wrap mb-3" role="group" aria-label="Filter notifications">
+        @foreach (['all' => ['All', '', $total], ...$categories] as $key => [$label, $icon, $count])
+            <button type="button" class="btn btn-sm rounded-pill px-3 {{ $key === 'all' ? 'btn-fams' : 'btn-outline-secondary' }}"
+                data-notification-filter="{{ $key }}" aria-pressed="{{ $key === 'all' ? 'true' : 'false' }}">
+                {{ $key === 'distribution' ? 'Distribution' : ($key === 'pcic' ? 'PCIC' : ($key === 'sms' ? 'SMS' : $label)) }}
+                <span class="badge text-bg-light ms-1">{{ $count }}</span>
+            </button>
+        @endforeach
     </div>
 
-
-    {{-- SMS --}}
-    <div class="col-md-6 col-xl-3">
-
-        <div class="card border-0 shadow-sm h-100">
-
-            <div class="card-body">
-
-                <div class="d-flex justify-content-between align-items-center">
-
-                    <div>
-
-                        <div class="small text-muted mb-1">
-                            SMS
-                        </div>
-
-                        <h3 class="fw-bold mb-0">
-                            {{ $smsCount }}
-                        </h3>
-
-                        <small class="text-muted">
-                            Messages
-                        </small>
-
-                    </div>
-
-                    <div
-                        class="rounded-circle bg-info bg-opacity-10
-                               d-flex align-items-center justify-content-center"
-                        style="width:50px;height:50px;"
-                    >
-                        <i class="bi bi-chat-left-text text-info fs-4"></i>
-                    </div>
-
+    @foreach ($categories as $key => [$label, $icon, $count])
+        <section class="card shadow-sm mb-3" data-notification-category="{{ $key }}" data-count="{{ $count }}"
+            aria-labelledby="notification-{{ $key }}" @if (!$count && ($total || $key !== 'distribution')) hidden @endif>
+            <div class="card-body p-3 p-md-4">
+                <h2 class="h6 mb-3 d-flex align-items-center gap-2" id="notification-{{ $key }}">
+                    <i class="bi {{ $icon }} text-success" aria-hidden="true"></i> {{ $label }}
+                </h2>
+                <div class="d-grid gap-2">
+                    @if ($key === 'distribution')
+                        @foreach ($schedules as $schedule)
+                            @include('farmer.partials.notification-item', [
+                                'href' => route('farmer.notifications.distribution-schedule', $schedule),
+                                'itemIcon' => 'bi-calendar-event', 'title' => $schedule->batch->name,
+                                'badge' => 'Scheduled', 'badgeStyle' => 'text-bg-primary',
+                                'description' => $schedule->batch->benefit->name.' · '.$schedule->batch->scheduled_date->format('M j, Y'),
+                                'action' => 'View schedule',
+                            ])
+                        @endforeach
+                        @foreach ($distributions as $distribution)
+                            @include('farmer.partials.notification-item', [
+                                'href' => route('farmer.notifications.distribution-receipt', $distribution),
+                                'itemIcon' => 'bi-box-seam', 'title' => $distribution->program->name,
+                                'badge' => 'Benefit Received', 'badgeStyle' => 'text-bg-success',
+                                'description' => ($distribution->benefit?->name ?? 'Program-level benefit').' · '.$distribution->distributed_at->format('M j, Y'),
+                                'action' => 'View details',
+                            ])
+                        @endforeach
+                    @elseif ($key === 'pcic')
+                        @foreach ($pcicUpdates as $update)
+                            @include('farmer.partials.notification-item', [
+                                'href' => route('farmer.applications.index').'#application-'.$update->application_id,
+                                'itemIcon' => $icon,
+                                'title' => ($update->application->benefit?->name ?? 'PCIC application').' · '.\App\Models\PcicTrackingUpdate::STATUSES[$update->status],
+                                'description' => collect([
+                                    $update->created_at->format('M j, Y, g:i A'), $update->remarks,
+                                    $update->expected_release_date ? 'Expected release '.$update->expected_release_date->format('M j, Y') : null,
+                                ])->filter()->implode("\n"),
+                                'action' => 'View application',
+                            ])
+                        @endforeach
+                    @elseif ($key === 'announcement')
+                        @foreach ($announcements as $announcement)
+                            @include('farmer.partials.notification-item', [
+                                'itemIcon' => $icon, 'title' => $announcement->title,
+                                'description' => Str::limit($announcement->content, 180),
+                            ])
+                        @endforeach
+                    @else
+                        @foreach ($notifications as $notification)
+                            @include('farmer.partials.notification-item', [
+                                'itemIcon' => $icon, 'title' => $notification->recipient,
+                                'description' => $notification->message,
+                            ])
+                        @endforeach
+                    @endif
+                    @unless ($count)
+                        <p class="text-muted small mb-0">
+                            {{ $key === 'distribution' && !$total ? 'No notifications yet.' : 'No updates in this category yet.' }}
+                        </p>
+                    @endunless
                 </div>
-
             </div>
-
-        </div>
-
-    </div>
-
-    {{-- DISTRIBUTION --}}
-    <div class="col-md-6 col-xl-3">
-
-        <div class="card border-0 shadow-sm h-100">
-
-            <div class="card-body">
-
-                <div class="d-flex justify-content-between align-items-center">
-
-                    <div>
-
-                        <div class="small text-muted mb-1">
-                            Distribution
-                        </div>
-
-                        <h3 class="fw-bold mb-0">
-                            {{ $distributionCount }}
-                        </h3>
-
-                        <small class="text-muted">
-                            Benefits received
-                        </small>
-
-                    </div>
-
-                    <div
-                        class="rounded-circle bg-success bg-opacity-10
-                               d-flex align-items-center justify-content-center"
-                        style="width:50px;height:50px;"
-                    >
-                        <i class="bi bi-box-seam text-success fs-4"></i>
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
+        </section>
+    @endforeach
 </div>
-
-
-{{-- =========================================================
-    CATEGORY FILTER
-========================================================= --}}
-<div class="card border-0 shadow-sm mb-4">
-
-    <div class="card-body py-3">
-
-        <div class="d-flex flex-wrap align-items-center gap-2">
-
-            <span class="small fw-semibold text-muted me-2">
-                <i class="bi bi-funnel me-1"></i>
-                Filter:
-            </span>
-
-
-            <button
-                type="button"
-                class="btn btn-sm btn-fams notification-filter active"
-                data-filter="all"
-            >
-                All
-            </button>
-
-
-            <button
-                type="button"
-                class="btn btn-sm btn-outline-info notification-filter"
-                data-filter="sms"
-            >
-                <i class="bi bi-chat-left-text me-1"></i>
-                SMS
-            </button>
-
-            <button
-                type="button"
-                class="btn btn-sm btn-outline-primary notification-filter"
-                data-filter="announcement"
-            >
-                <i class="bi bi-megaphone me-1"></i>
-                Announcements
-            </button>
-
-
-            <button
-                type="button"
-                class="btn btn-sm btn-outline-success notification-filter"
-                data-filter="distribution"
-            >
-                <i class="bi bi-box-seam me-1"></i>
-                Distribution
-            </button>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-{{-- =========================================================
-    NOTIFICATION CENTER
-========================================================= --}}
-<div class="fams-card shadow-sm border-0">
-
-    <div class="fams-card-header">
-
-        <div class="d-flex justify-content-between align-items-center">
-
-            <div>
-
-                <h6 class="mb-1">
-
-                    <i class="bi bi-bell me-2 text-fams"></i>
-                    Notification Center
-
-                </h6>
-
-                <small class="text-muted">
-                    Your latest messages, announcements, and distribution updates.
-                </small>
-
-            </div>
-
-
-            <span class="badge bg-light text-dark">
-
-                {{ $totalUpdates }} update(s)
-
-            </span>
-
-        </div>
-
-    </div>
-
-
-    <div class="fams-card-body p-0">
-
-
-        {{-- =====================================================
-            SMS
-        ====================================================== --}}
-        <div
-            class="notification-section"
-            data-category="sms"
-        >
-
-            <div class="px-4 py-3 border-bottom bg-light">
-
-                <div class="d-flex align-items-center">
-
-                    <div
-                        class="rounded-circle bg-info bg-opacity-10
-                               d-flex align-items-center justify-content-center me-3"
-                        style="width:42px;height:42px;"
-                    >
-
-                        <i class="bi bi-chat-left-text text-info"></i>
-
-                    </div>
-
-                    <div>
-
-                        <div class="fw-semibold">
-                            SMS History
-                        </div>
-
-                        <small class="text-muted">
-                            Messages sent to your registered contact number.
-                        </small>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            @forelse($notifications as $notification)
-
-                <div class="px-4 py-3 border-bottom">
-
-                    <div class="d-flex">
-
-                        <div class="me-3">
-
-                            <div
-                                class="rounded-circle bg-info bg-opacity-10
-                                       d-flex align-items-center justify-content-center"
-                                style="width:38px;height:38px;"
-                            >
-
-                                <i class="bi bi-phone text-info"></i>
-
-                            </div>
-
-                        </div>
-
-
-                        <div class="flex-grow-1">
-
-                            <div class="d-flex justify-content-between">
-
-                                <strong>
-                                    {{ $notification->recipient }}
-                                </strong>
-
-                                <span class="badge bg-info bg-opacity-10 text-info">
-                                    SMS
-                                </span>
-
-                            </div>
-
-
-                            <p class="mb-0 small text-muted mt-1">
-
-                                {{ $notification->message }}
-
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            @empty
-
-                <div class="text-center text-muted py-4">
-
-                    <i class="bi bi-chat-left-text fs-2 d-block mb-2"></i>
-
-                    <small>No SMS notifications yet.</small>
-
-                </div>
-
-            @endforelse
-
-        </div>
-
-        {{-- =====================================================
-            ANNOUNCEMENTS
-        ====================================================== --}}
-        <div
-            class="notification-section"
-            data-category="announcement"
-        >
-
-            <div class="px-4 py-3 border-bottom bg-light">
-
-                <div class="d-flex align-items-center">
-
-                    <div
-                        class="rounded-circle bg-primary bg-opacity-10
-                               d-flex align-items-center justify-content-center me-3"
-                        style="width:42px;height:42px;"
-                    >
-
-                        <i class="bi bi-megaphone text-primary"></i>
-
-                    </div>
-
-                    <div>
-
-                        <div class="fw-semibold">
-                            Latest Announcements
-                        </div>
-
-                        <small class="text-muted">
-                            Important updates from the Municipal Agriculture Office.
-                        </small>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            @forelse($announcements as $announcement)
-
-                <div class="px-4 py-3 border-bottom">
-
-                    <div class="d-flex">
-
-                        <div class="me-3">
-
-                            <div
-                                class="rounded-circle bg-primary bg-opacity-10
-                                       d-flex align-items-center justify-content-center"
-                                style="width:38px;height:38px;"
-                            >
-
-                                <i class="bi bi-megaphone text-primary"></i>
-
-                            </div>
-
-                        </div>
-
-
-                        <div class="flex-grow-1">
-
-                            <span class="badge bg-primary mb-2">
-                                Announcement
-                            </span>
-
-                            <h6 class="fw-semibold mb-1">
-
-                                {{ $announcement->title }}
-
-                            </h6>
-
-                            <p class="small text-muted mb-0">
-
-                                {{ Str::limit($announcement->content, 180) }}
-
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            @empty
-
-                <div class="text-center text-muted py-4">
-
-                    <i class="bi bi-megaphone fs-2 d-block mb-2"></i>
-
-                    <small>
-                        No announcements available.
-                    </small>
-
-                </div>
-
-            @endforelse
-
-        </div>
-
-
-        {{-- =====================================================
-            DISTRIBUTION
-        ====================================================== --}}
-        <div
-            class="notification-section"
-            data-category="distribution"
-        >
-
-            <div class="px-4 py-3 border-bottom bg-light">
-
-                <div class="d-flex align-items-center">
-
-                    <div
-                        class="rounded-circle bg-success bg-opacity-10
-                               d-flex align-items-center justify-content-center me-3"
-                        style="width:42px;height:42px;"
-                    >
-
-                        <i class="bi bi-box-seam text-success"></i>
-
-                    </div>
-
-                    <div>
-
-                        <div class="fw-semibold">
-                            Distribution Updates
-                        </div>
-
-                        <small class="text-muted">
-                            Records of assistance benefits you received.
-                        </small>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            @forelse($distributions as $distribution)
-
-                <div class="px-4 py-3 border-bottom">
-
-                    <div class="d-flex">
-
-                        <div class="me-3">
-
-                            <div
-                                class="rounded-circle bg-success bg-opacity-10
-                                       d-flex align-items-center justify-content-center"
-                                style="width:38px;height:38px;"
-                            >
-
-                                <i class="bi bi-box-seam text-success"></i>
-
-                            </div>
-
-                        </div>
-
-
-                        <div class="flex-grow-1">
-
-                            <span class="badge bg-success mb-2">
-                                Benefit Received
-                            </span>
-
-                            <h6 class="fw-semibold mb-1">
-
-                                {{ $distribution->program->name }}
-
-                            </h6>
-                            <div class="small text-muted mb-1">
-                                {{ $distribution->benefit?->name ?? 'Legacy program-level benefit' }}
-                            </div>
-
-                            <p class="small text-muted mb-0">
-
-                                Released on
-                                {{ $distribution->distributed_at->format('M d, Y') }}
-
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            @empty
-
-                <div class="text-center text-muted py-4">
-
-                    <i class="bi bi-box-seam fs-2 d-block mb-2"></i>
-
-                    <small>
-                        No distribution updates yet.
-                    </small>
-
-                </div>
-
-            @endforelse
-
-        </div>
-
-
-    </div>
-
-</div>
-
-
-{{-- =========================================================
-    FILTER SCRIPT
-========================================================= --}}
 <script>
-
-document.addEventListener('DOMContentLoaded', function () {
-
-    const filterButtons =
-        document.querySelectorAll('.notification-filter');
-
-    const sections =
-        document.querySelectorAll('.notification-section');
-
-
-    filterButtons.forEach(function (button) {
-
-        button.addEventListener('click', function () {
-
-            const filter =
-                this.dataset.filter;
-
-
-            // Remove active state
-            filterButtons.forEach(function (btn) {
-
-                btn.classList.remove('active');
-
+    (() => {
+        const filters = [...document.querySelectorAll('[data-notification-filter]')];
+        const sections = [...document.querySelectorAll('[data-notification-category]')];
+        filters.forEach(button => button.addEventListener('click', () => {
+            const category = button.dataset.notificationFilter;
+            filters.forEach(filter => {
+                const selected = filter === button;
+                filter.setAttribute('aria-pressed', selected);
+                filter.classList.toggle('btn-fams', selected);
+                filter.classList.toggle('btn-outline-secondary', !selected);
             });
-
-
-            // Add active state
-            this.classList.add('active');
-
-
-            // Show / hide notification sections
-            sections.forEach(function (section) {
-
-                const category =
-                    section.dataset.category;
-
-
-                if (
-                    filter === 'all' ||
-                    filter === category
-                ) {
-
-                    section.style.display = '';
-
-                } else {
-
-                    section.style.display = 'none';
-
-                }
-
+            const hasItems = sections.some(section => Number(section.dataset.count) > 0);
+            sections.forEach((section, index) => {
+                section.hidden = category === 'all'
+                    ? Number(section.dataset.count) === 0 && (hasItems || index !== 0)
+                    : category !== section.dataset.notificationCategory;
             });
-
-        });
-
-    });
-
-});
-
+        }));
+    })();
 </script>
-
 @endsection

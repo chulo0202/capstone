@@ -890,6 +890,46 @@ class BenefitSpecificWorkflowTest extends TestCase
         $this->assertSame('published', $batch->fresh()->status);
     }
 
+    public function test_only_assigned_farmers_can_open_distribution_schedule_and_receipt_notifications(): void
+    {
+        $this->travelTo(now()->setTime(10, 0));
+        [$owner, $farmer] = $this->createFarmer();
+        [$other] = $this->createFarmer();
+        $admin = $this->createAdmin();
+        $program = $this->createProgram();
+        $benefit = $this->createBenefit($program, 'Distribution notification benefit');
+        $application = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
+        $this->actingAs($admin);
+        $batch = $this->createDistributionBatch($application);
+        $batch->update(['instructions' => 'Bring your application reference.']);
+        $assignment = $batch->assignments()->sole();
+        $schedule = route('farmer.notifications.distribution-schedule', $assignment);
+
+        $this->actingAs($owner)->get($schedule)->assertNotFound();
+        $this->actingAs($admin)
+            ->post(route('admin.distribution-batches.publish', $batch), ['confirm_publish' => 'yes'])
+            ->assertSessionHas('success');
+
+        $this->actingAs($other)->get($schedule)->assertNotFound();
+        $this->actingAs($owner)->get(route('farmer.notifications.index'))
+            ->assertOk()->assertSee($schedule, false);
+        $this->get($schedule)->assertOk()->assertSee($batch->location)
+            ->assertSee('Bring your application reference.')->assertSee('Scheduled');
+
+        $this->actingAs($admin)->post(route('admin.distributions.release'), [
+            'application_id' => $application->id,
+            'distribution_batch_id' => $batch->id,
+            'confirm_release' => '1',
+        ])->assertSessionHas('success');
+
+        $distribution = \App\Models\Distribution::sole();
+        $receipt = route('farmer.notifications.distribution-receipt', $distribution);
+        $this->actingAs($owner)->get($schedule)->assertRedirect($receipt);
+        $this->get(route('farmer.notifications.index'))->assertOk()->assertSee($receipt, false);
+        $this->get($receipt)->assertOk()->assertSee('Benefit Received')->assertSee($batch->location);
+        $this->actingAs($other)->get($receipt)->assertNotFound();
+    }
+
     private function createDistributionBatch(Application $application): \App\Models\DistributionBatch
     {
         $this->post(route('admin.distribution-batches.store'), $this->distributionBatchData($application))

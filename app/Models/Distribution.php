@@ -48,6 +48,11 @@ class Distribution extends Model
         return $this->belongsTo(Application::class);
     }
 
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(DistributionBatch::class, 'distribution_batch_id');
+    }
+
     public function releasedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'released_by');
