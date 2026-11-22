@@ -27,8 +27,13 @@ class DistributionBatchController extends Controller
 
     public function create(Request $request, DistributionReleaseService $releases): View
     {
-        $program = Program::with('benefits')->find($request->integer('program'));
-        $benefit = $program?->benefits->firstWhere('id', $request->integer('benefit'));
+        $programs = Program::with('activeBenefits')
+            ->whereNull('archived_at')
+            ->whereHas('activeBenefits')
+            ->orderBy('name')
+            ->get();
+        $program = $programs->find($request->integer('program'));
+        $benefit = $program?->activeBenefits->firstWhere('id', $request->integer('benefit'));
 
         $applications = $benefit
             ? Application::with(['farmer', 'program', 'benefit'])
@@ -41,7 +46,7 @@ class DistributionBatchController extends Controller
             : collect();
 
         return view('admin.distribution-batches.form', [
-            'programs' => Program::whereHas('benefits')->orderBy('name')->get(),
+            'programs' => $programs,
             'program' => $program,
             'benefit' => $benefit,
             'applications' => $applications,

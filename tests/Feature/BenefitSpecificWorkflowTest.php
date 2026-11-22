@@ -639,6 +639,9 @@ class BenefitSpecificWorkflowTest extends TestCase
         $urea = $this->createBenefit($fertilizer, 'Urea');
         $infrastructure = $this->createProgram('Infrastructure Support');
         $irrigation = $this->createBenefit($infrastructure, 'Irrigation Repair');
+        $legacy = $this->createBenefit($infrastructure, 'Legacy Infrastructure Grant');
+        $legacy->forceFill(['archived_at' => now()])->save();
+        $this->makeBenefitApplication($farmer, $infrastructure, $legacy, 'approved');
         $application = $this->makeBenefitApplication($farmer, $infrastructure, $irrigation, 'approved');
         $this->actingAs($this->createAdmin());
 
@@ -652,6 +655,14 @@ class BenefitSpecificWorkflowTest extends TestCase
         ]))->assertOk()
             ->assertSee('Irrigation Repair')
             ->assertDontSee('Urea')
+            ->assertDontSee('Create Draft');
+
+        $this->get(route('admin.distribution-batches.create', [
+            'program' => $infrastructure->id,
+            'benefit' => $legacy->id,
+        ]))->assertOk()
+            ->assertSee('Irrigation Repair')
+            ->assertDontSee('Legacy Infrastructure Grant')
             ->assertDontSee('Create Draft');
 
         $this->get(route('admin.distribution-batches.create', [

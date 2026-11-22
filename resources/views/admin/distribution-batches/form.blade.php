@@ -20,9 +20,9 @@
                 <label class="form-label" for="distribution-benefit">Specific Benefit</label>
                 <select class="form-select" name="benefit" id="distribution-benefit" @disabled(!$program)>
                     <option value="">{{ $program ? 'Select a benefit' : 'Select a program first' }}</option>
-                    @foreach ($program?->benefits ?? [] as $option)
+                    @foreach ($program?->activeBenefits ?? [] as $option)
                         <option value="{{ $option->id }}" @selected($benefit?->id === $option->id)>
-                            {{ $option->name }}{{ $option->archived_at ? ' (archived)' : '' }}
+                            {{ $option->name }}
                         </option>
                     @endforeach
                 </select>
