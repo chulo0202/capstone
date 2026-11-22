@@ -6,15 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Application;
 use App\Models\Distribution;
 use App\Models\Farmer;
-use App\Services\AuditLogService;
-use App\Services\EligibilityService;
+use App\Services\DistributionReleaseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class QRVerificationController extends Controller
 {
-    public function verify(Request $request): JsonResponse
+    public function verify(Request $request, DistributionReleaseService $releases): JsonResponse
     {
         $validated = $request->validate(['token' => ['required', 'string']]);
         $farmer = Farmer::where('qr_code_token', $validated['token'])->first();
@@ -32,23 +30,7 @@ class QRVerificationController extends Controller
             ->latest('applied_at')
             ->get();
 
-        $approvedApplications = $applications->map(function (Application $application) use ($farmer) {
-            $alreadyReleased = Distribution::query()
-                ->where(function ($query) use ($application) {
-                    $query->where('application_id', $application->id)
-                        ->orWhere(function ($scope) use ($application) {
-                            $scope->where('farmer_id', $application->farmer_id)
-                                ->where('program_id', $application->program_id);
-
-                            if ($application->program_benefit_id === null) {
-                                $scope->whereNull('program_benefit_id');
-                            } else {
-                                $scope->where('program_benefit_id', $application->program_benefit_id);
-                            }
-                        });
-                })
-                ->exists();
-
+        $approvedApplications = $applications->map(function (Application $application) use ($releases) {
             return [
                 'application_id' => $application->id,
                 'program' => [
@@ -65,7 +47,7 @@ class QRVerificationController extends Controller
                 'status' => $application->status,
                 'applied_at' => $application->applied_at?->toISOString(),
                 'remarks' => $application->remarks,
-                'already_released' => $alreadyReleased,
+                'already_released' => $releases->alreadyReleased($application),
             ];
         })->values();
 
@@ -85,8 +67,7 @@ class QRVerificationController extends Controller
 
     public function release(
         Request $request,
-        EligibilityService $eligibilityService,
-        AuditLogService $auditLogService
+        DistributionReleaseService $releases
     ): JsonResponse {
         if ($request->user()->role !== 'admin') {
             return response()->json([
@@ -99,88 +80,16 @@ class QRVerificationController extends Controller
             'token' => ['required', 'string'],
             'application_id' => ['required', 'integer', 'exists:applications,id'],
             'notes' => ['nullable', 'string', 'max:500'],
+            'distribution_batch_id' => ['nullable', 'integer', 'exists:distribution_batches,id'],
         ]);
 
-        $result = DB::transaction(function () use (
-            $request,
-            $validated,
-            $eligibilityService,
-            $auditLogService
-        ) {
-            $farmer = Farmer::query()
-                ->where('qr_code_token', $validated['token'])
-                ->lockForUpdate()
-                ->first();
-
-            if (! $farmer) {
-                return ['error' => 'farmer_not_found'];
-            }
-
-            $application = Application::query()
-                ->with(['program', 'benefit'])
-                ->whereKey($validated['application_id'])
-                ->where('farmer_id', $farmer->id)
-                ->lockForUpdate()
-                ->first();
-
-            if (! $application || $application->status !== 'approved') {
-                return ['error' => 'application_not_found'];
-            }
-
-            if ($application->program_benefit_id === null) {
-                return ['error' => 'legacy_application_not_releasable'];
-            }
-
-
-            $evaluation = $eligibilityService->evaluate(
-                $farmer,
-                $application->program,
-                $application->benefit
-            );
-
-            if ($evaluation['status'] !== 'eligible') {
-                return ['error' => 'ineligible'];
-            }
-
-            $alreadyReleased = Distribution::query()
-                ->where(function ($query) use ($application) {
-                    $query->where('application_id', $application->id)
-                        ->orWhere(function ($scope) use ($application) {
-                            $scope->where('farmer_id', $application->farmer_id)
-                                ->where('program_id', $application->program_id);
-
-                            if ($application->program_benefit_id === null) {
-                                $scope->whereNull('program_benefit_id');
-                            } else {
-                                $scope->where('program_benefit_id', $application->program_benefit_id);
-                            }
-                        });
-                })
-                ->exists();
-
-            if ($alreadyReleased) {
-                return ['error' => 'already_released'];
-            }
-
-            $distribution = Distribution::create([
-                'farmer_id' => $farmer->id,
-                'program_id' => $application->program_id,
-                'program_benefit_id' => $application->program_benefit_id,
-                'application_id' => $application->id,
-                'released_by' => $request->user()->id,
-                'distributed_at' => now(),
-                'notes' => $validated['notes'] ?? 'Released through FAMS QR Scanner.',
-            ]);
-
-            $auditLogService->log(
-                'BENEFIT_RELEASED',
-                $distribution,
-                "Application {$application->id} released for " .
-                    ($application->benefit?->name ?? 'legacy program-level benefit') . ' through QR scanner.'
-            );
-
-            return ['distribution' => $distribution, 'application' => $application];
-        });
+        $result = $releases->release(
+            admin: $request->user(),
+            applicationId: $validated['application_id'],
+            notes: $validated['notes'] ?? 'Released through FAMS QR Scanner.',
+            batchId: $validated['distribution_batch_id'] ?? null,
+            token: $validated['token'],
+        );
 
         if (isset($result['error'])) {
             [$message, $status] = match ($result['error']) {
@@ -188,6 +97,9 @@ class QRVerificationController extends Controller
                 'application_not_found' => ['Approved application not found for this farmer.', 404],
                 'legacy_application_not_releasable' => ['Legacy program-level applications cannot authorize benefit releases. The farmer must apply for a specific benefit.', 422],
                 'ineligible' => ['Benefit cannot be released because the farmer is not eligible.', 422],
+                'wrong_batch' => ['This application is not assigned to the selected distribution batch.', 409],
+                'batch_not_releasable' => ['The assigned distribution must be published and within its scheduled release window.', 409],
+                'invalid_benefit' => ['This application does not reference a valid program benefit.', 422],
                 default => ['Benefit already released for this application.', 409],
             };
 
@@ -214,6 +126,7 @@ class QRVerificationController extends Controller
                 'application_id' => $distribution->application_id,
                 'distributed_at' => $distribution->distributed_at?->toISOString(),
                 'notes' => $distribution->notes,
+                ...($distribution->distribution_batch_id ? ['distribution_batch_id' => $distribution->distribution_batch_id] : []),
             ],
         ]);
     }

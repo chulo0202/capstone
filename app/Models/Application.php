@@ -60,6 +60,11 @@ class Application extends Model
         return $this->belongsTo(ProgramBenefit::class, 'program_benefit_id');
     }
 
+    public function activeDistributionAssignment(): HasOne
+    {
+        return $this->hasOne(DistributionAssignment::class, 'active_application_id');
+    }
+
     public function pcicTrackingUpdates(): HasMany
     {
         return $this->hasMany(PcicTrackingUpdate::class);

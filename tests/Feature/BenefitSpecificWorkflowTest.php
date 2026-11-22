@@ -632,6 +632,201 @@ class BenefitSpecificWorkflowTest extends TestCase
         $notificationsResponse->assertSee('Distribution Updates');
     }
 
+    public function test_distribution_batch_enforces_assignment_on_web_and_scanner_and_preserves_direct_release(): void
+    {
+        $this->travelTo(now()->setTime(10, 0));
+        [, $farmer] = $this->createFarmer();
+        [, $otherFarmer] = $this->createFarmer();
+        $program = $this->createProgram();
+        $benefit = $this->createBenefit($program, 'Batch benefit');
+        $application = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
+        $other = $this->makeBenefitApplication($otherFarmer, $program, $benefit, 'approved');
+        $this->actingAs($this->createAdmin());
+
+        $batch = $this->createDistributionBatch($application);
+        $otherBatch = $this->createDistributionBatch($other);
+        $this->get(route('admin.distribution-batches.show', $batch))->assertOk();
+        $this->get(route('admin.distribution-batches.create', [
+            'program' => $program->id,
+            'benefit' => $benefit->id,
+        ]))->assertOk();
+
+        $scan = ['token' => $farmer->qr_code_token, 'application_id' => $application->id];
+        $this->postJson('/api/qr/release', $scan)->assertConflict();
+        $this->post(route('admin.distributions.release'), ['application_id' => $application->id])
+            ->assertSessionHas('error');
+        $this->postJson('/api/qr/release', $scan + ['distribution_batch_id' => $otherBatch->id])
+            ->assertConflict()
+            ->assertJsonPath('message', 'This application is not assigned to the selected distribution batch.');
+        $this->assertDatabaseCount('distributions', 0);
+
+        $this->post(route('admin.distribution-batches.publish', $batch))->assertSessionHasErrors('confirm_publish');
+        $this->post(route('admin.distribution-batches.publish', $batch), ['confirm_publish' => 'yes'])
+            ->assertSessionHas('success');
+        $this->travelTo(now()->setTime(13, 0));
+        $this->postJson('/api/qr/release', $scan)->assertConflict();
+        $this->travelTo(now()->setTime(10, 0));
+        $this->postJson('/api/qr/release', $scan)->assertOk()
+            ->assertJsonPath('distribution.distribution_batch_id', $batch->id);
+        $this->postJson('/api/qr/release', $scan)->assertConflict();
+        $this->assertSame('completed', $batch->fresh()->status);
+
+        $repeat = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
+        $this->postJson('/api/qr/release', ['token' => $farmer->qr_code_token, 'application_id' => $repeat->id])
+            ->assertConflict()
+            ->assertJsonPath('message', 'Benefit already released for this application.');
+        $this->post(route('admin.distribution-batches.store'), $this->distributionBatchData($repeat))
+            ->assertSessionHasErrors('application_ids');
+        $this->assertDatabaseCount('distributions', 1);
+
+        $this->post(route('admin.distribution-batches.cancel', $otherBatch), ['confirm_cancel' => 'yes'])
+            ->assertSessionHas('success');
+        $this->assertDatabaseHas('distribution_assignments', [
+            'distribution_batch_id' => $otherBatch->id,
+            'application_id' => $other->id,
+            'active_application_id' => null,
+        ]);
+        $this->post(route('admin.distributions.release'), ['application_id' => $other->id])
+            ->assertSessionHas('success');
+        $this->assertDatabaseHas('distributions', ['application_id' => $other->id, 'distribution_batch_id' => null]);
+    }
+
+    public function test_distribution_preparation_rejects_invalid_schedule_and_beneficiaries_without_creating_records(): void
+    {
+        [, $farmer] = $this->createFarmer();
+        $program = $this->createProgram();
+        $benefit = $this->createBenefit($program, 'Batch benefit');
+        $application = $this->makeBenefitApplication($farmer, $program, $benefit);
+        $data = $this->distributionBatchData($application);
+        $this->actingAs($this->createAdmin());
+
+        foreach ([
+            'name' => '   ',
+            'location' => '',
+            'scheduled_date' => today()->subDay()->toDateString(),
+            'start_time' => 'invalid',
+            'end_time' => '09:00',
+            'application_ids' => [],
+            'program_id' => 9999,
+            'program_benefit_id' => 9999,
+        ] as $field => $value) {
+            $this->post(route('admin.distribution-batches.store'), array_replace($data, [$field => $value]))
+                ->assertSessionHasErrors($field);
+        }
+
+        $this->post(route('admin.distribution-batches.store'), $data)->assertSessionHasErrors('application_ids');
+        $application->update(['status' => 'rejected']);
+        $this->post(route('admin.distribution-batches.store'), $data)->assertSessionHasErrors('application_ids');
+        $application->update(['status' => 'approved', 'program_benefit_id' => null]);
+        $this->post(route('admin.distribution-batches.store'), $data)->assertSessionHasErrors('application_ids');
+        $application->update(['program_benefit_id' => $benefit->id]);
+
+        $this->post(route('admin.distribution-batches.store'), array_replace($data, ['application_ids' => [9999]]))
+            ->assertSessionHasErrors('application_ids.0');
+        $this->post(route('admin.distribution-batches.store'), array_replace($data, ['application_ids' => [$application->id, $application->id]]))
+            ->assertSessionHasErrors('application_ids.0');
+        $wrongBenefit = $this->createBenefit($program, 'Different benefit');
+        $this->post(route('admin.distribution-batches.store'), array_replace($data, ['program_benefit_id' => $wrongBenefit->id]))
+            ->assertSessionHasErrors('application_ids');
+
+        $this->assertDatabaseCount('distribution_batches', 0);
+        $this->assertDatabaseCount('distribution_assignments', 0);
+        $batch = $this->createDistributionBatch($application);
+        $this->post(route('admin.distribution-batches.store'), $data)->assertSessionHasErrors('application_ids');
+
+        $anotherBatch = $batch->replicate();
+        $anotherBatch->save();
+        $inserted = \Illuminate\Support\Facades\DB::table('distribution_assignments')->insertOrIgnore([
+            'distribution_batch_id' => $anotherBatch->id,
+            'application_id' => $application->id,
+            'active_application_id' => $application->id,
+        ]);
+        $this->assertSame(0, $inserted);
+        $this->assertDatabaseCount('distribution_assignments', 1);
+    }
+
+    public function test_archived_benefit_and_inactive_farmer_can_use_web_batch_release(): void
+    {
+        $this->travelTo(now()->setTime(10, 0));
+        [$farmerUser, $farmer] = $this->createFarmer();
+        $program = $this->createProgram();
+        $benefit = $this->createBenefit($program, 'Historical benefit');
+        $application = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
+        $benefit->forceFill(['archived_at' => now()])->save();
+        $farmer->forceFill(['is_active' => false])->save();
+
+        $this->actingAs($farmerUser)
+            ->postJson(route('admin.distribution-batches.store'), $this->distributionBatchData($application))
+            ->assertForbidden();
+        $this->actingAs($this->createAdmin());
+        $batch = $this->createDistributionBatch($application);
+        $this->post(route('admin.distribution-batches.publish', $batch), ['confirm_publish' => 'yes'])
+            ->assertSessionHas('success');
+
+        $release = ['application_id' => $application->id, 'distribution_batch_id' => $batch->id];
+        $this->post(route('admin.distributions.release'), $release)->assertSessionHasErrors('confirm_release');
+        $this->assertDatabaseCount('distributions', 0);
+        $this->post(route('admin.distributions.release'), $release + ['confirm_release' => '1'])
+            ->assertSessionHas('success');
+        $this->assertDatabaseHas('distributions', $release);
+    }
+
+    public function test_batch_release_rolls_back_when_recording_the_audit_fails(): void
+    {
+        $this->travelTo(now()->setTime(10, 0));
+        [, $farmer] = $this->createFarmer();
+        $program = $this->createProgram();
+        $benefit = $this->createBenefit($program, 'Batch benefit');
+        $application = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
+        $admin = $this->createAdmin();
+        $this->actingAs($admin);
+        $batch = $this->createDistributionBatch($application);
+        $this->post(route('admin.distribution-batches.publish', $batch), ['confirm_publish' => 'yes'])
+            ->assertSessionHas('success');
+
+        $this->mock(\App\Services\AuditLogService::class)
+            ->shouldReceive('log')->once()->andThrow(new \RuntimeException('Audit unavailable'));
+
+        try {
+            app(\App\Services\DistributionReleaseService::class)->release(
+                admin: $admin,
+                applicationId: $application->id,
+                notes: null,
+                batchId: $batch->id,
+            );
+            $this->fail('The audit failure should propagate.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('Audit unavailable', $exception->getMessage());
+        }
+
+        $this->assertDatabaseCount('distributions', 0);
+        $this->assertNull($batch->assignments()->firstOrFail()->released_at);
+        $this->assertSame('published', $batch->fresh()->status);
+    }
+
+    private function createDistributionBatch(Application $application): \App\Models\DistributionBatch
+    {
+        $this->post(route('admin.distribution-batches.store'), $this->distributionBatchData($application))
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success');
+
+        return \App\Models\DistributionBatch::latest('id')->firstOrFail();
+    }
+
+    private function distributionBatchData(Application $application): array
+    {
+        return [
+            'name' => 'Municipal distribution',
+            'program_id' => $application->program_id,
+            'program_benefit_id' => $application->program_benefit_id,
+            'application_ids' => [$application->id],
+            'scheduled_date' => today()->toDateString(),
+            'start_time' => '09:00',
+            'end_time' => '12:00',
+            'location' => 'Municipal Hall',
+        ];
+    }
+
     private function createFarmer(): array
     {
         $user = User::factory()->create(['role' => 'farmer']);

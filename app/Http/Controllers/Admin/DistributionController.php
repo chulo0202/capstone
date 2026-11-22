@@ -7,10 +7,9 @@ use App\Models\Application;
 use App\Models\Distribution;
 use App\Models\Farmer;
 use App\Models\Program;
-use App\Services\AuditLogService;
+use App\Services\DistributionReleaseService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DistributionController extends Controller
@@ -58,7 +57,7 @@ class DistributionController extends Controller
                 ->with('error', 'Farmer not found.');
         }
 
-        $applications = Application::with(['program', 'benefit'])
+        $applications = Application::with(['program', 'benefit', 'activeDistributionAssignment.batch'])
             ->where('farmer_id', $farmer->id)
             ->where('status', 'approved')
             ->whereNotNull('program_benefit_id')
@@ -83,12 +82,14 @@ class DistributionController extends Controller
 
     public function release(
         Request $request,
-        AuditLogService $auditLogService
+        DistributionReleaseService $releases
     ): RedirectResponse {
         $validated = $request->validate([
             'application_id' => ['nullable', 'integer', 'exists:applications,id'],
             'farmer_id' => ['nullable', 'integer', 'exists:farmers,id'],
             'program_id' => ['nullable', 'integer', 'exists:programs,id'],
+            'distribution_batch_id' => ['nullable', 'integer', 'exists:distribution_batches,id'],
+            'confirm_release' => ['nullable', 'required_with:distribution_batch_id', 'in:1,yes,on,true'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
@@ -99,85 +100,33 @@ class DistributionController extends Controller
                 ->with('error', 'An approved application is required.');
         }
 
-        $result = DB::transaction(function () use ($validated, $request, $auditLogService) {
-            $query = Application::query()
-                ->where('status', 'approved')
-                ->whereNotNull('program_benefit_id');
-
-            if (! empty($validated['application_id'])) {
-                $query->whereKey($validated['application_id']);
-            } else {
-                $query->where('farmer_id', $validated['farmer_id'])
-                    ->where('program_id', $validated['program_id']);
-            }
-
-            $application = $query
-                ->orderByDesc('id')
-                ->lockForUpdate()
-                ->first();
-
-            if (! $application) {
-                if (! empty($validated['application_id'])) {
-                    $legacy = Application::find($validated['application_id']);
-
-                    if ($legacy &&
-                        $legacy->status === 'approved' &&
-                        $legacy->program_benefit_id === null) {
-                        return ['error' => 'legacy'];
-                    }
-                }
-
-                return ['error' => 'not_found'];
-            }
-
-            $alreadyReleased = Distribution::query()
-                ->where(function ($query) use ($application) {
-                    $query->where('application_id', $application->id)
-                        ->orWhere(function ($scope) use ($application) {
-                            $scope->where('farmer_id', $application->farmer_id)
-                                ->where('program_id', $application->program_id)
-                                ->where('program_benefit_id', $application->program_benefit_id);
-                        });
-                })
-                ->exists();
-
-            if ($alreadyReleased) {
-                return ['error' => 'already_released'];
-            }
-
-            $distribution = Distribution::create([
-                'farmer_id' => $application->farmer_id,
-                'program_id' => $application->program_id,
-                'program_benefit_id' => $application->program_benefit_id,
-                'application_id' => $application->id,
-                'released_by' => $request->user()->id,
-                'distributed_at' => now(),
-                'notes' => $validated['notes'] ?? 'Released through admin distribution.',
-            ]);
-
-            $auditLogService->log(
-                'BENEFIT_RELEASED',
-                $distribution,
-                "Application {$application->id} released through admin distribution."
-            );
-
-            return ['success' => true];
-        });
+        $result = $releases->release(
+            admin: $request->user(),
+            applicationId: $validated['application_id'] ?? null,
+            notes: $validated['notes'] ?? 'Released through admin distribution.',
+            batchId: $validated['distribution_batch_id'] ?? null,
+            farmerId: $validated['farmer_id'] ?? null,
+            programId: $validated['program_id'] ?? null,
+        );
 
         if (isset($result['error'])) {
             $message = match ($result['error']) {
-                'legacy' => 'Legacy program-level applications cannot authorize benefit releases. The farmer must apply for a specific benefit.',
+                'legacy_application_not_releasable' => 'Legacy program-level applications cannot authorize benefit releases. The farmer must apply for a specific benefit.',
                 'already_released' => 'This application or benefit has already been released.',
+                'wrong_batch' => 'This application is not assigned to the selected distribution batch.',
+                'batch_not_releasable' => 'The assigned distribution must be published and within its scheduled release window.',
+                'invalid_benefit' => 'This application does not reference a valid program benefit.',
+                'ineligible' => 'Benefit cannot be released because the farmer is not eligible.',
                 default => 'Approved benefit application not found.',
             };
 
-            return redirect()
-                ->route('admin.distributions.index')
-                ->with('error', $message);
+            return $request->filled('distribution_batch_id')
+                ? to_route('admin.distribution-batches.show', $validated['distribution_batch_id'])->with('error', $message)
+                : to_route('admin.distributions.index')->with('error', $message);
         }
 
-        return redirect()
-            ->route('admin.distributions.index')
-            ->with('success', 'Benefit released successfully.');
+        return $request->filled('distribution_batch_id')
+            ? to_route('admin.distribution-batches.show', $validated['distribution_batch_id'])->with('success', 'Benefit released successfully.')
+            : to_route('admin.distributions.index')->with('success', 'Benefit released successfully.');
     }
 }

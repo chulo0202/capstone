@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
 use App\Http\Controllers\Admin\AuditController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\DistributionBatchController;
 use App\Http\Controllers\Admin\DistributionController;
 use App\Http\Controllers\Admin\EligibilityRuleController;
 use App\Http\Controllers\Admin\FarmerController as AdminFarmerController;
@@ -214,6 +215,14 @@ Route::middleware(['auth'])->group(function () {
 
         Route::delete('/eligibility/{eligibilityRule}', [EligibilityRuleController::class, 'destroy'])
             ->name('eligibility.destroy');
+
+        Route::resource('distribution-batches', DistributionBatchController::class)
+            ->only(['index', 'create', 'store', 'show', 'edit', 'update'])
+            ->parameters(['distribution-batches' => 'batch']);
+        Route::post('/distribution-batches/{batch}/publish', [DistributionBatchController::class, 'publish'])
+            ->name('distribution-batches.publish');
+        Route::post('/distribution-batches/{batch}/cancel', [DistributionBatchController::class, 'cancel'])
+            ->name('distribution-batches.cancel');
 
         Route::get('/distributions', [DistributionController::class, 'index'])
             ->name('distributions.index');

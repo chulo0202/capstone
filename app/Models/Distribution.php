@@ -15,6 +15,7 @@ class Distribution extends Model
         'program_id',
         'program_benefit_id',
         'application_id',
+        'distribution_batch_id',
         'released_by',
         'distributed_at',
         'notes',

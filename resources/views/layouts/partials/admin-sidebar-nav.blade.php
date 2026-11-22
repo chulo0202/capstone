@@ -41,6 +41,11 @@
 
 <div class="fams-nav-label">Operations</div>
 
+<a class="fams-nav-link {{ request()->routeIs('admin.distribution-batches.*', 'admin.distributions.*') ? 'active' : '' }}"
+   href="{{ route('admin.distribution-batches.index') }}">
+    <i class="bi bi-box-seam"></i> Distributions
+</a>
+
 <a class="fams-nav-link {{ request()->routeIs('admin.announcements.*') ? 'active' : '' }}"
    href="{{ route('admin.announcements.index') }}">
     <i class="bi bi-megaphone-fill"></i> Announcements
