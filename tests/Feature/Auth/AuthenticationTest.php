@@ -95,6 +95,15 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_opening_logout_in_a_browser_redirects_without_ending_the_session(): void
+    {
+        $this->get('/logout')->assertRedirect('/');
+
+        $user = User::factory()->create();
+        $this->actingAs($user)->get('/logout')->assertRedirect('/');
+        $this->assertAuthenticatedAs($user);
+    }
+
     public function test_users_can_logout(): void
     {
         $user = User::factory()->create();
