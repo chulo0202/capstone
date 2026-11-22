@@ -4,7 +4,8 @@
 
 @section('main')
 @if (!$batch)
-    <form method="GET" action="{{ route('admin.distribution-batches.create') }}" class="card card-body mb-3">
+    <form method="GET" action="{{ route('admin.distribution-batches.create') }}" class="card card-body mb-3" id="distribution-selection-form"
+        data-program="{{ $program?->id }}" data-benefit="{{ $benefit?->id }}">
         <div class="row g-3 align-items-end">
             <div class="col-md">
                 <label class="form-label" for="distribution-program">Program</label>
@@ -15,20 +16,18 @@
                     @endforeach
                 </select>
             </div>
-            @if ($program)
-                <div class="col-md">
-                    <label class="form-label" for="distribution-benefit">Specific Benefit</label>
-                    <select class="form-select" name="benefit" id="distribution-benefit">
-                        <option value="">Select a benefit</option>
-                        @foreach ($program->benefits as $option)
-                            <option value="{{ $option->id }}" @selected($benefit?->id === $option->id)>
-                                {{ $option->name }}{{ $option->archived_at ? ' (archived)' : '' }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-            @endif
-            <div class="col-md-auto"><button class="btn btn-outline-secondary">Load {{ $program ? 'selection' : 'benefits' }}</button></div>
+            <div class="col-md">
+                <label class="form-label" for="distribution-benefit">Specific Benefit</label>
+                <select class="form-select" name="benefit" id="distribution-benefit" @disabled(!$program)>
+                    <option value="">{{ $program ? 'Select a benefit' : 'Select a program first' }}</option>
+                    @foreach ($program?->benefits ?? [] as $option)
+                        <option value="{{ $option->id }}" @selected($benefit?->id === $option->id)>
+                            {{ $option->name }}{{ $option->archived_at ? ' (archived)' : '' }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <noscript><div class="col-md-auto"><button class="btn btn-outline-secondary">Load selection</button></div></noscript>
         </div>
     </form>
 @endif
@@ -97,6 +96,29 @@
     <div class="alert alert-info">No available approved applications for this benefit.</div>
 @endif
 <script>
+    const selectionForm = document.getElementById('distribution-selection-form');
+
+    if (selectionForm) {
+        const program = selectionForm.elements.program;
+        const benefit = selectionForm.elements.benefit;
+
+        program.addEventListener('change', () => {
+            benefit.value = '';
+            benefit.disabled = true;
+            // Submit even if the admin clears the program to reset the page.
+            selectionForm.submit();
+        });
+
+        benefit.addEventListener('change', () => selectionForm.requestSubmit());
+
+        // Browsers can restore select values after navigating back.
+        window.addEventListener('pageshow', () => {
+            program.value = selectionForm.dataset.program;
+            benefit.value = selectionForm.dataset.benefit;
+            benefit.disabled = !program.value;
+        });
+    }
+
     const scheduleForm = document.getElementById('distribution-batch-form');
 
     if (scheduleForm) {

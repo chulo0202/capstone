@@ -632,6 +632,36 @@ class BenefitSpecificWorkflowTest extends TestCase
         $notificationsResponse->assertSee('Distribution Updates');
     }
 
+    public function test_distribution_form_only_loads_benefits_and_applications_for_the_selected_program(): void
+    {
+        [, $farmer] = $this->createFarmer();
+        $fertilizer = $this->createProgram('Fertilizer Subsidies');
+        $urea = $this->createBenefit($fertilizer, 'Urea');
+        $infrastructure = $this->createProgram('Infrastructure Support');
+        $irrigation = $this->createBenefit($infrastructure, 'Irrigation Repair');
+        $application = $this->makeBenefitApplication($farmer, $infrastructure, $irrigation, 'approved');
+        $this->actingAs($this->createAdmin());
+
+        $this->get(route('admin.distribution-batches.create'))
+            ->assertOk()
+            ->assertSee('Select a program first');
+
+        $this->get(route('admin.distribution-batches.create', [
+            'program' => $infrastructure->id,
+            'benefit' => $urea->id,
+        ]))->assertOk()
+            ->assertSee('Irrigation Repair')
+            ->assertDontSee('Urea')
+            ->assertDontSee('Create Draft');
+
+        $this->get(route('admin.distribution-batches.create', [
+            'program' => $infrastructure->id,
+            'benefit' => $irrigation->id,
+        ]))->assertOk()
+            ->assertSee('Application #'.$application->id)
+            ->assertSee('Create Draft');
+    }
+
     public function test_distribution_batch_enforces_assignment_on_web_and_scanner_and_preserves_direct_release(): void
     {
         $this->travelTo(now()->setTime(10, 0));
