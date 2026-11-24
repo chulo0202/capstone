@@ -144,53 +144,46 @@ class ApplicationController extends Controller
 
                 // Validate verified PCIC insurance before accepting a claim.
                 if ($isPcicClaim) {
-                    $coverage = PcicInsuranceCoverage::query()
+                    $coverages = PcicInsuranceCoverage::query()
                         ->where('farmer_id', $lockedFarmer->id)
-                        ->whereKey($validated['pcic_coverage_id'])
                         ->where('verification_status', 'verified')
+                        ->whereNotNull('verified_by')
+                        ->whereNotNull('verified_at')
                         ->lockForUpdate()
-                        ->first();
+                        ->get();
 
-                    if (! $coverage || ! $coverage->isVerified()) {
-                        return [
-                            'error' => 'A verified PCIC insurance policy is required.',
-                        ];
+                    if ($coverages->isEmpty()) {
+                        return ['error' => 'A verified PCIC insurance policy is required.'];
                     }
 
-                    $farmerCrop = trim((string) $lockedFarmer->crop_type);
-                    $insuredCrop = trim((string) $coverage->crop_type);
+                    $crop = trim((string) $lockedFarmer->crop_type);
+                    $coverages = $coverages->filter(fn ($policy) => $crop !== ''
+                        && strcasecmp($crop, trim((string) $policy->crop_type)) === 0);
 
-                    if (
-                        $farmerCrop === ''
-                        || $insuredCrop === ''
-                        || strcasecmp($farmerCrop, $insuredCrop) !== 0
-                    ) {
-                        return [
-                            'error' => 'The insured crop does not match your farmer profile. Please contact the administrator to verify your insurance details.',
-                        ];
+                    if ($coverages->isEmpty()) {
+                        return ['error' => 'The insured crop does not match your farmer profile. Please contact the administrator to verify your insurance details.'];
                     }
 
-                    $dateOfLoss = \Carbon\Carbon::parse(
-                        $validated['date_of_loss']
-                    )->startOfDay();
+                    $dateOfLoss = \Carbon\Carbon::parse($validated['date_of_loss'])->startOfDay();
+                    $coverages = $coverages->filter(fn ($policy) => $dateOfLoss->betweenIncluded(
+                        $policy->coverage_start_date, $policy->coverage_end_date
+                    ));
 
-                    if (
-                        $dateOfLoss->lt($coverage->coverage_start_date)
-                        || $dateOfLoss->gt($coverage->coverage_end_date)
-                    ) {
-                        return [
-                            'error' => 'The date of loss is outside the insurance coverage period.',
-                        ];
+                    if ($coverages->isEmpty()) {
+                        return ['error' => 'The date of loss is outside the insurance coverage period.'];
                     }
 
-                    if (
-                        (float) $validated['area_damaged']
-                        > (float) $coverage->area_insured
-                    ) {
-                        return [
-                            'error' => 'The damaged area exceeds the insured area.',
-                        ];
+                    $coverages = $coverages->filter(fn ($policy) => (float) $validated['area_damaged'] <= (float) $policy->area_insured);
+
+                    if ($coverages->isEmpty()) {
+                        return ['error' => 'The damaged area exceeds the insured area.'];
                     }
+
+                    if ($coverages->count() > 1) {
+                        return ['error' => 'More than one verified policy matches this claim. Please contact the administrator to confirm which policy applies.'];
+                    }
+
+                    $coverage = $coverages->first();
 
                     // Screen for possible duplicate PCIC damage incidents.
                     // Same policy, loss date, and cause require review.
@@ -216,7 +209,7 @@ class ApplicationController extends Controller
                 }
 
                 $details = collect($validated)
-                    ->except(['program_benefit_id', 'damage_photo', 'pcic_coverage_id'])
+                    ->except(['program_benefit_id', 'damage_photo'])
                     ->all();
 
                 if ($isPcic) {

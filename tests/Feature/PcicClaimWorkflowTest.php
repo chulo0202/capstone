@@ -113,7 +113,7 @@ class PcicClaimWorkflowTest extends TestCase
         $this->assertDatabaseCount('applications', 1);
     }
 
-    private function claimData($benefit, $coverage): array
+    private function claimData($benefit): array
     {
         return [
             'program_benefit_id' => $benefit->id,
@@ -125,10 +125,8 @@ class PcicClaimWorkflowTest extends TestCase
             'adjacent_east' => 'Farm C',
             'adjacent_west' => 'Farm D',
             'date_of_loss' => now()->subDays(5)->toDateString(),
-            'pcic_coverage_id' => $coverage->id,
             'cause_of_loss' => 'Flood',
             'area_damaged' => 0.5,
-            'degree_of_damage' => 40,
             'damage_photo' => UploadedFile::fake()->image('damage.jpg'),
         ];
     }
@@ -138,7 +136,7 @@ class PcicClaimWorkflowTest extends TestCase
         [$user, $farmer, $program, $benefit, $coverage] = $this->setupClaim();
 
         $this->actingAs($user)
-            ->post(route('farmer.applications.store', $program), $this->claimData($benefit, $coverage))
+            ->post(route('farmer.applications.store', $program), $this->claimData($benefit))
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('applications', [
@@ -155,12 +153,32 @@ class PcicClaimWorkflowTest extends TestCase
         $this->assertSame(1, PcicDamageIncident::count());
     }
 
+    public function test_claim_form_omits_removed_fields_and_rejects_ambiguous_coverage(): void
+    {
+        [$user, , $program, $benefit, $coverage] = $this->setupClaim();
+        $secondPolicy = $coverage->replicate();
+        $secondPolicy->policy_number = 'SECOND-POLICY';
+        $secondPolicy->save();
+
+        $this->actingAs($user)->get(route('farmer.recommendations'))
+            ->assertOk()
+            ->assertSee('File Claim')
+            ->assertDontSee('Verified insurance coverage')
+            ->assertDontSee('Coverage details')
+            ->assertDontSee('Degree of Damage (%)');
+
+        $this->post(route('farmer.applications.store', $program), $this->claimData($benefit))
+            ->assertSessionHas('error', 'More than one verified policy matches this claim. Please contact the administrator to confirm which policy applies.');
+
+        $this->assertDatabaseCount('pcic_damage_incidents', 0);
+    }
+
     public function test_unverified_insurance_cannot_submit_claim(): void
     {
-        [$user, $farmer, $program, $benefit, $coverage] = $this->setupClaim('pending');
+        [$user, , $program, $benefit] = $this->setupClaim('pending');
 
         $this->actingAs($user)
-            ->post(route('farmer.applications.store', $program), $this->claimData($benefit, $coverage))
+            ->post(route('farmer.applications.store', $program), $this->claimData($benefit))
             ->assertSessionHas('error');
 
         $this->assertSame(0, Application::count());
@@ -169,13 +187,13 @@ class PcicClaimWorkflowTest extends TestCase
 
     public function test_duplicate_claim_is_rejected(): void
     {
-        [$user, $farmer, $program, $benefit, $coverage] = $this->setupClaim();
+        [$user, , $program, $benefit] = $this->setupClaim();
 
         $this->actingAs($user)
-            ->post(route('farmer.applications.store', $program), $this->claimData($benefit, $coverage))
+            ->post(route('farmer.applications.store', $program), $this->claimData($benefit))
             ->assertSessionHas('success');
 
-        $this->post(route('farmer.applications.store', $program), $this->claimData($benefit, $coverage))
+        $this->post(route('farmer.applications.store', $program), $this->claimData($benefit))
             ->assertSessionHas('error');
 
         $this->assertSame(1, Application::count());
@@ -184,9 +202,9 @@ class PcicClaimWorkflowTest extends TestCase
 
     public function test_claim_without_damage_photo_fails_validation(): void
     {
-        [$user, $farmer, $program, $benefit, $coverage] = $this->setupClaim();
+        [$user, , $program, $benefit] = $this->setupClaim();
 
-        $data = $this->claimData($benefit, $coverage);
+        $data = $this->claimData($benefit);
         unset($data['damage_photo']);
 
         $this->actingAs($user)
@@ -202,7 +220,7 @@ class PcicClaimWorkflowTest extends TestCase
         $this->actingAs($user)
             ->post(
                 route('farmer.applications.store', $program),
-                $this->claimData($benefit, $coverage)
+                $this->claimData($benefit)
             )
             ->assertSessionHas('success');
 

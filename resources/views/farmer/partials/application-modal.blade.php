@@ -212,25 +212,6 @@
                             </h6>
 
                             <div class="mb-3">
-                                <label class="form-label" for="pcic-coverage">Verified insurance coverage <span aria-hidden="true">*</span></label>
-                                <select class="form-select" id="pcic-coverage" name="pcic_coverage_id" required>
-                                    <option value="">Select coverage</option>
-                                    @foreach ($claimCoverages as $coverage)
-                                        <option value="{{ $coverage->id }}"
-                                            data-summary="{{ $coverage->crop_type }} · {{ $coverage->area_insured }} ha · {{ $coverage->coverage_start_date->toFormattedDateString() }} to {{ $coverage->coverage_end_date->toFormattedDateString() }}"
-                                            @selected($claimCoverages->count() === 1)>
-                                            {{ $coverage->crop_type }} · {{ $coverage->area_insured }} ha · {{ $coverage->coverage_start_date->toFormattedDateString() }} to {{ $coverage->coverage_end_date->toFormattedDateString() }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <label class="form-label mt-2" for="pcic-coverage-summary">Coverage details</label>
-                                <input class="form-control" id="pcic-coverage-summary" type="text" readonly>
-                                @if ($claimCoverages->isEmpty())
-                                    <p class="form-text">A verified policy matching your crop is required. Contact the administrator to review your coverage.</p>
-                                @endif
-                            </div>
-
-                            <div class="mb-3">
                                 <label class="form-label">
                                     Date of Loss
                                 </label>
@@ -261,18 +242,6 @@
                                 <input type="number"
                                        name="area_damaged"
                                        min="0.01"
-                                       step="0.01"
-                                       class="form-control">
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">
-                                    Degree of Damage (%)
-                                </label>
-                                <input type="number"
-                                       name="degree_of_damage"
-                                       min="0"
-                                       max="100"
                                        step="0.01"
                                        class="form-control">
                             </div>

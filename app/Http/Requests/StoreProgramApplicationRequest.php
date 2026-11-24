@@ -116,8 +116,6 @@ class StoreProgramApplicationRequest extends FormRequest
                 'before_or_equal:today',
             ];
 
-            $rules['pcic_coverage_id'] = ['required', 'integer', 'min:1'];
-
             $rules['cause_of_loss'] = [
                 'required',
                 Rule::in([
@@ -133,12 +131,6 @@ class StoreProgramApplicationRequest extends FormRequest
                 'numeric',
                 'gt:0',
                 'max:10000',
-            ];
-
-            $rules['degree_of_damage'] = [
-                'required',
-                'numeric',
-                'between:0,100',
             ];
 
             $rules['damage_photo'] = [
