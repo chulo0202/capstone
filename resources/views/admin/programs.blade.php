@@ -192,6 +192,8 @@
                         @forelse($programs as $program)
 
                             @php
+                                $pcicOpenYearRound = $program->isPcicCropInsurance()
+                                    && $program->benefits->contains(fn ($benefit) => $benefit->isOpenYearRound($program));
 
                                 if ($program->archived_at) {
 
@@ -336,7 +338,9 @@
                                      ================================================= --}}
                                 <td>
 
-                                    @if($program->start_at)
+                                    @if ($pcicOpenYearRound)
+                                        <span class="text-success fw-semibold">Open year-round</span>
+                                    @elseif($program->start_at)
 
                                         <div class="date-main">
 
@@ -368,7 +372,9 @@
                                      ================================================= --}}
                                 <td>
 
-                                    @if($program->end_at)
+                                    @if ($pcicOpenYearRound)
+                                        <span class="text-muted">No end date</span>
+                                    @elseif($program->end_at)
 
                                         <div class="date-main">
 

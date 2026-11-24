@@ -38,7 +38,7 @@ class RecommendationController extends Controller
                             return (object) [
                                 'program' => $program,
                                 'benefit' => $benefit,
-                                'always_open' => $benefit->always_active && ($program->isPcicCropInsurance() || $configuration === null),
+                                'always_open' => $benefit->isOpenYearRound($program),
                                 'start_at' => $configuration?->start_at ?? $program->start_at,
                                 'end_at' => $configuration?->end_at ?? $program->end_at,
                                 'eligibility_status' => $evaluation['status'],

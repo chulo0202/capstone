@@ -48,10 +48,28 @@ class ProgramBenefit extends Model
         return $this->hasMany(EligibilityRule::class);
     }
 
+    public function isOpenYearRound(Program $program): bool
+    {
+        if ($program->archived_at || $this->archived_at) {
+            return false;
+        }
+
+        if ($program->isPcicCropInsurance()) {
+            return $this->name === 'New Application'
+                || ($this->name === 'Claim for Indemnity' && $this->always_active);
+        }
+
+        return $this->always_active && $this->configurations->isEmpty();
+    }
+
     public function inventoryStatus(Program $program, Carbon $now): string
     {
         if ($program->archived_at || $this->archived_at) {
             return 'Archived';
+        }
+
+        if ($program->isPcicCropInsurance() && $this->isOpenYearRound($program)) {
+            return 'Active';
         }
 
         if ($this->configurations->contains(fn ($configuration) => $configuration->isCurrentAt($now))) {
@@ -81,8 +99,7 @@ class ProgramBenefit extends Model
 
         if ($program->isPcicCropInsurance()) {
             return match ($this->name) {
-                'Claim for Indemnity' => $this->always_active || $program->is_active,
-                'New Application' => $program->is_active,
+                'Claim for Indemnity', 'New Application' => $this->isOpenYearRound($program) || $program->is_active,
                 default => false,
             };
         }

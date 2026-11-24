@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\Farmer;
 use App\Models\Program;
 use App\Services\EligibilityService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -42,7 +43,7 @@ class ApplicationController extends Controller
         StoreProgramApplicationRequest $request,
         Program $program,
         EligibilityService $eligibilityService
-    ): RedirectResponse {
+    ): RedirectResponse|JsonResponse {
         $validated = $request->validated();
 
         $farmer = Auth::user()->farmer;
@@ -52,7 +53,7 @@ class ApplicationController extends Controller
         }
 
         if (! $farmer->profile_completed) {
-            return back()->with('error', 'Please complete your profile before applying.');
+            return $this->submissionError($request, 'Please complete your profile before applying.');
         }
 
         $newDamagePhotoPath = null;
@@ -343,26 +344,42 @@ class ApplicationController extends Controller
         }
 
         if (! $result) {
-            return back()->with(
-                'error',
-                'This benefit is unavailable or you do not meet its eligibility requirements.'
-            );
+            return $this->submissionError($request, 'This benefit is unavailable or you do not meet its eligibility requirements.');
         }
 
         if (isset($result['error'])) {
-            return back()->with('error', $result['error']);
+            return $this->submissionError($request, $result['error']);
         }
 
         if (! $result['created']) {
+            if ($request->expectsJson()) {
+                return $this->submissionError($request, 'You already applied for this benefit.');
+            }
+
             return back()->with('info', 'You already applied for this benefit.');
         }
 
-        if ($result['application']->detail?->form_type === 'pcic_claim') {
-            return redirect()
-                ->to(route('farmer.applications.index').'#application-'.$result['application']->id)
-                ->with('success', 'Your indemnity claim was submitted successfully. Track your claim below.');
+        $claim = $result['application']->detail?->form_type === 'pcic_claim';
+        $target = $claim
+            ? route('farmer.applications.index').'#application-'.$result['application']->id
+            : route('farmer.recommendations');
+        $message = $claim
+            ? 'Your indemnity claim was submitted successfully. Track your claim below.'
+            : 'Application submitted successfully.';
+
+        if ($request->expectsJson()) {
+            $request->session()->flash('success', $message);
+
+            return response()->json(['redirect' => $target]);
         }
 
-        return back()->with('success', 'Application submitted successfully.');
+        return ($claim ? redirect()->to($target) : back())->with('success', $message);
+    }
+
+    private function submissionError(StoreProgramApplicationRequest $request, string $message): RedirectResponse|JsonResponse
+    {
+        return $request->expectsJson()
+            ? response()->json(['message' => $message], 422)
+            : back()->with('error', $message);
     }
 }

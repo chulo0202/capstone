@@ -728,6 +728,89 @@
             const modalDescription = document.getElementById('modalBenefitDescription');
             const submitButton = document.getElementById('modalSubmitButton');
 
+            const errorBox = document.getElementById('modalApplicationErrors');
+            let submitting = false;
+
+            function clearErrors() {
+                errorBox.hidden = true;
+                errorBox.textContent = '';
+                form.querySelectorAll('[data-application-error]').forEach(error => error.remove());
+                form.querySelectorAll('[aria-invalid="true"]').forEach(field => {
+                    field.classList.remove('is-invalid');
+                    field.removeAttribute('aria-invalid');
+                    field.setAttribute('aria-describedby', field.dataset.originalDescription);
+                    if (!field.dataset.originalDescription) field.removeAttribute('aria-describedby');
+                    delete field.dataset.originalDescription;
+                });
+            }
+
+            function showErrors(errors, message) {
+                let firstField;
+                const general = [];
+                Object.entries(errors).forEach(([name, messages]) => {
+                    const field = form.elements.namedItem(name);
+                    if (!field || field.disabled || field.type === 'hidden') {
+                        general.push(...messages);
+                        return;
+                    }
+
+                    const feedback = document.createElement('div');
+                    feedback.id = `application-error-${name}`;
+                    feedback.className = 'text-danger small mt-1';
+                    feedback.dataset.applicationError = '';
+                    feedback.textContent = messages.join(' ');
+                    const container = field.closest('.form-check') || field;
+                    container.after(feedback);
+                    field.dataset.originalDescription = field.getAttribute('aria-describedby') || '';
+                    field.setAttribute('aria-describedby', [field.dataset.originalDescription, feedback.id].filter(Boolean).join(' '));
+                    field.setAttribute('aria-invalid', 'true');
+                    field.classList.add('is-invalid');
+                    firstField ??= field;
+                });
+
+                errorBox.textContent = general.join(' ') || (firstField ? 'Please correct the highlighted fields.' : message);
+                errorBox.hidden = false;
+                (firstField || errorBox).focus();
+            }
+
+            form.addEventListener('submit', async event => {
+                event.preventDefault();
+                if (submitting) return;
+                clearErrors();
+
+                const invalid = [...form.elements].filter(field => field.willValidate && !field.validity.valid);
+                if (invalid.length) {
+                    showErrors(Object.fromEntries(invalid.map(field => [field.name, [field.validationMessage]])));
+                    return;
+                }
+
+                submitting = true;
+                submitButton.disabled = true;
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        headers: { Accept: 'application/json' },
+                        body: new FormData(form),
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.redirect) {
+                        window.location.assign(data.redirect);
+                        return;
+                    }
+                    showErrors(data.errors || {}, response.status === 422
+                        ? data.message : 'Unable to submit. Please try again or reload the page if your session expired.');
+                } catch {
+                    showErrors({}, 'Unable to submit. Please try again or reload the page if your session expired.');
+                } finally {
+                    submitting = false;
+                    submitButton.disabled = false;
+                }
+            });
+
+            modal.addEventListener('hide.bs.modal', event => {
+                if (submitting) event.preventDefault();
+            });
+
             modal.addEventListener('show.bs.modal', function (event) {
                 const button = event.relatedTarget;
 
@@ -742,6 +825,7 @@
 
                 // Clear previous application information.
                 form.reset();
+                clearErrors();
                 form.removeAttribute('action');
                 benefitId.value = '';
 

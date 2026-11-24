@@ -23,7 +23,7 @@
             </div>
 
             <form id="programApplicationForm"
-                method="POST"
+                method="POST" novalidate
                 enctype="multipart/form-data"
                 class="d-flex flex-column flex-grow-1"
                 style="min-height: 0;">
@@ -35,9 +35,11 @@
                        id="modalBenefitId">
 
                 <div class="modal-body">
+                    <div class="alert alert-danger" id="modalApplicationErrors" role="alert" tabindex="-1" hidden></div>
 
                     <p class="text-muted small"
                        id="modalBenefitDescription"></p>
+                    <p class="small text-muted"><span class="text-danger">*</span> Required field</p>
 
                     {{-- Agricultural Loans --}}
                     <div class="application-fields d-none"
@@ -48,51 +50,51 @@
                         </h6>
 
                         <div class="mb-3">
-                            <label class="form-label">
-                                Loan Amount (PHP)
+                            <label class="form-label" for="apply-loan_amount">
+                                Loan Amount (PHP) <span class="text-danger" aria-hidden="true">*</span>
                             </label>
                             <input type="number"
-                                   name="loan_amount"
+                                   name="loan_amount" id="apply-loan_amount"
                                    min="0.01"
                                    step="0.01"
-                                   class="form-control">
+                                   class="form-control" required>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Loan Purpose</label>
-                            <textarea name="loan_purpose"
+                            <label class="form-label" for="apply-loan_purpose">Loan Purpose <span class="text-danger" aria-hidden="true">*</span></label>
+                            <textarea name="loan_purpose" id="apply-loan_purpose"
                                       class="form-control"
-                                      rows="2"></textarea>
+                                      rows="2" required></textarea>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Project Location</label>
+                            <label class="form-label" for="apply-project_location">Project Location <span class="text-danger" aria-hidden="true">*</span></label>
                             <input type="text"
-                                   name="project_location"
-                                   class="form-control">
+                                   name="project_location" id="apply-project_location"
+                                   class="form-control" required>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Number of Hectares</label>
+                            <label class="form-label" for="apply-number_of_hectares">Number of Hectares <span class="text-danger" aria-hidden="true">*</span></label>
                             <input type="number"
-                                   name="number_of_hectares"
+                                   name="number_of_hectares" id="apply-number_of_hectares"
                                    min="0.01"
                                    step="0.01"
-                                   class="form-control">
+                                   class="form-control" required>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Project Description</label>
-                            <textarea name="project_description"
+                            <label class="form-label" for="apply-project_description">Project Description <span class="text-danger" aria-hidden="true">*</span></label>
+                            <textarea name="project_description" id="apply-project_description"
                                       class="form-control"
-                                      rows="3"></textarea>
+                                      rows="3" required></textarea>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Agribusiness Entity</label>
+                            <label class="form-label" for="apply-agribusiness_entity">Agribusiness Entity <span class="text-danger" aria-hidden="true">*</span></label>
                             <input type="text"
-                                   name="agribusiness_entity"
-                                   class="form-control">
+                                   name="agribusiness_entity" id="apply-agribusiness_entity"
+                                   class="form-control" required>
                         </div>
 
                         <div class="form-check mb-3">
@@ -100,11 +102,11 @@
                                    type="checkbox"
                                    name="sworn_statement"
                                    value="1"
-                                   id="loanSwornStatement">
+                                   id="loanSwornStatement" required>
                             <label class="form-check-label"
                                    for="loanSwornStatement">
                                 I certify that the information provided
-                                is true and correct.
+                                is true and correct. <span class="text-danger" aria-hidden="true">*</span>
                             </label>
                         </div>
 
@@ -113,11 +115,11 @@
                                    type="checkbox"
                                    name="privacy_consent"
                                    value="1"
-                                   id="loanPrivacyConsent">
+                                   id="loanPrivacyConsent" required>
                             <label class="form-check-label"
                                    for="loanPrivacyConsent">
                                 I consent to the processing of my
-                                application information.
+                                application information. <span class="text-danger" aria-hidden="true">*</span>
                             </label>
                         </div>
                     </div>
@@ -140,9 +142,9 @@
                         </dl>
 
                         <div class="mb-3">
-                            <label class="form-label">Variety Planted</label>
-                            <select name="variety_planted"
-                                    class="form-select">
+                            <label class="form-label" for="apply-variety_planted">Variety Planted <span class="text-danger" aria-hidden="true">*</span></label>
+                            <select name="variety_planted" id="apply-variety_planted"
+                                    class="form-select" required>
                                 <option value="">Select variety</option>
                                 <option value="Inbred">Inbred</option>
                                 <option value="Hybrid">Hybrid</option>
@@ -151,7 +153,7 @@
 
                         <div class="mb-3">
                             <label class="form-label" for="pcic-area-to-insure">
-                                Area to be Insured (hectares)
+                                Area to be Insured (hectares) <span class="text-danger" aria-hidden="true">*</span>
                             </label>
                             <input type="number"
                                    id="pcic-area-to-insure"
@@ -168,21 +170,21 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">
-                                Actual Date of Planting
+                            <label class="form-label" for="apply-actual_planting_date">
+                                Actual Date of Planting <span class="text-danger" aria-hidden="true">*</span>
                             </label>
                             <input type="date"
-                                   name="actual_planting_date"
-                                   class="form-control">
+                                   name="actual_planting_date" id="apply-actual_planting_date"
+                                   class="form-control" required>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">
-                                Expected Date of Harvest
+                            <label class="form-label" for="apply-expected_harvest_date">
+                                Expected Date of Harvest <span class="text-danger" aria-hidden="true">*</span>
                             </label>
                             <input type="date"
-                                   name="expected_harvest_date"
-                                   class="form-control">
+                                   name="expected_harvest_date" id="apply-expected_harvest_date"
+                                   class="form-control" required>
                         </div>
 
                         <h6 class="fw-semibold mt-4">
@@ -192,13 +194,13 @@
 
                         @foreach (['north', 'south', 'east', 'west'] as $direction)
                             <div class="mb-3">
-                                <label class="form-label">
-                                    {{ ucfirst($direction) }}
+                                <label class="form-label" for="apply-adjacent_{{ $direction }}">
+                                    {{ ucfirst($direction) }} <span class="text-danger" aria-hidden="true">*</span>
                                 </label>
                                 <input type="text"
-                                       name="adjacent_{{ $direction }}"
+                                       name="adjacent_{{ $direction }}" id="apply-adjacent_{{ $direction }}"
                                        placeholder="e.g. irrigation canal or neighboring rice field"
-                                       class="form-control">
+                                       class="form-control" required>
                             </div>
                         @endforeach
 
@@ -212,21 +214,22 @@
                             </h6>
 
                             <div class="mb-3">
-                                <label class="form-label">
-                                    Date of Loss
+                                <label class="form-label" for="apply-date_of_loss">
+                                    Date of Loss <span class="text-danger" aria-hidden="true">*</span>
                                 </label>
                                 <input
                                     type="date"
-                                    name="date_of_loss"
+                                    name="date_of_loss" id="apply-date_of_loss"
+                                    max="{{ today()->toDateString() }}"
                                     class="form-control"
                                     required
                                 >
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label">Cause of Loss</label>
-                                <select name="cause_of_loss"
-                                        class="form-select">
+                                <label class="form-label" for="apply-cause_of_loss">Cause of Loss <span class="text-danger" aria-hidden="true">*</span></label>
+                                <select name="cause_of_loss" id="apply-cause_of_loss"
+                                        class="form-select" required>
                                     <option value="">Select cause</option>
                                     <option value="Typhoon">Typhoon</option>
                                     <option value="Flood">Flood</option>
@@ -236,24 +239,25 @@
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label">
-                                    Area Damaged (hectares)
+                                <label class="form-label" for="apply-area_damaged">
+                                    Area Damaged (hectares) <span class="text-danger" aria-hidden="true">*</span>
                                 </label>
                                 <input type="number"
-                                       name="area_damaged"
+                                       name="area_damaged" id="apply-area_damaged"
+                                       max="10000"
                                        min="0.01"
                                        step="0.01"
-                                       class="form-control">
+                                       class="form-control" required>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label">
-                                    Photo of Damaged Crop
+                                <label class="form-label" for="apply-damage_photo">
+                                    Photo of Damaged Crop <span class="text-danger" aria-hidden="true">*</span>
                                 </label>
                                 <input type="file"
-                                       name="damage_photo"
+                                       name="damage_photo" id="apply-damage_photo"
                                        accept="image/jpeg,image/png,image/webp"
-                                       class="form-control">
+                                       class="form-control" required>
                                 <div class="form-text">
                                     JPG, PNG or WebP. Maximum 5 MB.
                                 </div>
@@ -279,10 +283,10 @@
                                    type="checkbox"
                                    name="confirm_intent"
                                    value="1"
-                                   id="confirmClaimIntent">
+                                   id="confirmClaimIntent" required>
                             <label class="form-check-label"
                                    for="confirmClaimIntent">
-                                I confirm my intent to claim this benefit.
+                                I confirm my intent to claim this benefit. <span class="text-danger" aria-hidden="true">*</span>
                             </label>
                         </div>
                     </div>
@@ -297,7 +301,7 @@
 
                         <div class="mb-3">
                             <label class="form-label" for="service-description">
-                                Service Request Description
+                                Service Request Description <span class="text-danger" aria-hidden="true">*</span>
                             </label>
                             <textarea name="service_description"
                                       id="service-description"
@@ -312,7 +316,7 @@
 
                         <div class="mb-3">
                             <label class="form-label" for="preferred-service-date">
-                                Preferred Service Date
+                                Preferred Service Date <span class="text-danger" aria-hidden="true">*</span>
                             </label>
                             <input type="date"
                                    name="preferred_service_date"
