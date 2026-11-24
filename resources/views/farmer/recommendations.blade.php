@@ -4,6 +4,48 @@
 
 @section('main')
 
+<style>
+    .recommendations-table {
+        min-width: 46rem;
+        --bs-table-color: #172638;
+        --bs-table-border-color: #e1ebef;
+        --bs-table-hover-bg: #f2f8f5;
+    }
+    .recommendations-table > thead > tr > th {
+        background: #edf3fa;
+        color: #415974;
+        font-size: .75rem;
+        font-weight: 700;
+        letter-spacing: .025em;
+    }
+    .recommendations-table > tbody > .recommendation-program > th {
+        background: #e2f4eb;
+        color: #164b35;
+        padding-block: .55rem;
+    }
+    .recommendations-table .recommendation-row > td {
+        padding-block: .8rem;
+    }
+    .recommendations-table .recommendation-row > td:first-child { width: 24%; }
+    .recommendations-table .recommendation-row > td:nth-child(2) { width: 30%; }
+    .recommendations-table .recommendation-row > td:nth-child(3) { width: 14%; }
+    .recommendations-table .recommendation-row > td:nth-child(4) { width: 17%; }
+    .recommendations-table .recommendation-row > td:last-child { width: 15%; }
+    .recommendations-table .recommendation-row .btn {
+        min-height: 2.45rem;
+        border-radius: .6rem;
+        font-weight: 600;
+    }
+    .recommendations-table .recommendation-row .btn-fams {
+        background: #0d6033;
+        color: #fff;
+    }
+    .recommendations-table .recommendation-row .btn-fams:hover {
+        background: #084a27;
+    }
+    .recommendations-table [hidden] { display: none !important; }
+</style>
+
 @if ($errors->any())
     <div class="alert alert-danger" role="alert">
         <ul class="mb-0">
@@ -379,9 +421,9 @@
 
         <div class="card-body p-0">
 
-            <div class="table-responsive">
+            <div class="table-responsive" tabindex="0" role="region" aria-label="Recommended programs and benefits">
 
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 recommendations-table">
 
                     <thead class="table-light">
 
@@ -416,7 +458,7 @@
 
                         @forelse($recommendations->groupBy('program.id') as $programRecommendations)
                             <tr class="recommendation-program" data-program-id="{{ $programRecommendations->first()->program->id }}">
-                                <th colspan="5" class="px-4 bg-light">{{ $programRecommendations->first()->program->name }}</th>
+                                <th colspan="5" class="px-4"><i class="bi bi-leaf-fill me-2" aria-hidden="true"></i>{{ $programRecommendations->first()->program->name }}</th>
                             </tr>
                             @foreach($programRecommendations as $rec)
 
@@ -459,7 +501,7 @@
 
                                     @if($rec->eligibility_status === 'eligible')
 
-                                        <span class="badge bg-success px-3 py-2">
+                                        <span class="badge rounded-pill text-bg-success px-3 py-2">
 
                                             <i class="bi bi-check-circle-fill me-1"></i>
 
@@ -470,7 +512,7 @@
                                     @elseif($rec->eligibility_status === 'partially_eligible')
 
                                         <span
-                                            class="badge bg-warning text-dark px-3 py-2"
+                                            class="badge rounded-pill text-bg-warning px-3 py-2"
                                         >
 
                                             <i class="bi bi-exclamation-circle-fill me-1"></i>
