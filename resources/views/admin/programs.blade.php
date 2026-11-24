@@ -192,14 +192,19 @@
                         @forelse($programs as $program)
 
                             @php
-                                $pcicOpenYearRound = $program->isPcicCropInsurance()
-                                    && $program->benefits->contains(fn ($benefit) => $benefit->isOpenYearRound($program));
+                                $pcicOpenYearRound = !$program->archived_at && $program->isPcicCropInsurance();
 
                                 if ($program->archived_at) {
 
                                     $status = 'archived';
                                     $statusLabel = 'Archived';
                                     $statusClass = 'status-inactive';
+
+                                } elseif ($pcicOpenYearRound) {
+
+                                    $status = 'active';
+                                    $statusLabel = 'Active';
+                                    $statusClass = 'status-active';
 
                                 } elseif (!$program->is_active) {
 

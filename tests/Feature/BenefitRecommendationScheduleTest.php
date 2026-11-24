@@ -114,8 +114,11 @@ class BenefitRecommendationScheduleTest extends TestCase
         $response->assertSeeText('Open year-round');
 
         $admin = User::factory()->create(['role' => 'admin', 'admin_registration_status' => 'approved']);
-        $this->actingAs($admin)->get(route('admin.programs.index'))->assertOk()
+        $this->actingAs($admin)->get(route('admin.programs.index', ['status' => 'active']))->assertOk()
+            ->assertSeeText('PCIC Crop Insurance')->assertSeeText('Currently Active')
             ->assertSeeText('Open year-round')->assertSeeText('No end date');
+        $this->get(route('admin.programs.index', ['status' => 'inactive']))->assertOk()
+            ->assertDontSeeText('PCIC Crop Insurance');
         $response->assertDontSeeText($legacy->name);
     }
 

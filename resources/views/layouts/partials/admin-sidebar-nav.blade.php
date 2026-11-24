@@ -50,8 +50,3 @@
    href="{{ route('admin.announcements.index') }}">
     <i class="bi bi-megaphone-fill"></i> Announcements
 </a>
-
-<a class="fams-nav-link {{ request()->routeIs('admin.sms.*') ? 'active' : '' }}"
-   href="{{ route('admin.sms.index') }}">
-    <i class="bi bi-chat-left-text-fill"></i> SMS Notifications
-</a>

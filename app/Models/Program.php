@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Program extends Model
 {
+    public const PCIC_NAME = 'PCIC Crop Insurance';
+
     use HasFactory;
 
     protected $fillable = [
@@ -64,7 +66,7 @@ class Program extends Model
     {
         return $query->whereNull('archived_at')
             ->where(fn (Builder $programs) => $programs->where('is_active', true)
-                ->orWhere('name', 'PCIC Crop Insurance'))
+                ->orWhere('name', self::PCIC_NAME))
             ->with(['eligibilityRule', 'activeBenefits.configurations']);
     }
 
@@ -75,7 +77,7 @@ class Program extends Model
 
     public function isPcicCropInsurance(): bool
     {
-        return $this->name === 'PCIC Crop Insurance';
+        return $this->name === self::PCIC_NAME;
     }
 
     public function distributions(): HasMany

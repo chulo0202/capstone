@@ -36,39 +36,24 @@ class ProgramController extends Controller
         if ($status === 'archived') {
             $query->whereNotNull('archived_at');
         } elseif ($status === 'upcoming') {
-
             $query->whereNull('archived_at')
+                ->where('name', '!=', Program::PCIC_NAME)
                 ->where('is_active', true)
                 ->where('start_at', '>', $now);
-
         } elseif ($status === 'active') {
-
             $query->whereNull('archived_at')
-                ->where('is_active', true)
-                ->whereNotNull('start_at')
-                ->whereNotNull('end_at')
-                ->where('start_at', '<=', $now)
-                ->where('end_at', '>=', $now);
-
+                ->where(fn ($programs) => $programs->where('name', Program::PCIC_NAME)
+                    ->orWhere(fn ($scheduled) => $scheduled->where('is_active', true)
+                        ->where('start_at', '<=', $now)
+                        ->where('end_at', '>=', $now)));
         } elseif ($status === 'inactive') {
-
             $query->whereNull('archived_at')
-                ->where(function ($q) use ($now) {
-
-                $q->where(function ($q) use ($now) {
-
-                    $q->whereNotNull('end_at')
-                        ->where('end_at', '<', $now);
-
-                })
-                ->orWhere('is_active', false)
-                ->orWhereNull('start_at')
-                ->orWhereNull('end_at');
-
-            });
-
+                ->where('name', '!=', Program::PCIC_NAME)
+                ->where(fn ($programs) => $programs->where('end_at', '<', $now)
+                    ->orWhere('is_active', false)
+                    ->orWhereNull('start_at')
+                    ->orWhereNull('end_at'));
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -87,6 +72,8 @@ class ProgramController extends Controller
                 WHEN archived_at IS NOT NULL
                 THEN 3
 
+                WHEN name = ? THEN 0
+
                 WHEN is_active
                     AND start_at IS NOT NULL
                     AND end_at IS NOT NULL
@@ -103,6 +90,7 @@ class ProgramController extends Controller
             END
             ",
             [
+                Program::PCIC_NAME,
                 $now,
                 $now,
                 $now,

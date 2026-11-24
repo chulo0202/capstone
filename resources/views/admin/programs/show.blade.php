@@ -48,7 +48,15 @@
 
         $now = now();
 
-        if (
+        $pcicOpenYearRound = !$program->archived_at && $program->isPcicCropInsurance();
+
+        if ($program->archived_at) {
+            $statusLabel = 'Archived';
+            $statusClass = 'status-inactive';
+        } elseif ($pcicOpenYearRound) {
+            $statusLabel = 'Active';
+            $statusClass = 'status-active';
+        } elseif (
             $program->start_at &&
             $now->lt($program->start_at)
         ) {
@@ -154,7 +162,9 @@
 
                             <strong>
 
-                                @if($program->start_at)
+                                @if ($pcicOpenYearRound)
+                                    Open year-round
+                                @elseif($program->start_at)
 
                                     {{ $program->start_at->format('F d, Y') }}
 
@@ -197,7 +207,9 @@
 
                             <strong>
 
-                                @if($program->end_at)
+                                @if ($pcicOpenYearRound)
+                                    No end date
+                                @elseif($program->end_at)
 
                                     {{ $program->end_at->format('F d, Y') }}
 

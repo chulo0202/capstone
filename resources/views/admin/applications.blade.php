@@ -83,7 +83,7 @@
                         <th>Applied Date</th>
                         <th>Status</th>
                         <th>Reviewed</th>
-                        <th>Actions</th>
+                        <th class="text-center">Actions</th>
                     </tr>
                 </thead>
 
@@ -151,20 +151,22 @@
                             </td>
 
                             {{-- Actions --}}
-                            <td>
-                                <div class="mb-2">
-                                   <a
-                                        href="{{ route('admin.applications.show', $application) }}"
-                                        class="btn btn-sm btn-outline-primary"
-                                    >
-                                        <i class="bi bi-eye me-1"></i>
-                                        View Details
-                                    </a>
-                                </div>
+                            <td class="text-center align-middle">
+                                <a href="{{ route('admin.applications.show', $application) }}"
+                                   class="btn btn-sm btn-outline-primary d-inline-flex align-items-center justify-content-center p-2"
+                                   title="View details" aria-label="View application details">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+                                         fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                                         stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                        <path d="M11 21H4V3h9l5 5v3M13 3v5h5"/>
+                                        <circle cx="16.5" cy="16.5" r="3.5"/>
+                                        <path d="m19 19 3 3"/>
+                                    </svg>
+                                </a>
 
                                 @if($application->status === 'pending')
 
-                                    <div class="d-flex gap-1">
+                                    <div class="d-flex justify-content-center gap-1 mt-2">
 
                                         {{-- Approve --}}
                                         <form
@@ -203,12 +205,6 @@
                                         </form>
 
                                     </div>
-
-                                @else
-
-                                    <span class="text-muted small">
-                                        No action
-                                    </span>
 
                                 @endif
 
