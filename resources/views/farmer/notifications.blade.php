@@ -29,6 +29,7 @@
 <div class="farmer-notifications">
     <div class="d-flex gap-2 flex-wrap mb-3" role="group" aria-label="Filter notifications">
         @foreach (['all' => ['All', '', $total], ...$categories] as $key => [$label, $icon, $count])
+            @continue($key === 'pcic')
             @if ($key === 'announcement')
                 <a href="{{ route('farmer.notifications.index', ['category' => 'announcement']) }}"
                     class="btn btn-sm rounded-pill px-3 {{ $browseAnnouncements ? 'btn-fams' : 'btn-outline-secondary' }}"
@@ -39,7 +40,7 @@
             @endif
             <button type="button" class="btn btn-sm rounded-pill px-3 {{ $key === $activeCategory ? 'btn-fams' : 'btn-outline-secondary' }}"
                 data-notification-filter="{{ $key }}" aria-pressed="{{ $key === $activeCategory ? 'true' : 'false' }}">
-                {{ $key === 'distribution' ? 'Distribution' : ($key === 'pcic' ? 'PCIC' : ($key === 'sms' ? 'SMS' : $label)) }}
+                {{ $key === 'distribution' ? 'Distribution' : ($key === 'sms' ? 'SMS' : $label) }}
                 <span class="badge text-bg-light ms-1">{{ $count }}</span>
             </button>
         @endforeach
@@ -52,26 +53,48 @@
                 <h2 class="h6 mb-3 d-flex align-items-center gap-2" id="notification-{{ $key }}">
                     <i class="bi {{ $icon }} text-success" aria-hidden="true"></i> {{ $label }}
                 </h2>
+                @if ($key === 'distribution' && $count)
+                    <div class="d-flex flex-wrap gap-2 mb-3" role="group" aria-label="Filter distribution updates"
+                        data-distribution-filters hidden>
+                        @foreach ([
+                            'all' => ['All distributions', $count],
+                            'scheduled' => ['Scheduled', $schedules->count()],
+                            'received' => ['Benefit Received', $distributions->count()],
+                        ] as $status => [$statusLabel, $statusCount])
+                            <button type="button" class="btn btn-sm rounded-pill {{ $status === 'all' ? 'btn-fams' : 'btn-outline-secondary' }}"
+                                data-distribution-filter="{{ $status }}" aria-pressed="{{ $status === 'all' ? 'true' : 'false' }}">
+                                {{ $statusLabel }} <span class="badge text-bg-light ms-1">{{ $statusCount }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                @endif
                 <div class="d-grid gap-2">
                     @if ($key === 'distribution')
-                        @foreach ($schedules as $schedule)
-                            @include('farmer.partials.notification-item', [
-                                'href' => route('farmer.notifications.distribution-schedule', $schedule),
-                                'itemIcon' => 'bi-calendar-event', 'title' => $schedule->batch->name,
-                                'badge' => 'Scheduled', 'badgeStyle' => 'text-bg-primary',
-                                'description' => $schedule->batch->benefit->name.' · '.$schedule->batch->scheduled_date->format('M j, Y'),
-                                'action' => 'View schedule',
-                            ])
-                        @endforeach
-                        @foreach ($distributions as $distribution)
-                            @include('farmer.partials.notification-item', [
-                                'href' => route('farmer.notifications.distribution-receipt', $distribution),
-                                'itemIcon' => 'bi-box-seam', 'title' => $distribution->program->name,
-                                'badge' => 'Benefit Received', 'badgeStyle' => 'text-bg-success',
-                                'description' => ($distribution->benefit?->name ?? 'Program-level benefit').' · '.$distribution->distributed_at->format('M j, Y'),
-                                'action' => 'View details',
-                            ])
-                        @endforeach
+                        <div class="d-grid gap-2" data-distribution-status="scheduled" @if ($schedules->isEmpty()) hidden @endif>
+                            @foreach ($schedules as $schedule)
+                                @include('farmer.partials.notification-item', [
+                                    'href' => route('farmer.notifications.distribution-schedule', $schedule),
+                                    'itemIcon' => 'bi-calendar-event', 'title' => $schedule->batch->name,
+                                    'badge' => 'Scheduled', 'badgeStyle' => 'text-bg-primary',
+                                    'description' => $schedule->batch->benefit->name.' · '.$schedule->batch->scheduled_date->format('M j, Y'),
+                                    'action' => 'View schedule',
+                                ])
+                            @endforeach
+                        </div>
+                        <div class="d-grid gap-2" data-distribution-status="received" @if ($distributions->isEmpty()) hidden @endif>
+                            @foreach ($distributions as $distribution)
+                                @include('farmer.partials.notification-item', [
+                                    'href' => route('farmer.notifications.distribution-receipt', $distribution),
+                                    'itemIcon' => 'bi-box-seam', 'title' => $distribution->program->name,
+                                    'badge' => 'Benefit Received', 'badgeStyle' => 'text-bg-success',
+                                    'description' => ($distribution->benefit?->name ?? 'Program-level benefit').' · '.$distribution->distributed_at->format('M j, Y'),
+                                    'action' => 'View details',
+                                ])
+                            @endforeach
+                        </div>
+                        @if ($count)
+                            <p class="text-muted small mb-0" data-distribution-empty role="status" hidden></p>
+                        @endif
                     @elseif ($key === 'pcic')
                         @foreach ($pcicUpdates as $update)
                             @include('farmer.partials.notification-item', [
@@ -117,6 +140,32 @@
     (() => {
         const filters = [...document.querySelectorAll('[data-notification-filter]')];
         const sections = [...document.querySelectorAll('[data-notification-category]')];
+        const distributionFilters = document.querySelector('[data-distribution-filters]');
+        if (distributionFilters) {
+            const options = [...distributionFilters.querySelectorAll('[data-distribution-filter]')];
+            const groups = [...document.querySelectorAll('[data-distribution-status]')];
+            const empty = document.querySelector('[data-distribution-empty]');
+            distributionFilters.hidden = false;
+
+            options.forEach(button => button.addEventListener('click', () => {
+                const status = button.dataset.distributionFilter;
+                options.forEach(option => {
+                    const selected = option === button;
+                    option.setAttribute('aria-pressed', selected);
+                    option.classList.toggle('btn-fams', selected);
+                    option.classList.toggle('btn-outline-secondary', !selected);
+                });
+                groups.forEach(group => {
+                    group.hidden = !group.children.length
+                        || (status !== 'all' && status !== group.dataset.distributionStatus);
+                });
+                empty.hidden = groups.some(group => !group.hidden);
+                empty.textContent = status === 'scheduled'
+                    ? 'No scheduled distributions yet.'
+                    : 'No benefits received yet.';
+            }));
+        }
+
         filters.forEach(button => button.addEventListener('click', () => {
             const category = button.dataset.notificationFilter;
             const announcements = document.querySelector('[data-notification-announcements]');

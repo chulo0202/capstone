@@ -26,26 +26,26 @@ class RecommendationController extends Controller
                 ->flatMap(function ($program) use ($farmer, $eligibilityService, $now) {
                     return $program->activeBenefits
                         ->filter(fn ($benefit) => $benefit->isAvailableToFarmers($program, $now))
-                        ->map(function ($benefit) use ($program, $farmer, $eligibilityService) {
+                        ->map(function ($benefit) use ($program, $farmer, $eligibilityService, $now) {
                             $evaluation = $eligibilityService->evaluate(
                                 $farmer,
                                 $program,
                                 $benefit
                             );
 
+                            $configuration = $benefit->configurations->first(fn ($config) => $config->isCurrentAt($now));
+
                             return (object) [
                                 'program' => $program,
                                 'benefit' => $benefit,
+                                'always_open' => $benefit->always_active && ($program->isPcicCropInsurance() || $configuration === null),
+                                'start_at' => $configuration?->start_at ?? $program->start_at,
+                                'end_at' => $configuration?->end_at ?? $program->end_at,
                                 'eligibility_status' => $evaluation['status'],
                                 'missing_requirements' => $evaluation['missing_requirements'],
                             ];
                         });
                 })
-                ->filter(fn ($recommendation) => in_array(
-                    $recommendation->eligibility_status,
-                    ['eligible', 'partially_eligible'],
-                    true
-                ))
                 ->values();
 
             $applicationStatuses = Application::where('farmer_id', $farmer->id)

@@ -28,7 +28,8 @@ class BenefitRecommendationScheduleTest extends TestCase
         $this->actingAs($user)
             ->get(route('farmer.recommendations'))
             ->assertOk()
-            ->assertSeeText($benefit->name);
+            ->assertSeeText($benefit->name)
+            ->assertSeeText(now()->subDay()->format('M j, Y').' – '.now()->addDay()->format('M j, Y'));
     }
 
     public function test_upcoming_benefit_is_hidden_from_recommendations(): void
@@ -47,8 +48,7 @@ class BenefitRecommendationScheduleTest extends TestCase
             ->assertDontSeeText($benefit->name);
 
         $this->get(route('farmer.eligibility'))
-            ->assertOk()
-            ->assertDontSeeText($benefit->name);
+            ->assertRedirect(route('farmer.recommendations'));
     }
 
     public function test_expired_benefit_is_hidden_from_recommendations(): void
@@ -67,8 +67,7 @@ class BenefitRecommendationScheduleTest extends TestCase
             ->assertDontSeeText($benefit->name);
 
         $this->get(route('farmer.eligibility'))
-            ->assertOk()
-            ->assertDontSeeText($benefit->name);
+            ->assertRedirect(route('farmer.recommendations'));
     }
 
     public function test_inactive_parent_blocks_recommendations_for_current_configuration(): void
@@ -90,8 +89,7 @@ class BenefitRecommendationScheduleTest extends TestCase
             ->assertDontSeeText($benefit->name);
 
         $this->get(route('farmer.eligibility'))
-            ->assertOk()
-            ->assertDontSeeText($benefit->name);
+            ->assertRedirect(route('farmer.recommendations'));
     }
 
     public function test_only_the_always_active_pcic_claim_is_recommended_when_pcic_is_inactive(): void

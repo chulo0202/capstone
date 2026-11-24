@@ -17,7 +17,6 @@ use App\Http\Controllers\Auth\AdminRegistrationController as AuthAdminRegistrati
 use App\Http\Controllers\Auth\RsbsaRegistrationController;
 use App\Http\Controllers\Farmer\ApplicationController;
 use App\Http\Controllers\Farmer\DashboardController as FarmerDashboardController;
-use App\Http\Controllers\Farmer\EligibilityController;
 use App\Http\Controllers\Farmer\NotificationController;
 use App\Http\Controllers\Farmer\ProfileController as FarmerProfileController;
 use App\Http\Controllers\Farmer\RecommendationController;
@@ -298,7 +297,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/qr-code/download', [FarmerProfileController::class, 'downloadQr'])
             ->name('qr-code.download');
 
-        Route::get('/eligibility', [EligibilityController::class, 'index'])
+        Route::get('/eligibility', fn () => to_route('farmer.recommendations'))
             ->name('eligibility');
 
         Route::get('/recommendations', [RecommendationController::class, 'index'])

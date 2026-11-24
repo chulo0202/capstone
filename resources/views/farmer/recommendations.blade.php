@@ -284,7 +284,7 @@
                             </h3>
 
                             <small class="text-muted">
-                                Available to apply
+                                Benefits evaluated
                             </small>
 
                         </div>
@@ -474,6 +474,20 @@
                                     <div class="fw-semibold text-dark">
                                         {{ $rec->benefit->name }}
                                     </div>
+                                    <div class="small text-muted mt-1">
+                                        <i class="bi bi-calendar3 me-1" aria-hidden="true"></i>
+                                        @if ($rec->always_open)
+                                            Open year-round
+                                        @elseif ($rec->start_at && $rec->end_at)
+                                            {{ $rec->start_at->format('M j, Y') }} – {{ $rec->end_at->format('M j, Y') }}
+                                        @elseif ($rec->start_at)
+                                            Opens {{ $rec->start_at->format('M j, Y') }}
+                                        @elseif ($rec->end_at)
+                                            Until {{ $rec->end_at->format('M j, Y') }}
+                                        @else
+                                            Schedule unavailable
+                                        @endif
+                                    </div>
 
                                 </td>
 
@@ -521,6 +535,10 @@
 
                                         </span>
 
+                                    @else
+                                        <span class="badge rounded-pill text-bg-danger px-3 py-2">
+                                            <i class="bi bi-x-circle-fill me-1" aria-hidden="true"></i> Not Eligible
+                                        </span>
                                     @endif
 
                                 </td>
@@ -618,12 +636,6 @@
                                             default => 'service_request',
                                         };
 
-                                        $buttonLabel = match ($formType) {
-                                            'pcic_claim' => 'File Claim',
-                                            'claim_intent' => 'Confirm Intent to Claim',
-                                            'service_request' => 'Request Service',
-                                            default => 'Apply Now',
-                                        };
                                     @endphp
 
                                     <button
@@ -642,7 +654,7 @@
 
                                     >
                                         <i class="bi bi-send me-1"></i>
-                                        {{ $buttonLabel }}
+                                        Apply Now
                                     </button>
 
 
@@ -676,7 +688,7 @@
                                     <p class="text-muted small mb-0">
 
                                         There are currently no active
-                                        programs matching your eligibility.
+                                        benefits open for applications.
 
                                     </p>
 

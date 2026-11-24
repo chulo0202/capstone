@@ -612,13 +612,7 @@ class BenefitSpecificWorkflowTest extends TestCase
             ->assertSee('Second')
             ->assertDontSee('No benefits');
 
-        $eligibilityResponse = $this->get(route('farmer.eligibility'));
-        $this->assertSame(200, $eligibilityResponse->status(), $eligibilityResponse->exceptions->last()?->getMessage() ?? 'Eligibility page did not render.');
-        $eligibilityResponse->assertSee('Benefit-specific rules')
-            ->assertSeeText('First')
-            ->assertSeeText('Second')
-            ->assertDontSeeText('Unconfigured');
-        $this->assertSame(1, substr_count(strip_tags($eligibilityResponse->getContent()), $program->name));
+        $this->get(route('farmer.eligibility'))->assertRedirect(route('farmer.recommendations'));
 
         $applicationsResponse = $this->get(route('farmer.applications.index'));
         $this->assertSame(200, $applicationsResponse->status(), $applicationsResponse->exceptions->last()?->getMessage() ?? 'Applications page did not render.');

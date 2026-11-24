@@ -7,9 +7,6 @@
 </a>
 
 <div class="fams-nav-label">Programs</div>
-<a class="fams-nav-link {{ request()->routeIs('farmer.eligibility') ? 'active' : '' }}" href="{{ route('farmer.eligibility') }}">
-    <i class="bi bi-check-circle-fill"></i> Eligibility
-</a>
 <a class="fams-nav-link {{ request()->routeIs('farmer.recommendations') ? 'active' : '' }}" href="{{ route('farmer.recommendations') }}">
     <i class="bi bi-lightbulb-fill"></i> Recommendations
 </a>
