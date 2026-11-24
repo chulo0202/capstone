@@ -140,7 +140,7 @@
     </section>
 
     <div class="d-flex gap-2 justify-content-end mt-4">
-        <button type="button" class="btn btn-outline-secondary" data-back hidden>Back</button>
+        <button type="button" class="btn btn-fams-back" data-back hidden>Back</button>
         <button type="button" class="btn btn-fams" data-next>Next</button>
         <button type="submit" class="btn btn-fams" data-create hidden>Create Draft</button>
     </div>

@@ -229,6 +229,30 @@
     }
 </style>
 
+@if ($dashboardUnreadCount)
+    <section class="card shadow-sm mb-3 border-success-subtle" aria-labelledby="dashboard-unread-heading">
+        <div class="card-body p-3">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <h2 id="dashboard-unread-heading" class="h6 mb-0">
+                    <i class="bi bi-bell-fill text-success me-1" aria-hidden="true"></i>
+                    Unread notifications <span class="badge text-bg-success ms-1">{{ $dashboardUnreadCount }}</span>
+                </h2>
+                <a href="{{ route('farmer.notifications.index') }}" class="btn btn-sm btn-outline-success">Open Notifications</a>
+            </div>
+            @if ($unreadPreviews)
+                <ul class="list-unstyled border-top pt-2 mt-2 mb-0">
+                    @foreach ($unreadPreviews as [$category, $preview])
+                        <li class="small text-break py-1">
+                            <strong>{{ $category }}</strong>
+                            <span class="text-muted">· {{ Str::limit($preview, 120) }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </div>
+    </section>
+@endif
+
 {{-- Welcome hero --}}
 <div class="fams-dash-hero">
     <div class="fams-dash-hero-inner">

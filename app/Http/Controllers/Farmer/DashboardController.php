@@ -7,17 +7,20 @@ use App\Models\Announcement;
 use App\Models\Application;
 use App\Models\Distribution;
 use App\Models\Recommendation;
+use App\Services\FarmerNotifications;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(FarmerNotifications $notifications): View
     {
         $farmer = Auth::user()->farmer;
 
         return view('farmer.dashboard', [
             'farmer' => $farmer,
+            'dashboardUnreadCount' => $farmer ? $notifications->unreadCount($farmer) : 0,
+            'unreadPreviews' => $farmer ? $notifications->unreadPreviews($farmer) : [],
             'announcements' => Announcement::where('is_published', true)
                 ->where('publish_date', '<=', now())
                 ->latest('publish_date')

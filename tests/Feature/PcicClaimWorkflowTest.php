@@ -173,16 +173,32 @@ class PcicClaimWorkflowTest extends TestCase
         $this->assertDatabaseCount('pcic_damage_incidents', 0);
     }
 
-    public function test_unverified_insurance_cannot_submit_claim(): void
+    public function test_farmer_can_submit_before_insurance_is_verified(): void
     {
-        [$user, , $program, $benefit] = $this->setupClaim('pending');
+        [$user, , $program, $benefit, $coverage] = $this->setupClaim('pending');
 
         $this->actingAs($user)
             ->post(route('farmer.applications.store', $program), $this->claimData($benefit))
-            ->assertSessionHas('error');
+            ->assertSessionHas('success');
 
-        $this->assertSame(0, Application::count());
-        $this->assertSame(0, PcicDamageIncident::count());
+        $incident = PcicDamageIncident::sole();
+        $this->assertNull($incident->pcic_insurance_coverage_id);
+        $this->assertSame('pending', $incident->status);
+        $this->assertSame('pending', $incident->application->status);
+        $this->post(route('farmer.applications.store', $program), $this->claimData($benefit))
+            ->assertSessionHas('error');
+        $this->assertDatabaseCount('pcic_damage_incidents', 1);
+
+        $admin = $this->makeAdmin();
+        $verify = route('admin.pcic-incidents.verify', $incident);
+        $request = ['verification_confirmed' => '1', 'review_notes' => 'Insurance and incident details reviewed.'];
+        $this->actingAs($admin)->patch($verify, $request)->assertUnprocessable();
+
+        $coverage->update(['verification_status' => 'verified', 'verified_by' => $admin->id, 'verified_at' => now()]);
+        $this->patch($verify, $request)->assertSessionHas('success');
+        $this->assertDatabaseHas('pcic_damage_incidents', [
+            'id' => $incident->id, 'pcic_insurance_coverage_id' => $coverage->id, 'status' => 'verified',
+        ]);
     }
 
     public function test_duplicate_claim_is_rejected(): void

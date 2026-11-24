@@ -271,9 +271,9 @@
         </div>
 
         <form
-            method="GET"s
+            method="GET"
             action="{{ route('admin.analytics.index') }}"
-            class="d-flex align-items-center gap-2 mt-2 mt-md-0"
+            class="d-flex flex-wrap align-items-center gap-2 mt-2 mt-md-0"
         >
 
             <label for="academic_year" class="fw-semibold mb-0">
@@ -300,6 +300,15 @@
                 @endforeach
 
             </select>
+
+            <label for="report_month" class="fw-semibold mb-0">Month</label>
+            <select id="report_month" name="month" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                <option value="">All months</option>
+                @foreach ($reportingPeriod->months as $month => $label)
+                    <option value="{{ $month }}" @selected($reportingPeriod->month === (string) $month)>{{ $label }}</option>
+                @endforeach
+            </select>
+            <noscript><button class="btn btn-sm btn-fams">Apply filters</button></noscript>
 
         </form>
 
@@ -426,7 +435,7 @@
     </div>
 
 
-    {-- FARMER DISTRIBUTION AND MEMBERSHIP --}
+    {{-- FARMER DISTRIBUTION AND MEMBERSHIP --}}
     <div class="row g-3 mb-4">
         <div class="col-lg-6">
 
@@ -1179,7 +1188,7 @@
         <div class="card-body d-flex flex-wrap gap-2">
 
             <a
-                href="{{ route('admin.reports.pdf', ['academic_year' => $selectedAcademicYear]) }}"
+                href="{{ route('admin.reports.pdf', $reportingPeriod->filters()) }}"
                 class="btn btn-outline-danger export-btn"
             >
 
@@ -1191,7 +1200,7 @@
 
 
             <a
-                href="{{ route('admin.reports.excel', ['academic_year' => $selectedAcademicYear]) }}"
+                href="{{ route('admin.reports.excel', $reportingPeriod->filters()) }}"
                 class="btn btn-outline-success export-btn"
             >
 

@@ -3,7 +3,7 @@
 @section('page-title', $batch->name)
 
 @section('main')
-<a href="{{ route('admin.distribution-batches.index') }}" class="btn btn-outline-secondary mb-3">
+<a href="{{ route('admin.distribution-batches.index') }}" class="btn btn-fams-back mb-3">
     <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Distribution Batches
 </a>
 

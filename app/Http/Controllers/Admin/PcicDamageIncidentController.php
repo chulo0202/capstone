@@ -6,6 +6,7 @@ use Illuminate\View\View;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\PcicDamageIncident;
+use App\Models\PcicInsuranceCoverage;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Http\RedirectResponse;
@@ -73,6 +74,23 @@ class PcicDamageIncidentController extends Controller
 
             $coverage = $lockedIncident->insuranceCoverage;
 
+            if ($lockedIncident->pcic_insurance_coverage_id === null) {
+                $matching = PcicInsuranceCoverage::query()
+                    ->where('farmer_id', $lockedIncident->farmer_id)
+                    ->where('verification_status', 'verified')
+                    ->whereNotNull('verified_by')
+                    ->whereNotNull('verified_at')
+                    ->whereDate('coverage_start_date', '<=', $lockedIncident->date_of_loss)
+                    ->whereDate('coverage_end_date', '>=', $lockedIncident->date_of_loss)
+                    ->where('area_insured', '>=', $lockedIncident->area_damaged)
+                    ->lockForUpdate()
+                    ->get()
+                    ->filter(fn ($policy) => strcasecmp(trim($policy->crop_type), trim($lockedIncident->crop_type)) === 0);
+
+                abort_if($matching->count() > 1, 422, 'More than one verified insurance policy matches this incident.');
+                $coverage = $matching->first();
+            }
+
             if (! $coverage || ! $coverage->isVerified()) {
                 abort(422, 'The insurance policy must be verified.');
             }
@@ -96,6 +114,7 @@ class PcicDamageIncidentController extends Controller
             }
 
             $lockedIncident->update([
+                'pcic_insurance_coverage_id' => $coverage->id,
                 'status' => 'verified',
                 'reviewed_by' => $request->user()->id,
                 'reviewed_at' => now(),

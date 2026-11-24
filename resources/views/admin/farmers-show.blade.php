@@ -3,7 +3,7 @@
 @section('page-title', 'Farmer Details')
 
 @section('main')
-<div class="mb-3"><a href="{{ route('admin.farmers.index') }}" class="btn btn-sm btn-outline-secondary">&larr; Back</a></div>
+<div class="mb-3"><a href="{{ route('admin.farmers.index') }}" class="btn btn-sm btn-fams-back">&larr; Back</a></div>
 <div class="row g-3">
   <div class="col-lg-6">
     <div class="card border-0 shadow-sm">

@@ -263,10 +263,6 @@ APPLICATION HISTORY
                     </th>
 
                     <th>
-                        Incident Reference
-                    </th>
-
-                    <th>
                         Date Applied
                     </th>
 
@@ -350,22 +346,6 @@ APPLICATION HISTORY
                         <td>
                             {{ $application->benefit?->name ?? 'Legacy application' }}
                         </td>
-
-                        <td>
-                            @if($application->pcicDamageIncident)
-                                <span class="fw-semibold text-primary">
-                                    {{ $application->pcicDamageIncident->incident_reference }}
-                                </span>
-
-                                <div class="small text-muted">
-                                    Incident:
-                                    {{ ucfirst($application->pcicDamageIncident->status) }}
-                                </div>
-                            @else
-                                <span class="text-muted">—</span>
-                            @endif
-                        </td>
-
 
                         {{-- DATE --}}
                         <td>
@@ -522,7 +502,7 @@ APPLICATION HISTORY
                     <tr>
 
                         <td
-                            colspan="7
+                            colspan="6"
                             class="text-center py-5"
                         >
 

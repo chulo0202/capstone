@@ -432,15 +432,20 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            color: #667085;
+            color: #fff;
+            background: #173d2d;
+            padding: 8px 12px;
+            border-radius: 8px;
             font-size: 0.78rem;
             font-weight: 600;
             text-decoration: none;
-            transition: color 0.18s ease;
+            transition: background-color 0.18s ease;
         }
 
-        .admin-back-link:hover {
-            color: #176b48;
+        .admin-back-link:hover,
+        .admin-back-link:focus-visible {
+            background: #102d21;
+            color: #fff;
         }
 
         .admin-submit-button {

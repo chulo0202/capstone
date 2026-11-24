@@ -39,7 +39,7 @@
 
             @if (auth()->user()->isFarmer() && ($notificationFarmer = auth()->user()->farmer))
                 @php
-                    $unreadCount = app(\App\Services\FarmerNotifications::class)->unreadCount($notificationFarmer);
+                    $unreadCount = $dashboardUnreadCount ?? app(\App\Services\FarmerNotifications::class)->unreadCount($notificationFarmer);
                 @endphp
                 <a href="{{ route('farmer.notifications.index') }}"
                     class="btn btn-light position-relative flex-shrink-0"

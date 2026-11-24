@@ -25,6 +25,28 @@ class FarmerNotifications
         return $count;
     }
 
+    public function unreadPreviews(Farmer $farmer): array
+    {
+        $previews = [];
+
+        foreach ($this->sources($farmer) as $source => [$query, $order]) {
+            $item = $query->whereNotExists($this->reads($farmer, $source, $query))
+                ->latest($order)->latest('id')->first();
+
+            if ($item) {
+                $previews[] = match ($source) {
+                    'announcements' => ['Announcement', $item->title],
+                    'schedules' => ['Scheduled distribution', $item->batch->name],
+                    'distributions' => ['Benefit received', $item->benefit?->name ?? $item->program->name],
+                    'pcicUpdates' => ['PCIC update', PcicTrackingUpdate::STATUSES[$item->status]],
+                    'notifications' => ['SMS', $item->message],
+                };
+            }
+        }
+
+        return $previews;
+    }
+
     public function feed(Farmer $farmer, bool $markRead, bool $browseAnnouncements = false): array
     {
         $items = [];

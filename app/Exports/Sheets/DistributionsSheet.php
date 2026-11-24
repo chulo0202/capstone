@@ -3,11 +3,20 @@
 namespace App\Exports\Sheets;
 
 use App\Models\Distribution;
+use App\Services\ReportData;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithTitle;
 
-class DistributionsSheet implements FromCollection
+class DistributionsSheet implements FromCollection, WithTitle
 {
+    public function __construct(private ReportData $report) {}
+
+    public function title(): string
+    {
+        return 'Distributions';
+    }
+
     public function collection(): Collection
     {
         $rows = collect([
@@ -20,15 +29,14 @@ class DistributionsSheet implements FromCollection
                 'Benefit ID',
                 'Benefit Name',
                 'Application ID',
+                'Batch',
                 'Released By',
                 'Distributed At',
                 'Notes',
             ],
         ]);
 
-        Distribution::with(['farmer', 'program', 'benefit', 'application', 'releasedBy'])
-            ->latest('distributed_at')
-            ->get()
+        $this->report->distributions
             ->each(function (Distribution $distribution) use ($rows) {
                 $rows->push([
                     $distribution->id,
@@ -39,6 +47,7 @@ class DistributionsSheet implements FromCollection
                     $distribution->program_benefit_id,
                     $distribution->benefit?->name,
                     $distribution->application_id,
+                    $distribution->batch?->name ?? 'Direct release',
                     $distribution->releasedBy?->name,
                     $distribution->distributed_at?->format('Y-m-d H:i:s'),
                     $distribution->notes,

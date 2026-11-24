@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Distribution;
 use App\Models\Farmer;
 use App\Models\Program;
+use App\Services\ReportData;
+use App\Services\ReportingPeriod;
+use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Exports\ReportsExport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -23,27 +26,22 @@ class ReportController extends Controller
         ]);
     }
 
-    public function exportPdf(): Response
+    public function exportPdf(Request $request): Response
     {
-        $pdf = Pdf::loadView('admin.reports-export', [
-            'farmers' => Farmer::latest()->take(20)->get(),
-            'programs' => Program::latest()->take(20)->get(),
-            'distributions' => Distribution::with(['farmer', 'program'])
-                ->latest()
-                ->take(20)
-                ->get(),
-        ]);
+        $report = new ReportData($request->hasAny(['academic_year', 'month']) ? new ReportingPeriod($request) : null);
+        $pdf = Pdf::loadView('admin.reports-export', ['report' => $report])
+            ->setPaper('a4', 'landscape');
 
-        return $pdf->download(
-            'fams-report-' . now()->format('YmdHis') . '.pdf'
-        );
+        return $pdf->download($report->filename().'.pdf');
     }
 
-    public function exportExcel()
+    public function exportExcel(Request $request)
     {
+        $report = new ReportData($request->hasAny(['academic_year', 'month']) ? new ReportingPeriod($request) : null);
+
         return Excel::download(
-            new ReportsExport(),
-            'fams-report-' . now()->format('YmdHis') . '.xlsx'
+            new ReportsExport($report),
+            $report->filename().'.xlsx'
         );
     }
 }

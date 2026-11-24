@@ -26,7 +26,7 @@ class ApplicationController extends Controller
         $farmer = Auth::user()->farmer;
 
         $applications = $farmer
-            ? Application::with(['program', 'benefit', 'pcicDamageIncident', 'latestPcicTrackingUpdate'])
+            ? Application::with(['program', 'benefit', 'latestPcicTrackingUpdate'])
                 ->where(fn ($query) => $query->withCurrentBenefit()->orWhereHas(
                     'program',
                     fn ($program) => $program->where('name', 'PCIC Crop Insurance')
@@ -153,15 +153,12 @@ class ApplicationController extends Controller
                         ->lockForUpdate()
                         ->get();
 
-                    if ($coverages->isEmpty()) {
-                        return ['error' => 'A verified PCIC insurance policy is required.'];
-                    }
-
+                    $hasVerifiedCoverage = $coverages->isNotEmpty();
                     $crop = trim((string) $lockedFarmer->crop_type);
                     $coverages = $coverages->filter(fn ($policy) => $crop !== ''
                         && strcasecmp($crop, trim((string) $policy->crop_type)) === 0);
 
-                    if ($coverages->isEmpty()) {
+                    if ($hasVerifiedCoverage && $coverages->isEmpty()) {
                         return ['error' => 'The insured crop does not match your farmer profile. Please contact the administrator to verify your insurance details.'];
                     }
 
@@ -170,13 +167,13 @@ class ApplicationController extends Controller
                         $policy->coverage_start_date, $policy->coverage_end_date
                     ));
 
-                    if ($coverages->isEmpty()) {
+                    if ($hasVerifiedCoverage && $coverages->isEmpty()) {
                         return ['error' => 'The date of loss is outside the insurance coverage period.'];
                     }
 
                     $coverages = $coverages->filter(fn ($policy) => (float) $validated['area_damaged'] <= (float) $policy->area_insured);
 
-                    if ($coverages->isEmpty()) {
+                    if ($hasVerifiedCoverage && $coverages->isEmpty()) {
                         return ['error' => 'The damaged area exceeds the insured area.'];
                     }
 
@@ -190,7 +187,9 @@ class ApplicationController extends Controller
                     // Same policy, loss date, and cause require review.
                     $possibleDuplicate = PcicDamageIncident::query()
                         ->where('farmer_id', $lockedFarmer->id)
-                        ->where('pcic_insurance_coverage_id', $coverage->id)
+                        ->when($coverage, fn ($query) => $query->where(fn ($policies) => $policies
+                            ->whereNull('pcic_insurance_coverage_id')->orWhere('pcic_insurance_coverage_id', $coverage->id)),
+                            fn ($query) => $query->where('crop_type', $crop))
                         ->whereDate(
                             'date_of_loss',
                             $validated['date_of_loss']
@@ -203,7 +202,7 @@ class ApplicationController extends Controller
 
                     if ($possibleDuplicate) {
                         return [
-                            'error' => 'A possible duplicate damage incident was found for this insurance policy and date. Please contact the administrator for review before submitting another claim.',
+                            'error' => 'A possible duplicate damage incident was found for this date. Please contact the administrator for review before submitting another claim.',
                         ];
                     }
 
@@ -217,7 +216,7 @@ class ApplicationController extends Controller
                     $details += $profileDetails;
                 }
 
-                if ($isPcicClaim) {
+                if ($isPcicClaim && $coverage) {
                     $details = array_replace($details, [
                         'insurance_reference' => $coverage->policy_number,
                         'crop_type' => $coverage->crop_type,
@@ -274,11 +273,11 @@ class ApplicationController extends Controller
                 if ($isPcicClaim) {
                     $incident = PcicDamageIncident::create([
                         'farmer_id' => $lockedFarmer->id,
-                        'pcic_insurance_coverage_id' => $coverage->id,
+                        'pcic_insurance_coverage_id' => $coverage?->id,
                         'incident_reference' => PcicDamageIncident::generateReference(),
                         'date_of_loss' => $validated['date_of_loss'],
                         'cause_of_loss' => $validated['cause_of_loss'],
-                        'crop_type' => $coverage->crop_type,
+                        'crop_type' => $coverage?->crop_type ?? $crop,
                         'area_damaged' => $validated['area_damaged'],
                         'status' => 'pending',
                         'application_id' => $application->id,
@@ -295,7 +294,7 @@ class ApplicationController extends Controller
                         'details' => [
                             'incident_reference' => $incident->incident_reference,
                             'application_id' => $application->id,
-                            'pcic_insurance_coverage_id' => $coverage->id,
+                            'pcic_insurance_coverage_id' => $coverage?->id,
                         ],
                     ]);
                 }

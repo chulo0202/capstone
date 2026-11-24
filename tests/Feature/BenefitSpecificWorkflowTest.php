@@ -924,6 +924,50 @@ class BenefitSpecificWorkflowTest extends TestCase
         $this->actingAs($other)->get($receipt)->assertNotFound();
     }
 
+    public function test_analytics_and_exports_share_the_selected_academic_month(): void
+    {
+        [, $farmer] = $this->createFarmer();
+        [, $outside] = $this->createFarmer();
+        $farmer->forceFill(['full_name' => 'January Report Farmer', 'created_at' => '2027-01-31 23:59:59'])->save();
+        $outside->forceFill(['full_name' => 'February Excluded Farmer', 'created_at' => '2027-02-01 00:00:00'])->save();
+
+        $program = $this->createProgram();
+        $benefit = $this->createBenefit($program, 'Report benefit');
+        $application = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
+        $application->update(['applied_at' => '2027-01-10', 'remarks' => '=1+1']);
+        $this->makeBenefitApplication($outside, $program, $benefit)->update(['applied_at' => '2027-02-01']);
+        $admin = $this->createAdmin();
+        \App\Models\Distribution::create([
+            'farmer_id' => $farmer->id, 'program_id' => $program->id, 'program_benefit_id' => $benefit->id,
+            'application_id' => $application->id, 'released_by' => $admin->id, 'distributed_at' => '2027-01-12',
+        ])->forceFill(['created_at' => '2027-01-12'])->save();
+        $this->actingAs($admin);
+        $filters = ['academic_year' => '2026-2027', 'month' => '01'];
+
+        $this->get(route('admin.analytics.index', $filters))->assertOk()
+            ->assertViewHas('totalFarmers', 1)->assertViewHas('totalDistributions', 1)
+            ->assertSee('January 2027')->assertSee('month=01');
+
+        $pdf = $this->get(route('admin.reports.pdf', $filters))->assertOk()->assertDownload('fams-report-2027-01.pdf');
+        $this->assertStringStartsWith('%PDF-', $pdf->getContent());
+
+        $excel = $this->get(route('admin.reports.excel', $filters))->assertOk()->assertDownload('fams-report-2027-01.xlsx');
+        $path = $excel->baseResponse->getFile()->getPathname();
+        try {
+            $workbook = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+            $this->assertSame(['Summary', 'Farmers', 'Programs', 'Applications', 'Distributions'], $workbook->getSheetNames());
+            $applicationSheet = $workbook->getSheetByName('Applications');
+            $this->assertSame(2, $applicationSheet->getHighestDataRow());
+            $this->assertSame('January Report Farmer', $applicationSheet->getCell('B2')->getValue());
+            $this->assertSame('=1+1', $applicationSheet->getCell('I2')->getValue());
+            $this->assertSame('s', $applicationSheet->getCell('I2')->getDataType());
+            $this->assertSame(2, $workbook->getSheetByName('Farmers')->getHighestDataRow());
+            $this->assertSame(2, $workbook->getSheetByName('Distributions')->getHighestDataRow());
+        } finally {
+            unlink($path);
+        }
+    }
+
     private function createDistributionBatch(Application $application): \App\Models\DistributionBatch
     {
         $this->post(route('admin.distribution-batches.store'), $this->distributionBatchData($application))

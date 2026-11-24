@@ -7,7 +7,7 @@ use App\Models\Distribution;
 use App\Models\Farmer;
 use App\Models\Program;
 use App\Models\Recommendation;
-use Carbon\Carbon;
+use App\Services\ReportingPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -16,61 +16,11 @@ class AnalyticsController extends Controller
 {
     public function index(Request $request): View
     {
-        /*
-        |--------------------------------------------------------------------------
-        | Academic / Program Year
-        |--------------------------------------------------------------------------
-        |
-        | Example:
-        | 2026-2027 = June 1, 2026 to May 31, 2027
-        |
-        */
-
-        $currentYear = now()->month >= 6
-            ? now()->year
-            : now()->year - 1;
-
-        $selectedAcademicYear = $request->input(
-            'academic_year',
-            $currentYear . '-' . ($currentYear + 1)
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Validate Academic Year Format
-        |--------------------------------------------------------------------------
-        */
-
-        if (! preg_match('/^\d{4}-\d{4}$/', $selectedAcademicYear)) {
-            $selectedAcademicYear = $currentYear . '-' . ($currentYear + 1);
-        }
-
-        [$startYear, $endYear] = array_map(
-            'intval',
-            explode('-', $selectedAcademicYear)
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Make Sure Year Sequence Is Valid
-        |--------------------------------------------------------------------------
-        */
-
-        if ($endYear !== $startYear + 1) {
-            $startYear = $currentYear;
-            $endYear = $currentYear + 1;
-
-            $selectedAcademicYear = $startYear . '-' . $endYear;
-        }
-
-        $periodStart = Carbon::create($startYear, 6, 1)->startOfDay();
-        $periodEnd = Carbon::create($endYear, 5, 31)->endOfDay();
-
-        /*
-        |--------------------------------------------------------------------------
-        | Available Academic Years
-        |--------------------------------------------------------------------------
-        */
+        $period = new ReportingPeriod($request);
+        $selectedAcademicYear = $period->academicYear;
+        $periodStart = $period->start;
+        $periodEnd = $period->end;
+        $currentYear = now()->month >= 6 ? now()->year : now()->year - 1;
 
         $academicYears = [];
 
@@ -613,6 +563,7 @@ class AnalyticsController extends Controller
             /*
             | Year Filter
             */
+            'reportingPeriod' => $period,
             'academicYears' =>
                 $academicYears,
 

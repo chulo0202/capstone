@@ -48,6 +48,19 @@ body {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(27, 67, 50, 0.25);
 }
+.btn-fams-back {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: #173d2d;
+    --bs-btn-border-color: #173d2d;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #102d21;
+    --bs-btn-hover-border-color: #102d21;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #0c251a;
+    --bs-btn-active-border-color: #0c251a;
+    --bs-btn-focus-shadow-rgb: 23, 61, 45;
+    font-weight: 600;
+}
 .btn-fams-outline {
     background: transparent;
     border: 1.5px solid var(--fams-border);

@@ -262,7 +262,7 @@
                     {{-- BACK --}}
                     <button
                         type="button"
-                        class="btn btn-outline-secondary w-100 py-2 mt-2"
+                        class="btn btn-fams-back w-100 py-2 mt-2"
                         id="backToRsbsaBtn"
                     >
                         <i class="bi bi-arrow-left"></i>

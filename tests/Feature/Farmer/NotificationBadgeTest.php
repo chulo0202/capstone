@@ -41,6 +41,11 @@ class NotificationBadgeTest extends TestCase
             ->assertOk()
             ->assertSee('aria-label="Notifications, 2 unread"', false);
 
+        $this->get(route('farmer.dashboard'))
+            ->assertSeeInOrder(['Unread notifications', 'Welcome back'])
+            ->assertSee('Open Notifications')
+            ->assertSee('aria-label="Notifications, 2 unread"', false);
+
         $this->get(route('farmer.notifications.index'))
             ->assertOk()
             ->assertSee('Published update')
@@ -48,7 +53,8 @@ class NotificationBadgeTest extends TestCase
             ->assertSee('aria-label="Notifications"', false);
 
         $this->get(route('farmer.dashboard'))
-            ->assertSee('aria-label="Notifications"', false);
+            ->assertSee('aria-label="Notifications"', false)
+            ->assertDontSee('dashboard-unread-heading', false);
 
         $this->addSms($farmer);
 

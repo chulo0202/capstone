@@ -2,25 +2,27 @@
 
 namespace App\Exports\Sheets;
 
-use App\Models\Distribution;
-use App\Models\Farmer;
-use App\Models\Program;
+use App\Services\ReportData;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithTitle;
 
-class SummarySheet implements FromCollection
+class SummarySheet implements FromCollection, WithTitle
 {
+    public function __construct(private ReportData $report) {}
+
+    public function title(): string
+    {
+        return 'Summary';
+    }
+
     public function collection(): Collection
     {
         return collect([
             ['FAMS SUMMARY REPORT'],
-            ['Generated At', now()->format('Y-m-d H:i:s')],
-            [''],
+            ['Reporting period', $this->report->periodLabel()],
+            ['Generated at', now()->format('Y-m-d H:i:s T')],
             ['Metric', 'Total'],
-            ['Registered Farmers', Farmer::count()],
-            ['Active Programs', Program::where('is_active', true)->count()],
-            ['Total Distributions', Distribution::count()],
-            ['Beneficiaries', Distribution::distinct('farmer_id')->count('farmer_id')],
-        ]);
+        ])->concat(collect($this->report->totals())->map(fn ($value, $metric) => [$metric, $value])->values());
     }
 }

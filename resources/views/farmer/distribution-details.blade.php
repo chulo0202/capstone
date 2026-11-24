@@ -3,7 +3,7 @@
 @section('page-title', 'Distribution Details')
 
 @section('main')
-<a class="btn btn-outline-secondary mb-3" href="{{ route('farmer.notifications.index') }}">
+<a class="btn btn-fams-back mb-3" href="{{ route('farmer.notifications.index') }}">
     <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Notifications
 </a>
 

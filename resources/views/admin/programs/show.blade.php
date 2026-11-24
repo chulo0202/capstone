@@ -32,7 +32,7 @@
 
         <a
             href="{{ route('admin.programs.index') }}"
-            class="btn btn-outline-secondary"
+            class="btn btn-fams-back"
         >
             <i class="bi bi-arrow-left me-1"></i>
             Back to Program List

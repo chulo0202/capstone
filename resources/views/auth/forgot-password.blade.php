@@ -32,7 +32,7 @@
             </form>
 
             <p class="text-center mt-4 mb-0">
-                <a href="{{ route('login') }}" class="auth-link"><i class="bi bi-arrow-left me-1"></i>Back to login</a>
+                <a href="{{ route('login') }}" class="btn btn-sm btn-fams-back"><i class="bi bi-arrow-left me-1"></i>Back to login</a>
             </p>
         </div>
     </div>

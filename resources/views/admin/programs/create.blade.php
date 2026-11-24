@@ -463,7 +463,7 @@
 
                             <button
                                 type="button"
-                                class="btn btn-outline-secondary flex-fill"
+                                class="btn btn-fams-back flex-fill"
                                 id="backToStep1"
                             >
                                 Back
@@ -605,7 +605,7 @@
 
                             <button
                                 type="button"
-                                class="btn btn-outline-secondary flex-fill"
+                                class="btn btn-fams-back flex-fill"
                                 id="backToStep2"
                             >
                                 Back
