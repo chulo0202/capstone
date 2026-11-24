@@ -96,6 +96,7 @@ class QRVerificationController extends Controller
                 'farmer_not_found' => ['Invalid QR code or farmer not found.', 404],
                 'application_not_found' => ['Approved application not found for this farmer.', 404],
                 'legacy_application_not_releasable' => ['Legacy program-level applications cannot authorize benefit releases. The farmer must apply for a specific benefit.', 422],
+                'pcic_approval_required' => ['Official PCIC approval is required before release.', 422],
                 'ineligible' => ['Benefit cannot be released because the farmer is not eligible.', 422],
                 'wrong_batch' => ['This application is not assigned to the selected distribution batch.', 409],
                 'batch_not_releasable' => ['The assigned distribution must be published and within its scheduled release window.', 409],

@@ -90,22 +90,11 @@ class ApplicationController extends Controller
                 return 'missing_history';
             }
 
-            // PCIC indemnity claims require a separate official approval workflow.
-            // Do not allow the generic application approval action to approve them.
-            $isPcicClaim = $locked->program->name === 'PCIC Crop Insurance'
-                && $locked->benefit?->name === 'Claim for Indemnity';
+            $isPcicClaim = $locked->isPcicClaim();
 
-            if ($isPcicClaim) {
-                return 'pcic_official_approval_required';
-            }
-
-            $evaluation = $eligibilityService->evaluate(
-                $locked->farmer,
-                $locked->program,
-                $locked->benefit
-            );
-
-            if ($evaluation['status'] !== 'eligible') {
+            if (! $isPcicClaim && $eligibilityService->evaluate(
+                $locked->farmer, $locked->program, $locked->benefit
+            )['status'] !== 'eligible') {
                 return 'ineligible';
             }
 
@@ -118,7 +107,7 @@ class ApplicationController extends Controller
             if ($locked->program?->isPcicCropInsurance()) {
                 $locked->pcicTrackingUpdates()->create([
                     'user_id' => $request->user()->id,
-                    'status' => 'application_approved',
+                    'status' => $isPcicClaim ? 'claim_approved_by_fams' : 'application_approved',
                     'remarks' => $locked->remarks,
                 ]);
             }
@@ -134,7 +123,6 @@ class ApplicationController extends Controller
 
         if ($result !== 'approved') {
             $message = match ($result) {
-                'pcic_official_approval_required' => 'PCIC indemnity claims cannot be approved through the general application workflow. Official PCIC approval verification is required.',
                 'not_pending' => 'Only pending applications can be approved.',
                 'missing_history' => 'The application is missing its farmer or program record.',
                 default => 'The farmer does not currently meet the application eligibility rules.',
@@ -151,8 +139,8 @@ class ApplicationController extends Controller
         Request $request,
         AuditLogService $auditLogService
     ): RedirectResponse {
-        $validated = $request->validate([
-            'remarks' => ['nullable', 'string', 'max:2000'],
+        $validated = $request->validateWithBag('applicationRejection', [
+            'remarks' => ['required', 'string', 'max:2000'],
         ]);
 
         $rejected = DB::transaction(function () use (
@@ -174,7 +162,7 @@ class ApplicationController extends Controller
             $locked->update([
                 'status' => 'rejected',
                 'reviewed_at' => now(),
-                'remarks' => $validated['remarks'] ?? 'Application rejected by admin.',
+                'remarks' => $validated['remarks'],
             ]);
 
             if ($locked->program?->isPcicCropInsurance()) {

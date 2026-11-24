@@ -12,6 +12,7 @@ class PcicTrackingUpdate extends Model
         'documents_requested' => 'Additional documents requested',
         'incident_verified' => 'Damage incident verified by FAMS',
         'incident_rejected' => 'Damage incident rejected by FAMS',
+        'claim_approved_by_fams' => 'Claim approved by FAMS',
         'application_approved' => 'Insurance application approved by FAMS',
         'application_rejected' => 'Application rejected by FAMS',
         'approved' => 'Approved by PCIC',

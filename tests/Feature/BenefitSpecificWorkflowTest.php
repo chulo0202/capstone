@@ -198,7 +198,10 @@ class BenefitSpecificWorkflowTest extends TestCase
             ->assertSessionHas('success');
 
         $this->patch(route('admin.applications.reject', $rejected))
+            ->assertSessionHasErrorsIn('applicationRejection', 'remarks');
+        $this->patch(route('admin.applications.reject', $rejected), ['remarks' => 'Application documents were incomplete.'])
             ->assertSessionHas('success');
+        $this->assertSame('Application documents were incomplete.', $rejected->fresh()->remarks);
 
         $this->assertSame('approved', $approved->fresh()->status);
         $this->assertSame('rejected', $rejected->fresh()->status);
@@ -206,6 +209,24 @@ class BenefitSpecificWorkflowTest extends TestCase
             'APPLICATION_APPROVED',
             'APPLICATION_REJECTED',
         ])->count());
+    }
+
+    public function test_admin_can_approve_pcic_claim_in_fams_before_official_pcic_approval(): void
+    {
+        [, $farmer] = $this->createFarmer();
+        $program = $this->createProgram(Program::PCIC_NAME);
+        $benefit = $this->createBenefit($program, 'Claim for Indemnity');
+        $claim = $this->makeBenefitApplication($farmer, $program, $benefit);
+
+        $this->actingAs($this->createAdmin())
+            ->patch(route('admin.applications.approve', $claim))
+            ->assertSessionHas('success');
+        $this->assertSame('approved', $claim->fresh()->status);
+        $this->assertSame('claim_approved_by_fams', $claim->latestPcicTrackingUpdate()->firstOrFail()->status);
+
+        $this->post(route('admin.distributions.release'), ['application_id' => $claim->id])
+            ->assertSessionHas('error', 'Official PCIC approval is required before release.');
+        $this->assertDatabaseCount('distributions', 0);
     }
 
     public function test_web_distribution_releases_exact_approved_benefit_application_once(): void

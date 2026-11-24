@@ -462,6 +462,9 @@ APPLICATION HISTORY
 
                                     </span>
 
+                                @elseif ($application->isPcicClaim() && !$application->hasOfficialPcicApproval())
+                                    <span class="small text-muted">Awaiting PCIC approval</span>
+
                                 @else
 
                                     <span class="small text-success fw-semibold">

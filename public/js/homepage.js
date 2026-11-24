@@ -18,14 +18,28 @@ document.addEventListener('DOMContentLoaded', function () {
     handleScrollState();
     window.addEventListener('scroll', handleScrollState, { passive: true });
 
-    if (backToTop) {
-        backToTop.addEventListener('click', function () {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+    /* ---------- Active section and mobile navigation ---------- */
+    const sectionLinks = Array.from(document.querySelectorAll('.fams-navbar .nav-link[href^="#"]'));
+
+    function updateActiveSection() {
+        const hash = window.location.hash;
+        const activeLink = sectionLinks.find(link => link.hash === hash) || sectionLinks[0];
+
+        sectionLinks.forEach(function (link) {
+            const active = link === activeLink;
+            link.classList.toggle('active', active);
+            if (active) {
+                link.setAttribute('aria-current', 'location');
+            } else {
+                link.removeAttribute('aria-current');
+            }
         });
     }
 
-    /* ---------- Collapse mobile navbar after link click ---------- */
-    document.querySelectorAll('.fams-navbar .nav-link').forEach(function (link) {
+    updateActiveSection();
+    window.addEventListener('hashchange', updateActiveSection);
+
+    sectionLinks.forEach(function (link) {
         link.addEventListener('click', function () {
             const collapseEl = document.getElementById('famsNavContent');
             if (collapseEl && collapseEl.classList.contains('show')) {

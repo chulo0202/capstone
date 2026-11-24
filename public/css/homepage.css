@@ -113,6 +113,10 @@ a {
     margin-bottom: 3.2rem;
 }
 
+#features .section-header {
+    margin-bottom: 1.75rem;
+}
+
 section {
     position: relative;
     padding: 6.5rem 0;
@@ -1021,6 +1025,7 @@ section {
    Dashboard Statistics
    ========================================================= */
 .stats-section {
+    padding-block: clamp(3rem, 5vw, 5rem);
     background: var(--fams-gradient);
     position: relative;
     overflow: hidden;
@@ -1364,6 +1369,7 @@ section {
 }
 
 .btn-back-to-top:hover {
+    color: #fff;
     transform: translateY(-4px);
 }
 

@@ -70,6 +70,19 @@ class Application extends Model
         return $this->hasMany(PcicTrackingUpdate::class);
     }
 
+    public function isPcicClaim(): bool
+    {
+        return $this->program?->isPcicCropInsurance() && $this->benefit?->name === 'Claim for Indemnity';
+    }
+
+    public function hasOfficialPcicApproval(): bool
+    {
+        $status = $this->pcicTrackingUpdates()->whereIn('status', PcicTrackingUpdate::OFFICIAL_STATUSES)
+            ->whereNotNull('pcic_reference')->latest('id')->value('status');
+
+        return in_array($status, ['approved', 'release_scheduled', 'released'], true);
+    }
+
     public function latestPcicTrackingUpdate(): HasOne
     {
         return $this->hasOne(PcicTrackingUpdate::class)->latestOfMany();

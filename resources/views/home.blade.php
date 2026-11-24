@@ -41,7 +41,7 @@
 
         <div class="collapse navbar-collapse" id="famsNavContent">
             <ul class="navbar-nav mx-auto my-3 my-lg-0">
-                <li class="nav-item"><a class="nav-link active" href="#home">Home</a></li>
+                <li class="nav-item"><a class="nav-link active" href="#home" aria-current="location">Home</a></li>
                 <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
                 <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
                 <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
@@ -267,7 +267,7 @@
             </div>
         </div>
 
-        <div class="row g-4">
+        <div class="row g-4 justify-content-center">
             @php
                 $features = [
                     [
@@ -364,11 +364,11 @@
      ========================================================= --}}
 <section class="stats-section">
     <div class="container">
-        <div class="row g-4">
+        <div class="row g-4 justify-content-center">
 
             @foreach ($stats as $i => $stat)
 
-                <div class="col-6 col-lg-3">
+                <div class="col-12 col-md-4">
 
                     <div class="stat-card reveal reveal-delay-{{ $i + 1 }}">
 
@@ -600,9 +600,9 @@
     </div>
 </footer>
 
-<button class="btn-back-to-top" id="backToTop" aria-label="Back to top">
+<a class="btn-back-to-top" id="backToTop" href="#home" aria-label="Back to top">
     <i class="bi bi-arrow-up"></i>
-</button>
+</a>
 
 {{-- Bootstrap 5.3 JS Bundle --}}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

@@ -116,6 +116,7 @@ class DistributionController extends Controller
                 'wrong_batch' => 'This application is not assigned to the selected distribution batch.',
                 'batch_not_releasable' => 'The assigned distribution must be published and within its scheduled release window.',
                 'invalid_benefit' => 'This application does not reference a valid program benefit.',
+                'pcic_approval_required' => 'Official PCIC approval is required before release.',
                 'ineligible' => 'Benefit cannot be released because the farmer is not eligible.',
                 default => 'Approved benefit application not found.',
             };

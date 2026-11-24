@@ -45,6 +45,10 @@ class DistributionReleaseService
             return 'already_released';
         }
 
+        if ($application->isPcicClaim() && ! $application->hasOfficialPcicApproval()) {
+            return 'pcic_approval_required';
+        }
+
         if (
             $farmer->is_active && ! $application->benefit->archived_at && ! $application->program->archived_at
             && $this->eligibility->evaluate($farmer, $application->program, $application->benefit)['status'] !== 'eligible'

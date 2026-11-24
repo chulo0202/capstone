@@ -172,7 +172,6 @@
                                         <form
                                             method="POST"
                                             action="{{ route('admin.applications.approve', $application) }}"
-                                            onsubmit="return confirm('Approve this application?')"
                                         >
                                             @csrf
                                             @method('PATCH')
@@ -180,29 +179,19 @@
                                             <button
                                                 type="submit"
                                                 class="btn btn-sm btn-success"
-                                                title="Approve"
+                                                title="Approve" aria-label="Approve application"
                                             >
                                                 <i class="bi bi-check-lg"></i>
                                             </button>
                                         </form>
 
-                                        {{-- Reject --}}
-                                        <form
-                                            method="POST"
-                                            action="{{ route('admin.applications.reject', $application) }}"
-                                            onsubmit="return confirm('Reject this application?')"
-                                        >
-                                            @csrf
-                                            @method('PATCH')
-
-                                            <button
-                                                type="submit"
-                                                class="btn btn-sm btn-danger"
-                                                title="Reject"
-                                            >
-                                                <i class="bi bi-x-lg"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-sm btn-danger" title="Reject" aria-label="Reject application"
+                                            data-bs-toggle="modal" data-bs-target="#rejectApplicationModal"
+                                            data-reject-url="{{ route('admin.applications.reject', $application) }}"
+                                            data-application-id="{{ $application->id }}"
+                                            data-farmer-name="{{ $application->farmer?->full_name }}">
+                                            <i class="bi bi-x-lg" aria-hidden="true"></i>
+                                        </button>
 
                                     </div>
 
@@ -369,5 +358,73 @@
     @endif
 
 </div>
+
+<div class="modal fade" id="rejectApplicationModal" tabindex="-1" aria-labelledby="rejectApplicationTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" id="rejectApplicationForm" method="POST">
+            @csrf
+            @method('PATCH')
+            <input type="hidden" name="rejection_application" value="">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="rejectApplicationTitle">Reject application</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted" id="rejectApplicationFarmer"></p>
+                <label class="form-label" for="applicationRejectionReason">Reason for rejection <span class="text-danger">*</span></label>
+                <textarea class="form-control" name="remarks" id="applicationRejectionReason"
+                    rows="4" maxlength="2000" required></textarea>
+                @error('remarks', 'applicationRejection')
+                    <p class="small text-danger mt-2 mb-0" id="applicationRejectionError" hidden>{{ $message }}</p>
+                @enderror
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-danger">Reject Application</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('rejectApplicationModal');
+    const form = document.getElementById('rejectApplicationForm');
+    const reason = form.elements.remarks;
+    const error = document.getElementById('applicationRejectionError');
+    const oldId = {{ Js::from((string) old('rejection_application', '')) }};
+    const oldReason = {{ Js::from((string) old('remarks', '')) }};
+
+    modal.addEventListener('show.bs.modal', event => {
+        const button = event.relatedTarget;
+        if (!button?.dataset.rejectUrl) {
+            event.preventDefault();
+            return;
+        }
+
+        const failed = Boolean(error && button.dataset.applicationId === oldId);
+        form.action = button.dataset.rejectUrl;
+        form.elements.rejection_application.value = button.dataset.applicationId;
+        document.getElementById('rejectApplicationFarmer').textContent = button.dataset.farmerName;
+        reason.value = failed ? oldReason : '';
+        reason.setCustomValidity('');
+        reason.classList.toggle('is-invalid', failed);
+        if (error) error.hidden = !failed;
+    });
+
+    modal.addEventListener('shown.bs.modal', () => reason.focus());
+    reason.addEventListener('input', () => {
+        reason.setCustomValidity(reason.value && !reason.value.trim() ? 'Enter a reason for rejection.' : '');
+        reason.classList.remove('is-invalid');
+        if (error) error.hidden = true;
+    });
+
+    if (error && oldId) {
+        const trigger = [...document.querySelectorAll('[data-reject-url]')]
+            .find(button => button.dataset.applicationId === oldId);
+        if (trigger) bootstrap.Modal.getOrCreateInstance(modal).show(trigger);
+    }
+});
+</script>
 
 @endsection
