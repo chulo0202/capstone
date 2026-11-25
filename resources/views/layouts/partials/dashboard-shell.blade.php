@@ -77,7 +77,7 @@
     </div>
 </div>
 
-            <form method="POST" action="{{ route('logout') }}">
+            <form method="POST" action="{{ route('logout') }}" onsubmit="return confirm('are you sure you want to log out?')">
                 @csrf
                 <button type="submit" class="btn btn-sm btn-fams-outline text-danger border-danger-subtle">
                     <i class="bi bi-box-arrow-right"></i>

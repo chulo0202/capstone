@@ -24,6 +24,14 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'distribution_gmail' => [
+        'enabled' => env('DISTRIBUTION_GMAIL_ENABLED', false),
+        'sender' => env('DISTRIBUTION_GMAIL_SENDER'),
+        'client_id' => env('DISTRIBUTION_GMAIL_CLIENT_ID'),
+        'client_secret' => env('DISTRIBUTION_GMAIL_CLIENT_SECRET'),
+        'refresh_token' => env('DISTRIBUTION_GMAIL_REFRESH_TOKEN'),
+    ],
+
     'distribution_sms' => [
         'enabled' => env('DISTRIBUTION_SMS_ENABLED', false),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),

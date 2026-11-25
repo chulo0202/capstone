@@ -16,6 +16,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -731,6 +732,65 @@ class BenefitSpecificWorkflowTest extends TestCase
 
         $this->get(route('admin.distribution-batches.edit', $batch))
             ->assertOk()->assertSee('Save Schedule')->assertDontSee('distribution-wizard');
+    }
+
+    public function test_distribution_gmail_only_sends_to_verified_beneficiaries_and_retries_failures(): void
+    {
+        config([
+            'services.distribution_gmail.enabled' => true,
+            'services.distribution_gmail.sender' => 'fams@example.com',
+        ]);
+
+        $gmail = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://oauth2.googleapis.com/token' => Http::response(['access_token' => 'test-token']),
+            $gmail => Http::sequence()->pushStatus(429)->push(['id' => 'test-message-id']),
+        ]);
+
+        [$user, $farmer] = $this->createFarmer();
+        [$unverified, $unverifiedFarmer] = $this->createFarmer();
+        $unverified->forceFill(['email_verified_at' => null])->save();
+        [, $otherFarmer] = $this->createFarmer();
+
+        $program = $this->createProgram();
+        $benefit = $this->createBenefit($program, 'Email test benefit');
+        $application = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
+        $other = $this->makeBenefitApplication($unverifiedFarmer, $program, $benefit, 'approved');
+        $this->makeBenefitApplication($otherFarmer, $program, $benefit, 'approved');
+
+        $this->actingAs($this->createAdmin())->post(route('admin.distribution-batches.store'), array_replace(
+            $this->distributionBatchData($application),
+            ['application_ids' => [$application->id, $other->id]]
+        ))->assertSessionHas('success');
+        $batch = \App\Models\DistributionBatch::sole();
+        Http::assertNothingSent();
+
+        $this->post(route('admin.distribution-batches.publish', $batch), ['confirm_publish' => 'yes'])
+            ->assertSessionHas('success');
+        $this->assertDatabaseCount('distribution_schedule_emails', 2);
+        $this->assertDatabaseHas('distribution_schedule_emails', ['farmer_id' => $unverifiedFarmer->id, 'status' => 'unverified']);
+
+        $email = $batch->scheduleEmails()->where('farmer_id', $farmer->id)->sole();
+        $this->assertSame('failed', $email->status);
+        $retry = route('admin.distribution-batches.emails.retry', [$batch, $email]);
+        $this->post($retry)->assertSessionHas('success');
+        $this->assertSame('test-message-id', $email->refresh()->gmail_message_id);
+        $this->post($retry)->assertSessionHas('success');
+
+        Http::assertSentCount(4);
+        Http::assertSent(function ($request) use ($gmail, $user) {
+            if ($request->url() !== $gmail) {
+                return false;
+            }
+
+            $message = base64_decode(strtr($request['raw'], '-_', '+/'));
+
+            return str_contains($message, 'To: '.$user->email)
+                && str_contains($message, 'Municipal Hall');
+        });
+        $this->get(route('admin.distribution-batches.show', $batch))
+            ->assertOk()->assertSee('Accepted by Gmail')->assertSee('Skipped (email not verified)');
     }
 
     public function test_publishing_distribution_submits_sms_only_for_assigned_farmers(): void

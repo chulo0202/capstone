@@ -158,6 +158,7 @@
             <form
                 method="POST"
                 action="{{ route('logout') }}"
+                onsubmit="return confirm('are you sure you want to log out?')"
             >
                 @csrf
 

@@ -91,4 +91,38 @@
         </table>
     </div>
 </section>
+@if ($scheduleEmails->total())
+    <section class="card shadow-sm mt-3">
+        <div class="card-body">
+            <h2 class="h6">Schedule Email History</h2>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead><tr><th scope="col">Farmer</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
+                    <tbody>
+                        @foreach ($scheduleEmails as $email)
+                            <tr>
+                                <td>{{ $email->farmer?->full_name }}</td>
+                                <td>{{ match ($email->status) {
+                                    'unverified' => 'Skipped (email not verified)',
+                                    'accepted' => 'Accepted by Gmail',
+                                    'unknown' => 'Acceptance unknown',
+                                    default => ucfirst($email->status),
+                                } }}</td>
+                                <td>
+                                    @if ($batch->status === 'published' && config('services.distribution_gmail.enabled') && in_array($email->status, ['pending', 'failed'], true))
+                                        <form method="POST" action="{{ route('admin.distribution-batches.emails.retry', [$batch, $email]) }}">
+                                            @csrf
+                                            <button class="btn btn-outline-success btn-sm">{{ $email->status === 'pending' ? 'Send Email' : 'Retry Email' }}</button>
+                                        </form>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            {{ $scheduleEmails->links() }}
+        </div>
+    </section>
+@endif
 @endsection

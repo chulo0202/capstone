@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Application;
 use App\Models\DistributionAssignment;
 use App\Models\DistributionBatch;
+use App\Models\DistributionScheduleEmail;
 use App\Models\Program;
 use App\Services\AuditLogService;
 use App\Services\DistributionReleaseService;
+use App\Services\DistributionScheduleMailer;
 use App\Services\DistributionScheduleSms;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -76,7 +78,9 @@ class DistributionBatchController extends Controller
     {
         $batch->load(['program', 'benefit', 'assignments.application.farmer']);
 
-        return view('admin.distribution-batches.show', compact('batch'));
+        $scheduleEmails = $batch->scheduleEmails()->with('farmer')->orderBy('id')->paginate(15);
+
+        return view('admin.distribution-batches.show', compact('batch', 'scheduleEmails'));
     }
 
     public function edit(DistributionBatch $batch): View
@@ -166,12 +170,13 @@ class DistributionBatchController extends Controller
         DistributionBatch $batch,
         DistributionReleaseService $releases,
         AuditLogService $audit,
-        DistributionScheduleSms $sms
+        DistributionScheduleSms $sms,
+        DistributionScheduleMailer $mailer
     ): RedirectResponse
     {
         $request->validate(['confirm_publish' => ['accepted']]);
 
-        $notifications = DB::transaction(function () use ($batch, $releases, $audit, $sms) {
+        [$notifications, $emails] = DB::transaction(function () use ($batch, $releases, $audit, $sms, $mailer) {
             $locked = DistributionBatch::lockForUpdate()->findOrFail($batch->id);
             abort_unless($locked->status === 'draft', 409, 'Only draft batches can be published.');
 
@@ -180,7 +185,7 @@ class DistributionBatchController extends Controller
             }
 
             $assignments = $locked->assignments()->whereNotNull('active_application_id')
-                ->with('application.farmer', 'application.benefit', 'application.program')->get();
+                ->with('application.farmer.user', 'application.benefit', 'application.program')->get();
 
             if ($assignments->isEmpty()) {
                 $this->reject('application_ids', 'Please select at least one approved beneficiary.');
@@ -202,14 +207,29 @@ class DistributionBatchController extends Controller
             $locked->update(['status' => 'published']);
             $audit->log('DISTRIBUTION_BATCH_PUBLISHED', $locked);
 
-            return $sms->record($locked, $assignments);
+            return [$sms->record($locked, $assignments), $mailer->record($locked, $assignments)];
         });
 
         if ($notifications->isNotEmpty()) {
             defer(fn () => $notifications->each(fn ($notification) => $sms->send($notification)));
         }
 
+        if ($emails->isNotEmpty()) {
+            defer(fn () => $emails->where('status', 'pending')->each(fn ($email) => $mailer->send($email)));
+        }
+
         return back()->with('success', 'Distribution schedule published.');
+    }
+
+    public function retryEmail(DistributionBatch $batch, DistributionScheduleEmail $email, DistributionScheduleMailer $mailer): RedirectResponse
+    {
+        abort_unless((int) $email->distribution_batch_id === (int) $batch->id, 404);
+
+        $mailer->send($email);
+
+        return $email->refresh()->status === 'accepted'
+            ? back()->with('success', 'Schedule email accepted by Gmail.')
+            : back()->with('error', 'Email acceptance could not be confirmed. Check the current status.');
     }
 
     public function cancel(Request $request, DistributionBatch $batch, AuditLogService $audit): RedirectResponse

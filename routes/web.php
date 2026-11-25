@@ -219,6 +219,8 @@ Route::middleware(['auth'])->group(function () {
             ->parameters(['distribution-batches' => 'batch']);
         Route::post('/distribution-batches/{batch}/publish', [DistributionBatchController::class, 'publish'])
             ->name('distribution-batches.publish');
+        Route::post('/distribution-batches/{batch}/emails/{email}/retry', [DistributionBatchController::class, 'retryEmail'])
+            ->name('distribution-batches.emails.retry');
         Route::post('/distribution-batches/{batch}/cancel', [DistributionBatchController::class, 'cancel'])
             ->name('distribution-batches.cancel');
 
