@@ -275,7 +275,7 @@
                                             </p>
                                         @elseif (!empty($details))
                                             @foreach ($details as $key => $value)
-                                                @continue(in_array($key, ['damage_photo_path', 'lots'], true))
+                                                @continue(in_array($key, ['damage_photo_path', 'damage_photo_paths', 'lots'], true))
 
                                                 <p class="mb-2">
                                                     <strong>
@@ -297,17 +297,7 @@
 
                                             @includeWhen(!empty($details['lots']), 'admin.applications.insured-lots', ['lots' => $details['lots'] ?? []])
 
-                                            @if (!empty($details['damage_photo_path']) && $application->pcicDamageIncident)
-                                                <a
-                                                    href="{{ route('admin.pcic-incidents.damage-photo', $application->pcicDamageIncident) }}"
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    class="btn btn-sm btn-outline-primary mt-2"
-                                                >
-                                                    <i class="bi bi-image me-1"></i>
-                                                    View Damage Photo
-                                                </a>
-                                            @endif
+                                            @includeWhen($application->pcicDamageIncident?->damagePhotoPaths(), 'admin.applications.damage-photos', ['incident' => $application->pcicDamageIncident])
                                         @else
                                             <p class="text-muted mb-0">
                                                 No additional application details available.

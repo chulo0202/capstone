@@ -145,7 +145,7 @@
             @elseif (is_array($details) && count($details))
                 <div class="row g-3">
                     @foreach ($details as $key => $value)
-                        @continue(in_array($key, ['damage_photo_path', 'lots'], true))
+                        @continue(in_array($key, ['damage_photo_path', 'damage_photo_paths', 'lots'], true))
 
                         <div class="col-md-6">
                             <div class="border rounded-3 p-3 h-100">
@@ -181,15 +181,7 @@
                     {{ $application->pcicDamageIncident->incident_reference }}
                 </p>
 
-                @if (!empty($details['damage_photo_path']))
-                    <a href="{{ route('admin.pcic-incidents.damage-photo', $application->pcicDamageIncident) }}"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-image me-1"></i>
-                        View Damage Photo
-                    </a>
-                @endif
+                @includeWhen($application->pcicDamageIncident?->damagePhotoPaths(), 'admin.applications.damage-photos', ['incident' => $application->pcicDamageIncident])
             @endif
         </div>
     </div>

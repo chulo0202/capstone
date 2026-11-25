@@ -778,7 +778,7 @@
                 let firstField;
                 const general = [];
                 Object.entries(errors).forEach(([name, messages]) => {
-                    const fieldName = name.replace(/^lots\.(\d+)\.(\w+)$/, 'lots[$1][$2]');
+                    const fieldName = /^damage_photo(?:\.\d+)?$/.test(name) ? 'damage_photo[]' : name.replace(/^lots\.(\d+)\.(\w+)$/, 'lots[$1][$2]');
                     const field = form.elements.namedItem(fieldName);
                     if (!field || field.disabled || field.type === 'hidden') {
                         general.push(...messages);
@@ -824,6 +824,12 @@
                         showErrors({}, `The combined area of all lots cannot exceed the land size in My Profile (${maximum} hectares).`);
                         return;
                     }
+                }
+
+                const photoInput = form.elements.namedItem('damage_photo[]');
+                if (!photoInput.disabled && photoInput.files.length > 3) {
+                    showErrors({ damage_photo: ['Upload up to 3 photos.'] });
+                    return;
                 }
 
                 submitting = true;

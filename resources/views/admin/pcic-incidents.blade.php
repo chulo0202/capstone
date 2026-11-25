@@ -126,21 +126,8 @@
                                         </p>
 
 
-                                        @if (filled(data_get($incident->application?->detail?->details, 'damage_photo_path')))
-                                            <div class="mb-3">
-                                                <a
-                                                    href="{{ route('admin.pcic-incidents.damage-photo', $incident) }}"
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    class="btn btn-sm btn-outline-primary"
-                                                >
-                                                    <i class="bi bi-image me-1"></i>
-                                                    View Damage Photo
-                                                </a>
-                                                <div class="small text-muted mt-1">
-                                                    Private evidence. Authorized administrators only.
-                                                </div>
-                                            </div>
+                                        @if ($incident->damagePhotoPaths())
+                                            @include('admin.applications.damage-photos')
                                         @else
                                             <p class="mb-3 text-muted small">
                                                 No damage photo is available for this incident.

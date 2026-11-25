@@ -123,9 +123,9 @@ Route::middleware(['auth'])->group(function () {
 
         // PCIC Damage Incident Management
         Route::get(
-            '/pcic-incidents/{incident}/damage-photo',
+            '/pcic-incidents/{incident}/damage-photo/{photo?}',
             [\App\Http\Controllers\Admin\PcicDamageIncidentController::class, 'damagePhoto']
-        )->name('pcic-incidents.damage-photo');
+        )->whereNumber('photo')->name('pcic-incidents.damage-photo');
 
         Route::patch(
             '/pcic-incidents/{incident}/verify',

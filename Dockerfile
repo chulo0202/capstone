@@ -55,7 +55,7 @@ RUN a2enmod rewrite headers \
 
 # Use PHP production settings
 RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
-    && printf '\nupload_max_filesize=10M\npost_max_size=12M\nmemory_limit=256M\nopcache.enable=1\n' \
+    && printf '\nupload_max_filesize=10M\npost_max_size=20M\nmemory_limit=256M\nopcache.enable=1\n' \
     > "$PHP_INI_DIR/conf.d/fams.ini"
 
 # Install Composer

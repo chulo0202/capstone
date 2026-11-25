@@ -56,7 +56,7 @@ class ApplicationController extends Controller
             return $this->submissionError($request, 'Please complete your profile before applying.');
         }
 
-        $newDamagePhotoPath = null;
+        $newDamagePhotoPaths = [];
 
         try {
             $result = DB::transaction(function () use (
@@ -65,7 +65,7 @@ class ApplicationController extends Controller
                 $farmer,
                 $validated,
                 $eligibilityService,
-                &$newDamagePhotoPath
+                &$newDamagePhotoPaths
             ) {
                 $lockedFarmer = Farmer::query()
                     ->whereKey($farmer->id)
@@ -246,19 +246,18 @@ class ApplicationController extends Controller
                     ]);
                 }
 
-                // Store claim evidence in the private R2 bucket.
-                if ($isPcicClaim && $request->hasFile('damage_photo')) {
-                    $newDamagePhotoPath = $request->file('damage_photo')
-                        ->store(
-                            'pcic-claims/'.$lockedFarmer->id,
-                            'private'
-                        );
+                if ($isPcicClaim) {
+                    foreach ($validated['damage_photo'] as $photo) {
+                        $path = $photo->store('pcic-claims/'.$lockedFarmer->id, 'private');
 
-                    if (! $newDamagePhotoPath) {
-                        throw new \RuntimeException('Damage photo upload failed.');
+                        if (! $path) {
+                            throw new \RuntimeException('Damage photo upload failed.');
+                        }
+
+                        $newDamagePhotoPaths[] = $path;
                     }
 
-                    $details['damage_photo_path'] = $newDamagePhotoPath;
+                    $details['damage_photo_paths'] = $newDamagePhotoPaths;
                 }
 
                 $application = Application::create([
@@ -338,9 +337,9 @@ class ApplicationController extends Controller
             });
 
         } catch (\Throwable $exception) {
-            if ($newDamagePhotoPath) {
+            foreach ($newDamagePhotoPaths as $path) {
                 try {
-                    if (! Storage::disk('private')->delete($newDamagePhotoPath)) {
+                    if (! Storage::disk('private')->delete($path)) {
                         Log::warning('Failed to clean up PCIC claim photo.', [
                             'farmer_id' => $farmer->id,
                         ]);

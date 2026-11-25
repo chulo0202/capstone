@@ -203,7 +203,8 @@ class PcicDamageIncidentController extends Controller
 
     public function damagePhoto(
         Request $request,
-        PcicDamageIncident $incident
+        PcicDamageIncident $incident,
+        int $photo = 1
     ): StreamedResponse {
         abort_unless($request->user()?->isAdmin(), 403);
 
@@ -215,8 +216,7 @@ class PcicDamageIncidentController extends Controller
             404
         );
 
-        $details = $application->detail?->details ?? [];
-        $path = $details['damage_photo_path'] ?? null;
+        $path = $incident->damagePhotoPaths()[$photo - 1] ?? null;
 
         abort_unless(is_string($path) && $path !== '', 404);
 

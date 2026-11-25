@@ -61,6 +61,14 @@ class PcicDamageIncident extends Model
         return $this->belongsTo(Application::class);
     }
 
+    public function damagePhotoPaths(): array
+    {
+        $details = $this->application?->detail?->details ?? [];
+
+        return $details['damage_photo_paths']
+            ?? (isset($details['damage_photo_path']) ? [$details['damage_photo_path']] : []);
+    }
+
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');

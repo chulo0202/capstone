@@ -225,10 +225,15 @@
                                 <input
                                     type="date"
                                     name="date_of_loss" id="apply-date_of_loss"
-                                    max="{{ today()->toDateString() }}"
+                                    min="{{ today('Asia/Manila')->subDays(7)->toDateString() }}"
+                                    max="{{ today('Asia/Manila')->toDateString() }}"
+                                    aria-describedby="date-of-loss-help"
                                     class="form-control"
                                     required
                                 >
+                                <div id="date-of-loss-help" class="form-text">
+                                    Select today or a date up to 7 days ago.
+                                </div>
                             </div>
 
                             <div class="mb-3">
@@ -258,14 +263,15 @@
 
                             <div class="mb-3">
                                 <label class="form-label" for="apply-damage_photo">
-                                    Photo of Damaged Crop <span class="text-danger" aria-hidden="true">*</span>
+                                    Photos of Damaged Crop <span class="text-danger" aria-hidden="true">*</span>
                                 </label>
                                 <input type="file"
-                                       name="damage_photo" id="apply-damage_photo"
+                                       name="damage_photo[]" id="apply-damage_photo" multiple
+                                       aria-describedby="damage-photo-help"
                                        accept="image/jpeg,image/png,image/webp"
                                        class="form-control" required>
-                                <div class="form-text">
-                                    JPG, PNG or WebP. Maximum 5 MB.
+                                <div id="damage-photo-help" class="form-text">
+                                    Upload 1 to 3 photos in JPG, PNG, or WebP format. Maximum 5 MB per photo.
                                 </div>
                             </div>
                         </div>

@@ -129,6 +129,25 @@ class PcicClaimWorkflowTest extends TestCase
         $this->assertEquals([$lot, $secondLot], \App\Models\Application::sole()->detail->details['lots']);
     }
 
+    public function test_claim_date_of_loss_must_be_within_seven_days(): void
+    {
+        [$user, , $program, $benefit] = $this->setupClaim();
+        $data = $this->claimData($benefit);
+        $route = route('farmer.applications.store', $program);
+        $today = today('Asia/Manila');
+
+        $this->actingAs($user);
+        foreach ([$today->copy()->subDays(8), $today->copy()->addDay()] as $invalidDate) {
+            $this->post($route, array_replace($data, ['date_of_loss' => $invalidDate->toDateString()]))
+                ->assertSessionHasErrors('date_of_loss');
+        }
+        $this->assertDatabaseCount('applications', 0);
+
+        $this->post($route, array_replace($data, ['date_of_loss' => $today->subDays(7)->toDateString()]))
+            ->assertSessionHas('success');
+        $this->assertDatabaseCount('applications', 1);
+    }
+
     public function test_indemnity_claim_rejects_damaged_area_above_profile_land_size(): void
     {
         [$user, $farmer, $program, $benefit] = $this->setupClaim();
@@ -160,7 +179,10 @@ class PcicClaimWorkflowTest extends TestCase
             'date_of_loss' => now()->subDays(5)->toDateString(),
             'cause_of_loss' => 'Flood',
             'area_damaged' => 0.5,
-            'damage_photo' => UploadedFile::fake()->image('damage.jpg'),
+            'damage_photo' => UploadedFile::fake()->createWithContent(
+                'damage.png',
+                base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jR1sAAAAASUVORK5CYII=')
+            ),
         ];
     }
 
@@ -401,6 +423,33 @@ class PcicClaimWorkflowTest extends TestCase
             ->assertStatus(409);
 
         $this->assertSame('verified', $incident->fresh()->status);
+    }
+
+    public function test_claim_accepts_three_private_photos_and_rejects_four(): void
+    {
+        [$user, $farmer, $program, $benefit] = $this->setupClaim();
+        $data = $this->claimData($benefit);
+        $photo = $data['damage_photo'];
+        $route = route('farmer.applications.store', $program);
+
+        $this->actingAs($user)->post($route, array_replace($data, [
+            'damage_photo' => array_fill(0, 4, $photo),
+        ]))->assertSessionHasErrors('damage_photo');
+        $this->assertDatabaseCount('applications', 0);
+
+        $this->post($route, array_replace($data, [
+            'damage_photo' => array_fill(0, 3, $photo),
+        ]))->assertSessionHas('success');
+
+        $incident = \App\Models\PcicDamageIncident::sole();
+        $this->assertCount(3, $incident->damagePhotoPaths());
+        Storage::disk('private')->assertExists($incident->damagePhotoPaths());
+
+        $this->actingAs($this->makeAdmin());
+        foreach ([1, 2, 3] as $index) {
+            $this->get(route('admin.pcic-incidents.damage-photo', [$incident, $index]))->assertOk();
+        }
+        $this->get(route('admin.pcic-incidents.damage-photo', [$incident, 4]))->assertNotFound();
     }
 
     public function test_private_damage_photo_is_admin_only(): void

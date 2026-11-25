@@ -8,6 +8,16 @@ use Illuminate\Validation\Rule;
 
 class StoreProgramApplicationRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $photo = $this->files->get('damage_photo');
+
+        if ($photo instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
+            $this->files->set('damage_photo', [$photo]);
+            $this->convertedFiles = null;
+        }
+    }
+
     public function authorize(): bool
     {
         return $this->user() !== null;
@@ -119,10 +129,13 @@ class StoreProgramApplicationRequest extends FormRequest
         if ($benefitName === 'Claim for Indemnity') {
             $rules = [];
 
+            $today = today('Asia/Manila');
             $rules['date_of_loss'] = [
+                'bail',
                 'required',
-                'date',
-                'before_or_equal:today',
+                'date_format:Y-m-d',
+                'before_or_equal:'.$today->toDateString(),
+                'after_or_equal:'.$today->copy()->subDays(7)->toDateString(),
             ];
 
             $rules['cause_of_loss'] = [
@@ -142,7 +155,8 @@ class StoreProgramApplicationRequest extends FormRequest
                 'max:10000',
             ];
 
-            $rules['damage_photo'] = [
+            $rules['damage_photo'] = ['required', 'array', 'list', 'min:1', 'max:3'];
+            $rules['damage_photo.*'] = [
                 'required',
                 'image',
                 'mimes:jpeg,png,webp',
@@ -151,6 +165,14 @@ class StoreProgramApplicationRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    public function messages(): array
+    {
+        return [
+            'date_of_loss.after_or_equal' => 'Date of Loss cannot be more than 7 days ago.',
+            'date_of_loss.before_or_equal' => 'Date of Loss cannot be in the future.',
+        ];
     }
 
     private function loanRules(): array
