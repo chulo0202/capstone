@@ -15,6 +15,7 @@ class SmsNotification extends Model
         'message',
         'status',
         'announcement_id',
+        'distribution_batch_id',
         'farmer_id',
         'response_data',
         'sent_at',
@@ -31,6 +32,11 @@ class SmsNotification extends Model
     public function announcement(): BelongsTo
     {
         return $this->belongsTo(Announcement::class);
+    }
+
+    public function distributionBatch(): BelongsTo
+    {
+        return $this->belongsTo(DistributionBatch::class);
     }
 
     public function farmer(): BelongsTo

@@ -8,7 +8,7 @@
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover mb-0">
-        <thead class="table-light"><tr><th>Recipient</th><th>Message</th><th>Status</th><th>Sent At</th><th>Announcement</th></tr></thead>
+        <thead class="table-light"><tr><th>Recipient</th><th>Message</th><th>Status</th><th>Submitted At</th><th>Source</th><th>Actions</th></tr></thead>
         <tbody>
           @forelse($notifications as $sms)
           <tr>
@@ -17,7 +17,7 @@
             <td>
                 @php
                     $statusColor = match ($sms->status) {
-                        'sent' => 'success',
+                        'sent', 'submitted' => 'success',
                         'queued', 'pending' => 'warning',
                         'failed', 'refunded' => 'danger',
                         default => 'secondary',
@@ -27,12 +27,23 @@
                 <span class="badge bg-{{ $statusColor }}">
                     {{ ucfirst($sms->status) }}
                 </span>
+                @if ($sms->distribution_batch_id && isset($sms->response_data['error']))
+                    <small class="d-block text-muted">{{ $sms->response_data['error'] }}</small>
+                @endif
             </td>
             <td>{{ $sms->sent_at?->format('M d, Y h:i A') ?? '-' }}</td>
-            <td>{{ $sms->announcement?->title ?? '-' }}</td>
+            <td>{{ $sms->distributionBatch?->name ?? $sms->announcement?->title ?? '-' }}</td>
+            <td>
+                @if ($sms->distributionBatch?->status === 'published' && config('services.distribution_sms.enabled') && in_array($sms->status, ['pending', 'failed'], true))
+                    <form method="POST" action="{{ route('admin.sms.retry', $sms) }}">
+                        @csrf
+                        <button class="btn btn-sm btn-outline-success">{{ $sms->status === 'pending' ? 'Send SMS' : 'Retry SMS' }}</button>
+                    </form>
+                @endif
+            </td>
           </tr>
           @empty
-          <tr><td colspan="5" class="text-center text-muted py-4">No SMS records</td></tr>
+          <tr><td colspan="6" class="text-center text-muted py-4">No SMS records</td></tr>
           @endforelse
         </tbody>
       </table>

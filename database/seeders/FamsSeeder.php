@@ -56,19 +56,6 @@ class FamsSeeder extends Seeder
             ],
 
             [
-                'name' => 'Equipment and Machinery Support',
-                'description' => 'Agricultural equipment and machinery assistance for eligible farmers.',
-                'eligibility_criteria' => 'Eligibility is determined based on crop type, land size, RSBSA status, and other applicable requirements.',
-                'rules' => [
-                    'crop_types' => ['Rice', 'Corn', 'Vegetables', 'Root crops'],
-                    'min_land_size' => 0.5,
-                    'max_land_size' => null,
-                    'requires_rsbsa' => true,
-                    'requires_association' => true,
-                ],
-            ],
-
-            [
                 'name' => 'Agricultural Loans',
                 'description' => 'Agricultural financing assistance for eligible farmers.',
                 'eligibility_criteria' => 'Eligibility is determined based on crop type, land size, RSBSA status, and other applicable requirements.',
@@ -95,19 +82,6 @@ class FamsSeeder extends Seeder
             ],
 
             [
-                'name' => 'Marketing Support',
-                'description' => 'Market linkage and marketing assistance for agricultural products.',
-                'eligibility_criteria' => 'Eligibility is determined based on farmer registration, agricultural products, and applicable market requirements.',
-                'rules' => [
-                    'crop_types' => ['Rice', 'Corn', 'Vegetables', 'Root crops'],
-                    'min_land_size' => 0.1,
-                    'max_land_size' => null,
-                    'requires_rsbsa' => true,
-                    'requires_association' => false,
-                ],
-            ],
-
-            [
                 'name' => 'PCIC Crop Insurance',
                 'description' => 'Crop insurance assistance and financial protection for eligible agricultural producers.',
                 'eligibility_criteria' => 'Eligibility is determined based on crop type, farmer registration, and applicable insurance requirements.',
@@ -120,31 +94,6 @@ class FamsSeeder extends Seeder
                 ],
             ],
 
-            [
-                'name' => 'Infrastructure Support',
-                'description' => 'Support for agricultural infrastructure and farm-related facilities.',
-                'eligibility_criteria' => 'Eligibility is determined based on agricultural activity, location, farmer registration, and applicable infrastructure requirements.',
-                'rules' => [
-                    'crop_types' => ['Rice', 'Corn', 'Vegetables', 'Root crops'],
-                    'min_land_size' => 0.5,
-                    'max_land_size' => null,
-                    'requires_rsbsa' => true,
-                    'requires_association' => true,
-                ],
-            ],
-
-            [
-                'name' => 'Post-Harvest Support',
-                'description' => 'Post-harvest equipment, facilities, and assistance for agricultural products.',
-                'eligibility_criteria' => 'Eligibility is determined based on crop type, agricultural activity, farmer registration, and applicable post-harvest requirements.',
-                'rules' => [
-                    'crop_types' => ['Rice', 'Corn', 'Vegetables', 'Root crops'],
-                    'min_land_size' => 0.5,
-                    'max_land_size' => null,
-                    'requires_rsbsa' => true,
-                    'requires_association' => false,
-                ],
-            ],
         ];
 
         foreach ($programs as $data) {
@@ -187,30 +136,8 @@ class FamsSeeder extends Seeder
                     'Foliar Fertilizer',
                 ],
 
-                'Equipment and Machinery Support' => [
-                    'Combine Harvester',
-                    '4-Wheel Tractor',
-                ],
-
-                'Post-Harvest Support' => [
-                    'Mechanical/Solar Grain Dryer',
-                    'Warehouse & Crop Storage',
-                    'Rice Processing Center (RPC)',
-                ],
-
-                'Marketing Support' => [
-                    'Kadiwa ng Pangulo Market Linkage',
-                    'Agri-Trade Fair Participation',
-                    'Bagsakan Center/Trading Post Access',
-                ],
-
                 'Training and Technology Demonstrations' => [
                     'Techno-Demo Farm Visit (Wet and Dry Season)',
-                ],
-
-                'Infrastructure Support' => [
-                    'Farm-to-Market Roads (FMR)',
-                    'Communal Irrigation Canal',
                 ],
 
                 default => [],

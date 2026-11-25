@@ -9,6 +9,7 @@ use App\Models\DistributionBatch;
 use App\Models\Program;
 use App\Services\AuditLogService;
 use App\Services\DistributionReleaseService;
+use App\Services\DistributionScheduleSms;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+
+use function Illuminate\Support\defer;
 
 class DistributionBatchController extends Controller
 {
@@ -158,11 +161,17 @@ class DistributionBatchController extends Controller
         return to_route('admin.distribution-batches.show', $batch)->with('success', 'Draft schedule updated.');
     }
 
-    public function publish(Request $request, DistributionBatch $batch, DistributionReleaseService $releases, AuditLogService $audit): RedirectResponse
+    public function publish(
+        Request $request,
+        DistributionBatch $batch,
+        DistributionReleaseService $releases,
+        AuditLogService $audit,
+        DistributionScheduleSms $sms
+    ): RedirectResponse
     {
         $request->validate(['confirm_publish' => ['accepted']]);
 
-        DB::transaction(function () use ($batch, $releases, $audit) {
+        $notifications = DB::transaction(function () use ($batch, $releases, $audit, $sms) {
             $locked = DistributionBatch::lockForUpdate()->findOrFail($batch->id);
             abort_unless($locked->status === 'draft', 409, 'Only draft batches can be published.');
 
@@ -192,7 +201,13 @@ class DistributionBatchController extends Controller
 
             $locked->update(['status' => 'published']);
             $audit->log('DISTRIBUTION_BATCH_PUBLISHED', $locked);
+
+            return $sms->record($locked, $assignments);
         });
+
+        if ($notifications->isNotEmpty()) {
+            defer(fn () => $notifications->each(fn ($notification) => $sms->send($notification)));
+        }
 
         return back()->with('success', 'Distribution schedule published.');
     }

@@ -26,7 +26,7 @@
       <div class="list-group list-group-flush">
         @forelse($announcements as $announcement)
         <div class="list-group-item">
-          <div class="d-flex justify-content-between align-items-start">
+          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start gap-3">
             <div>
               <strong>{{ $announcement->title }}</strong>
               <span class="badge bg-{{ $announcement->is_published ? 'success' : 'secondary' }} ms-1">{{ $announcement->is_published ? 'Published' : 'Draft' }}</span>
@@ -34,9 +34,13 @@
               <p class="mb-1 small">{{ Str::limit($announcement->content, 100) }}</p>
               <small class="text-muted">{{ $announcement->publish_date->format('M d, Y h:i A') }}</small>
             </div>
-            <div>
-              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#ann{{ $announcement->id }}">Edit</button>
-              <form action="{{ route('admin.announcements.destroy', $announcement) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Delete</button></form>
+            <div class="d-flex flex-nowrap align-items-center flex-shrink-0 gap-2">
+              <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#ann{{ $announcement->id }}">Edit</button>
+              <form action="{{ route('admin.announcements.destroy', $announcement) }}" method="POST" class="m-0" onsubmit="return confirm('Delete?')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+              </form>
             </div>
           </div>
         </div>

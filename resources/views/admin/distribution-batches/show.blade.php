@@ -6,6 +6,9 @@
 <a href="{{ route('admin.distribution-batches.index') }}" class="btn btn-fams-back mb-3">
     <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Distribution Batches
 </a>
+@if ($batch->smsNotifications()->exists())
+    <a href="{{ route('admin.sms.index', ['batch' => $batch->id]) }}" class="btn btn-outline-success mb-3">Schedule SMS History</a>
+@endif
 
 <section class="card shadow-sm mb-3">
     <div class="card-body p-3 p-md-4">

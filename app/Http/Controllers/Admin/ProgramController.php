@@ -35,20 +35,21 @@ class ProgramController extends Controller
 
         if ($status === 'archived') {
             $query->whereNotNull('archived_at');
-        } elseif ($status === 'upcoming') {
-            $query->whereNull('archived_at')
-                ->where('name', '!=', Program::PCIC_NAME)
+        } else {
+            $query->whereNull('archived_at');
+        }
+
+        if ($status === 'upcoming') {
+            $query->where('name', '!=', Program::PCIC_NAME)
                 ->where('is_active', true)
                 ->where('start_at', '>', $now);
         } elseif ($status === 'active') {
-            $query->whereNull('archived_at')
-                ->where(fn ($programs) => $programs->where('name', Program::PCIC_NAME)
+            $query->where(fn ($programs) => $programs->where('name', Program::PCIC_NAME)
                     ->orWhere(fn ($scheduled) => $scheduled->where('is_active', true)
                         ->where('start_at', '<=', $now)
                         ->where('end_at', '>=', $now)));
         } elseif ($status === 'inactive') {
-            $query->whereNull('archived_at')
-                ->where('name', '!=', Program::PCIC_NAME)
+            $query->where('name', '!=', Program::PCIC_NAME)
                 ->where(fn ($programs) => $programs->where('end_at', '<', $now)
                     ->orWhere('is_active', false)
                     ->orWhereNull('start_at')

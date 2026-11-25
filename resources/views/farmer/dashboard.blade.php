@@ -278,11 +278,14 @@
 
 <div class="row g-3 mb-4">
   <div class="col-md-4">
-    <div class="fams-stat fams-dash-stat-card">
+    <div class="fams-stat fams-dash-stat-card position-relative">
       <div class="d-flex justify-content-between align-items-start">
         <div>
           <div class="fams-stat-label">Profile Status</div>
           <div class="fams-stat-value" style="font-size:1.25rem;">{{ $farmer?->profile_completed ? 'Complete' : 'Incomplete' }}</div>
+          @if (! $farmer?->profile_completed)
+            <a href="{{ route('farmer.profile', ['edit' => 1]) }}" class="stretched-link small fw-semibold text-success">Complete your profile</a>
+          @endif
         </div>
         <div class="fams-stat-icon fams-dash-stat-icon-ring {{ $farmer?->profile_completed ? 'green' : 'amber' }}">
           <i class="bi bi-{{ $farmer?->profile_completed ? 'check-circle-fill' : 'hourglass-split' }}"></i>

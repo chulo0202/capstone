@@ -30,6 +30,11 @@ class DistributionBatch extends Model
         return $this->hasMany(DistributionAssignment::class);
     }
 
+    public function smsNotifications(): HasMany
+    {
+        return $this->hasMany(SmsNotification::class);
+    }
+
     public function canRelease(): bool
     {
         $now = now();

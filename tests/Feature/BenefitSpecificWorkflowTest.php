@@ -733,6 +733,43 @@ class BenefitSpecificWorkflowTest extends TestCase
             ->assertOk()->assertSee('Save Schedule')->assertDontSee('distribution-wizard');
     }
 
+    public function test_publishing_distribution_submits_sms_only_for_assigned_farmers(): void
+    {
+        config(['services.distribution_sms.enabled' => true]);
+        [, $farmer] = $this->createFarmer();
+        [, $otherFarmer] = $this->createFarmer();
+        $program = $this->createProgram();
+        $benefit = $this->createBenefit($program, 'Batch benefit');
+        $application = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
+        $this->makeBenefitApplication($otherFarmer, $program, $benefit, 'approved');
+        $this->actingAs($this->createAdmin());
+
+        $sns = \Mockery::mock(\Aws\Sns\SnsClient::class);
+        $sns->shouldReceive('publish')->once()->withArgs(function (array $payload) {
+            return $payload['PhoneNumber'] === '+639123456789'
+                && str_contains($payload['Message'], 'Batch benefit')
+                && str_contains($payload['Message'], 'See FAMS Notifications');
+        })->andReturn(new \Aws\Result(['MessageId' => 'test-sms-id']));
+        $this->app->instance(\Aws\Sns\SnsClient::class, $sns);
+
+        $batch = $this->createDistributionBatch($application);
+        $this->assertDatabaseCount('sms_notifications', 0);
+        $this->post(route('admin.distribution-batches.publish', $batch), ['confirm_publish' => 'yes'])
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseCount('sms_notifications', 1);
+        $this->assertDatabaseHas('sms_notifications', [
+            'distribution_batch_id' => $batch->id,
+            'farmer_id' => $farmer->id,
+            'recipient' => '+639123456789',
+            'status' => 'submitted',
+        ]);
+
+        $this->post(route('admin.distribution-batches.publish', $batch), ['confirm_publish' => 'yes'])
+            ->assertConflict();
+        $this->assertDatabaseCount('sms_notifications', 1);
+    }
+
     public function test_distribution_batch_enforces_assignment_on_web_and_scanner_and_preserves_direct_release(): void
     {
         $this->travelTo(now()->setTime(10, 0));
