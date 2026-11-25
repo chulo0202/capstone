@@ -1,5 +1,6 @@
 
 {{-- Farmer Program Application Modal --}}
+@php($profileHectares = (float) ($farmer?->land_size ?? 0))
 
 <div class="modal fade"
      id="programApplicationModal"
@@ -78,9 +79,11 @@
                             <label class="form-label" for="apply-number_of_hectares">Number of Hectares <span class="text-danger" aria-hidden="true">*</span></label>
                             <input type="number"
                                    name="number_of_hectares" id="apply-number_of_hectares"
+                                   max="{{ min(10000, $profileHectares) }}" aria-describedby="loan-area-limit"
                                    min="0.01"
                                    step="0.01"
                                    class="form-control" required>
+                            <div id="loan-area-limit" class="form-text">Maximum from My Profile: {{ $profileHectares }} hectares.</div>
                         </div>
 
                         <div class="mb-3">
@@ -152,24 +155,6 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label" for="pcic-area-to-insure">
-                                Area to be Insured (hectares) <span class="text-danger" aria-hidden="true">*</span>
-                            </label>
-                            <input type="number"
-                                   id="pcic-area-to-insure"
-                                   name="area_to_insure"
-                                   min="0.01"
-                                   max="{{ $farmer?->land_size ?? 0 }}"
-                                   step="0.01"
-                                   aria-describedby="pcic-area-limit"
-                                   class="form-control"
-                                   required>
-                            <div id="pcic-area-limit" class="form-text">
-                                Maximum from My Profile: {{ $farmer?->land_size ?? 0 }} hectares.
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
                             <label class="form-label" for="apply-actual_planting_date">
                                 Actual Date of Planting <span class="text-danger" aria-hidden="true">*</span>
                             </label>
@@ -187,22 +172,42 @@
                                    class="form-control" required>
                         </div>
 
-                        <h6 class="fw-semibold mt-4">
-                            Adjacent Lots
-                        </h6>
-                        <p class="form-text">Describe the neighboring lot or landmark on each side of the farm.</p>
+                        <p id="pcic-total-area-limit" class="form-text" data-profile-hectares="{{ $profileHectares }}">
+                            Maximum for all lots combined: {{ $profileHectares }} hectares from My Profile.
+                        </p>
+                        @for ($lot = 0; $lot < 3; $lot++)
+                            <fieldset class="border rounded-3 p-3 mb-3 {{ $lot > 0 ? 'd-none' : '' }}" data-pcic-lot>
+                                <legend class="float-none w-auto px-2 fs-6 fw-semibold">Lot {{ $lot + 1 }}</legend>
+                                <div class="mb-3">
+                                    <label class="form-label" for="pcic-lot-{{ $lot }}-area">
+                                        Area to be Insured (hectares) <span class="text-danger" aria-hidden="true">*</span>
+                                    </label>
+                                    <input type="number" id="pcic-lot-{{ $lot }}-area"
+                                           name="lots[{{ $lot }}][area_to_insure]" min="0.01" max="{{ min(10000, $profileHectares) }}" step="0.01"
+                                           aria-describedby="pcic-total-area-limit"
+                                           class="form-control" required @disabled($lot > 0)>
+                                </div>
 
-                        @foreach (['north', 'south', 'east', 'west'] as $direction)
-                            <div class="mb-3">
-                                <label class="form-label" for="apply-adjacent_{{ $direction }}">
-                                    {{ ucfirst($direction) }} <span class="text-danger" aria-hidden="true">*</span>
-                                </label>
-                                <input type="text"
-                                       name="adjacent_{{ $direction }}" id="apply-adjacent_{{ $direction }}"
-                                       placeholder="e.g. irrigation canal or neighboring rice field"
-                                       class="form-control" required>
-                            </div>
-                        @endforeach
+                                <h6 class="fw-semibold">Adjacent Lots</h6>
+                                <p class="form-text">Enter the name of the adjacent lot owner, neighboring farm, or identifiable landmark on each side of the insured area.</p>
+                                @foreach (['north', 'south', 'east', 'west'] as $direction)
+                                    <div class="mb-3">
+                                        <label class="form-label" for="pcic-lot-{{ $lot }}-{{ $direction }}">
+                                            {{ ucfirst($direction) }} <span class="text-danger" aria-hidden="true">*</span>
+                                        </label>
+                                        <input type="text" id="pcic-lot-{{ $lot }}-{{ $direction }}"
+                                               name="lots[{{ $lot }}][adjacent_{{ $direction }}]" maxlength="255"
+                                               placeholder="e.g. irrigation canal or neighboring rice field"
+                                               class="form-control" required @disabled($lot > 0)>
+                                    </div>
+                                @endforeach
+                            </fieldset>
+                        @endfor
+
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-success" data-add-pcic-lot>Add Another Lot</button>
+                            <button type="button" class="btn btn-outline-secondary d-none" data-remove-pcic-lot>Remove Last Lot</button>
+                        </div>
 
                         </div>
 
@@ -244,10 +249,11 @@
                                 </label>
                                 <input type="number"
                                        name="area_damaged" id="apply-area_damaged"
-                                       max="10000"
+                                       max="{{ min(10000, $profileHectares) }}" aria-describedby="claim-area-limit"
                                        min="0.01"
                                        step="0.01"
                                        class="form-control" required>
+                                <div id="claim-area-limit" class="form-text">Maximum from My Profile: {{ $profileHectares }} hectares.</div>
                             </div>
 
                             <div class="mb-3">

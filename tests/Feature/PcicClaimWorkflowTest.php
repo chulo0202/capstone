@@ -80,7 +80,7 @@ class PcicClaimWorkflowTest extends TestCase
         return [$user, $farmer, $program, $benefit, $coverage];
     }
 
-    public function test_pcic_insured_area_cannot_exceed_the_farmer_profile_land_size(): void
+    public function test_pcic_new_application_enforces_the_combined_lot_area_limit(): void
     {
         [$user, $farmer, $program] = $this->setupClaim();
         $farmer->update(['land_size' => 2.25]);
@@ -95,22 +95,55 @@ class PcicClaimWorkflowTest extends TestCase
             'variety_planted' => 'Inbred',
             'actual_planting_date' => now()->subDays(30)->toDateString(),
             'expected_harvest_date' => now()->addDays(30)->toDateString(),
+        ];
+
+        $lot = [
+            'area_to_insure' => 1.75,
             'adjacent_north' => 'Farm A',
             'adjacent_south' => 'Farm B',
             'adjacent_east' => 'Farm C',
             'adjacent_west' => 'Farm D',
         ];
+        $secondLot = array_replace($lot, ['area_to_insure' => 0.5, 'adjacent_north' => 'Irrigation canal']);
 
         $this->actingAs($user)
-            ->post(route('farmer.applications.store', $program), $data + ['area_to_insure' => 2.26])
-            ->assertSessionHas('error', 'Area to be insured cannot exceed the land size in My Profile (2.25 hectares).');
+            ->postJson(route('farmer.applications.store', $program), $data + ['lots' => [$lot, []]])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('lots.1.area_to_insure');
+
+        $this->postJson(route('farmer.applications.store', $program), $data + ['lots' => array_fill(0, 4, $lot)])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('lots');
+
+        $excessLot = array_replace($secondLot, ['area_to_insure' => 0.51]);
+        $this->postJson(route('farmer.applications.store', $program), $data + ['lots' => [$lot, $excessLot]])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('lots');
 
         $this->assertDatabaseCount('applications', 0);
 
-        $this->post(route('farmer.applications.store', $program), $data + ['area_to_insure' => 2.25])
+        $this->post(route('farmer.applications.store', $program), $data + ['lots' => [$lot, $secondLot]])
             ->assertSessionHas('success');
 
         $this->assertDatabaseCount('applications', 1);
+        $this->assertEquals([$lot, $secondLot], \App\Models\Application::sole()->detail->details['lots']);
+    }
+
+    public function test_indemnity_claim_rejects_damaged_area_above_profile_land_size(): void
+    {
+        [$user, $farmer, $program, $benefit] = $this->setupClaim();
+        $this->actingAs($user)->post(route('farmer.applications.store', $program), [
+            'program_benefit_id' => $benefit->id,
+            'date_of_loss' => now()->subDay()->toDateString(),
+            'cause_of_loss' => 'Flood',
+            'area_damaged' => 1.51,
+            'damage_photo' => UploadedFile::fake()->createWithContent(
+                'damage.png',
+                base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jR1sAAAAASUVORK5CYII=')
+            ),
+        ], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors('area_damaged');
+
+        $this->assertDatabaseCount('applications', 0);
     }
 
     private function claimData($benefit): array

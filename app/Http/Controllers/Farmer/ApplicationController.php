@@ -93,14 +93,34 @@ class ApplicationController extends Controller
                 $isPcic = $lockedProgram->isPcicCropInsurance();
                 $isPcicClaim = $isPcic && $benefit->name === 'Claim for Indemnity';
 
-                if (
-                    $isPcic
-                    && $benefit->name === 'New Application'
-                    && (float) $validated['area_to_insure'] > (float) $lockedFarmer->land_size
-                ) {
-                    return [
-                        'error' => "Area to be insured cannot exceed the land size in My Profile ({$lockedFarmer->land_size} hectares).",
-                    ];
+                $areaField = match (true) {
+                    $isPcicClaim => 'area_damaged',
+                    $isPcic && isset($validated['lots']) => 'lots',
+                    $isPcic && isset($validated['area_to_insure']) => 'area_to_insure',
+                    isset($validated['number_of_hectares']) => 'number_of_hectares',
+                    default => null,
+                };
+
+                if ($areaField !== null) {
+                    $area = $areaField === 'lots'
+                        ? array_sum(array_column($validated['lots'], 'area_to_insure'))
+                        : (float) $validated[$areaField];
+                    $maximum = (float) $lockedFarmer->land_size;
+
+                    // Allow for floating-point addition at the exact profile limit.
+                    if ($area - $maximum > PHP_FLOAT_EPSILON * max(1, $maximum) * 4) {
+                        $label = match ($areaField) {
+                            'lots' => 'The combined area of all lots',
+                            'area_to_insure' => 'Area to be insured',
+                            'area_damaged' => 'Area damaged',
+                            'number_of_hectares' => 'Number of hectares',
+                        };
+
+                        return [
+                            'error' => "{$label} cannot exceed the land size in My Profile ({$maximum} hectares).",
+                            'field' => $areaField,
+                        ];
+                    }
                 }
 
                 $profileDetails = [
@@ -347,7 +367,7 @@ class ApplicationController extends Controller
         }
 
         if (isset($result['error'])) {
-            return $this->submissionError($request, $result['error']);
+            return $this->submissionError($request, $result['error'], $result['field'] ?? null);
         }
 
         if (! $result['created']) {
@@ -375,10 +395,10 @@ class ApplicationController extends Controller
         return ($claim ? redirect()->to($target) : back())->with('success', $message);
     }
 
-    private function submissionError(StoreProgramApplicationRequest $request, string $message): RedirectResponse|JsonResponse
+    private function submissionError(StoreProgramApplicationRequest $request, string $message, ?string $field = null): RedirectResponse|JsonResponse
     {
         return $request->expectsJson()
-            ? response()->json(['message' => $message], 422)
+            ? response()->json(['message' => $message] + ($field ? ['errors' => [$field => [$message]]] : []), 422)
             : back()->with('error', $message);
     }
 }

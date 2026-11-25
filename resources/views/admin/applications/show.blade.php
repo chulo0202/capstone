@@ -145,7 +145,7 @@
             @elseif (is_array($details) && count($details))
                 <div class="row g-3">
                     @foreach ($details as $key => $value)
-                        @continue($key === 'damage_photo_path')
+                        @continue(in_array($key, ['damage_photo_path', 'lots'], true))
 
                         <div class="col-md-6">
                             <div class="border rounded-3 p-3 h-100">
@@ -171,6 +171,8 @@
                     No additional form details were recorded.
                 </p>
             @endif
+
+            @includeWhen(!empty($details['lots']), 'admin.applications.insured-lots', ['lots' => $details['lots'] ?? []])
 
             @if ($application->pcicDamageIncident)
                 <hr>

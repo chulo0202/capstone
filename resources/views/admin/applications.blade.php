@@ -275,7 +275,7 @@
                                             </p>
                                         @elseif (!empty($details))
                                             @foreach ($details as $key => $value)
-                                                @continue($key === 'damage_photo_path')
+                                                @continue(in_array($key, ['damage_photo_path', 'lots'], true))
 
                                                 <p class="mb-2">
                                                     <strong>
@@ -294,6 +294,8 @@
                                                     @endif
                                                 </p>
                                             @endforeach
+
+                                            @includeWhen(!empty($details['lots']), 'admin.applications.insured-lots', ['lots' => $details['lots'] ?? []])
 
                                             @if (!empty($details['damage_photo_path']) && $application->pcicDamageIncident)
                                                 <a

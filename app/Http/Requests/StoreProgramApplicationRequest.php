@@ -99,12 +99,21 @@ class StoreProgramApplicationRequest extends FormRequest
         ];
 
         if ($benefitName === 'New Application') {
-            $rules['area_to_insure'] = [
-                'required',
-                'numeric',
-                'gt:0',
-                'max:10000',
-            ];
+            $areaRules = ['required', 'numeric', 'min:0.01', 'max:10000'];
+
+            if (array_key_exists('lots', $this->all())) {
+                $rules['lots'] = ['required', 'array', 'list', 'min:1', 'max:3'];
+                $rules['lots.*'] = ['required', 'array:area_to_insure,adjacent_north,adjacent_south,adjacent_east,adjacent_west'];
+                $rules['lots.*.area_to_insure'] = $areaRules;
+
+                foreach (['north', 'south', 'east', 'west'] as $direction) {
+                    $field = 'adjacent_'.$direction;
+                    $rules['lots.*.'.$field] = $rules[$field];
+                    unset($rules[$field]);
+                }
+            } else {
+                $rules['area_to_insure'] = $areaRules;
+            }
         }
 
         if ($benefitName === 'Claim for Indemnity') {

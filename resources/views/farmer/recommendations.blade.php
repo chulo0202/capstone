@@ -744,11 +744,42 @@
                 });
             }
 
+            const pcicLots = [...form.querySelectorAll('[data-pcic-lot]')];
+            const addLot = form.querySelector('[data-add-pcic-lot]');
+            const removeLot = form.querySelector('[data-remove-pcic-lot]');
+            let visibleLots = 1;
+
+            function updateLots(enabled) {
+                pcicLots.forEach((lot, index) => {
+                    const visible = index < visibleLots;
+                    lot.classList.toggle('d-none', !visible);
+                    lot.querySelectorAll('input').forEach(field => {
+                        field.disabled = !enabled || !visible;
+                    });
+                });
+                addLot.classList.toggle('d-none', visibleLots === pcicLots.length);
+                removeLot.classList.toggle('d-none', visibleLots === 1);
+            }
+
+            addLot.addEventListener('click', () => {
+                visibleLots++;
+                updateLots(true);
+                pcicLots[visibleLots - 1].querySelector('input').focus();
+            });
+
+            removeLot.addEventListener('click', () => {
+                clearErrors();
+                pcicLots[--visibleLots].querySelectorAll('input').forEach(field => { field.value = ''; });
+                updateLots(true);
+                addLot.focus();
+            });
+
             function showErrors(errors, message) {
                 let firstField;
                 const general = [];
                 Object.entries(errors).forEach(([name, messages]) => {
-                    const field = form.elements.namedItem(name);
+                    const fieldName = name.replace(/^lots\.(\d+)\.(\w+)$/, 'lots[$1][$2]');
+                    const field = form.elements.namedItem(fieldName);
                     if (!field || field.disabled || field.type === 'hidden') {
                         general.push(...messages);
                         return;
@@ -782,6 +813,17 @@
                 if (invalid.length) {
                     showErrors(Object.fromEntries(invalid.map(field => [field.name, [field.validationMessage]])));
                     return;
+                }
+
+                const insuredAreas = pcicLots.map(lot => lot.querySelector('input[type="number"]'))
+                    .filter(field => !field.disabled);
+                if (insuredAreas.length) {
+                    const maximum = Number(document.getElementById('pcic-total-area-limit').dataset.profileHectares);
+                    const total = insuredAreas.reduce((sum, field) => sum + field.valueAsNumber, 0);
+                    if (total - maximum > Number.EPSILON * Math.max(1, maximum) * 4) {
+                        showErrors({}, `The combined area of all lots cannot exceed the land size in My Profile (${maximum} hectares).`);
+                        return;
+                    }
                 }
 
                 submitting = true;
@@ -876,6 +918,9 @@
                         field.disabled = !visible;
                     });
                 });
+
+                visibleLots = 1;
+                updateLots(formType === 'pcic_new_application');
 
                 modalTitle.textContent = programName;
                 modalDescription.textContent = benefitName;
