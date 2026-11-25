@@ -13,7 +13,6 @@ A web-based capstone project for the **Municipal Agriculture Office (MAO)** buil
 - **Distribution Monitoring** – QR scanning, farmer verification, eligibility checking, application checking, benefit release, and duplicate prevention
 - **Announcements** – Create and publish announcements
 - **SMS Notifications** – SMS notification records and integration
-- **Weather Monitoring** – OpenWeather API integration with weather alerts and advisories
 - **Audit Trail** – Records important administrative actions for accountability and traceability
 - **Database Validation** – Validation for farmer information, duplicate email registration, Gmail-only registration, and required profile information
 
@@ -176,8 +175,6 @@ Configure the required API keys in the `.env` file:
 
 ```env
 SEMAPHORE_API_KEY=your_semaphore_api_key
-OPENWEATHER_API_KEY=your_openweather_api_key
-OPENWEATHER_BASE_URL=https://api.openweathermap.org/data/2.5
 ```
 
 Do not commit actual API keys or other sensitive credentials to GitHub.
@@ -420,7 +417,6 @@ programs
 recommendations
 sms_notifications
 users
-weather_predictions
 ```
 
 Laravel system tables such as `cache`, `jobs`, `sessions`, and `migrations` may also appear.
@@ -477,12 +473,6 @@ Schema::getColumnListing('distributions');
 
 ```php
 Schema::getColumnListing('audit_logs');
-```
-
-#### Weather Predictions
-
-```php
-Schema::getColumnListing('weather_predictions');
 ```
 
 #### Announcements
@@ -549,12 +539,6 @@ Laravel Eloquent models can be used to view the records stored in each table.
 
 ```php
 \App\Models\AuditLog::all();
-```
-
-#### Weather Predictions
-
-```php
-\App\Models\WeatherPrediction::all();
 ```
 
 #### Announcements
@@ -681,10 +665,6 @@ DB::table('distributions')->count();
 
 ```php
 DB::table('audit_logs')->count();
-```
-
-```php
-DB::table('weather_predictions')->count();
 ```
 
 ---
