@@ -29,6 +29,7 @@ class Application extends Model
         'remarks',
         'applied_at',
         'reviewed_at',
+        'loan_decision_attachment_path',
     ];
 
     protected function casts(): array
@@ -85,6 +86,16 @@ class Application extends Model
             in_array($this->detail?->form_type, ['pcic_new_application', 'pcic_claim'], true)
             || in_array($this->benefit?->name, ['New Application', 'Claim for Indemnity'], true)
         );
+    }
+
+    public function isAgriculturalLoan(): bool
+    {
+        return $this->program?->name === 'Agricultural Loans';
+    }
+
+    public function requiresDecisionAttachment(): bool
+    {
+        return $this->program?->isPcicCropInsurance() || $this->isAgriculturalLoan();
     }
 
     public function isPcicClaim(): bool

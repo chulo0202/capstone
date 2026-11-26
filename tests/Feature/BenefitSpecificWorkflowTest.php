@@ -273,6 +273,39 @@ class BenefitSpecificWorkflowTest extends TestCase
             ->assertSee(route('pcic.decision-attachment', $update), false);
     }
 
+    public function test_agricultural_loan_decisions_require_an_attachment_and_notify_the_owner(): void
+    {
+        Storage::fake('private');
+        [$owner, $farmer] = $this->createFarmer();
+        [$otherFarmer] = $this->createFarmer();
+        $admin = $this->createAdmin();
+        $program = $this->createProgram('Agricultural Loans');
+
+        foreach (['approve' => 'approved', 'reject' => 'rejected'] as $action => $status) {
+            $benefit = $this->createBenefit($program, 'Loan benefit for '.$action);
+            $application = $this->makeBenefitApplication($farmer, $program, $benefit);
+            $route = route('admin.applications.'.$action, $application);
+            $data = $action === 'reject' ? ['remarks' => 'Incomplete supporting documents.'] : [];
+
+            $this->actingAs($admin)->patch($route, $data)
+                ->assertSessionHasErrorsIn('applicationRejection', 'decision_attachment');
+            $this->assertSame('pending', $application->fresh()->status);
+
+            $this->patch($route, $data + [
+                'decision_attachment' => UploadedFile::fake()->create('review.pdf', 12, 'application/pdf'),
+            ])->assertSessionHas('success');
+            $this->assertSame($status, $application->fresh()->status);
+            Storage::disk('private')->assertExists($application->fresh()->loan_decision_attachment_path);
+
+            $download = route('loans.decision-attachment', $application);
+            $this->actingAs($owner)->get(route('farmer.notifications.index'))->assertOk()
+                ->assertSee($benefit->name)->assertSee($download, false);
+            $this->get(route('farmer.applications.index'))->assertOk()->assertSee($download, false);
+            $this->get($download)->assertDownload('Loan-decision.pdf');
+            $this->actingAs($otherFarmer)->get($download)->assertNotFound();
+        }
+    }
+
     public function test_web_distribution_releases_exact_approved_benefit_application_once(): void
     {
         $admin = $this->createAdmin();

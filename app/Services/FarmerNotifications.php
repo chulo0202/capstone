@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Announcement;
+use App\Models\Application;
 use App\Models\Distribution;
 use App\Models\DistributionAssignment;
 use App\Models\Farmer;
@@ -39,6 +40,7 @@ class FarmerNotifications
                     'announcements' => ['Announcement', $item->title],
                     'schedules' => ['Scheduled distribution', $item->batch->name],
                     'distributions' => ['Benefit received', $item->benefit?->name ?? $item->program->name],
+                    'loanDecisions' => ['Loan application '.ucfirst($item->status), $item->benefit?->name ?? 'Agricultural Loans'],
                     'pcicUpdates' => ['PCIC update', PcicTrackingUpdate::STATUSES[$item->status]],
                     'notifications' => ['SMS', $item->message],
                     'trainingUpdates' => ['Training '.ucfirst($item->status), $item->trainingSession->title],
@@ -103,6 +105,11 @@ class FarmerNotifications
                 TrainingRegistration::with('trainingSession')->where('farmer_id', $farmer->id)
                     ->whereIn('status', ['confirmed', 'rejected']),
                 'updated_at', 10,
+            ],
+            'loanDecisions' => [
+                Application::with('benefit')->where('farmer_id', $farmer->id)
+                    ->whereNotNull('loan_decision_attachment_path')->whereIn('status', ['approved', 'rejected']),
+                'reviewed_at', 10,
             ],
             'pcicUpdates' => [
                 PcicTrackingUpdate::whereHas('application', fn ($query) => $query->where('farmer_id', $farmer->id))

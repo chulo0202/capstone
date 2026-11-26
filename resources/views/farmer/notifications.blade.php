@@ -8,6 +8,7 @@
     $categories = [
         'distribution' => ['Distribution Updates', 'bi-box-seam', $schedules->count() + $distributions->count()],
         'training' => ['Training Updates', 'bi-calendar-event', $trainingUpdates->count()],
+        'loans' => ['Agricultural Loan Decisions', 'bi-file-earmark-text', $loanDecisions->count()],
         'pcic' => ['PCIC Updates', 'bi-shield-check', $pcicUpdates->count()],
         'announcement' => ['Announcements', 'bi-megaphone', $announcements->count()],
         'sms' => ['SMS History', 'bi-chat-left-text', $notifications->count()],
@@ -106,6 +107,17 @@
                                 'badgeStyle' => $registration->status === 'confirmed' ? 'text-bg-success' : 'text-bg-danger',
                                 'description' => $registration->reason ?? ($registration->trainingSession->scheduled_date->format('M j, Y').' · '.$registration->trainingSession->venue),
                                 'action' => 'View training details',
+                            ])
+                        @endforeach
+                    @elseif ($key === 'loans')
+                        @foreach ($loanDecisions as $decision)
+                            @include('farmer.partials.notification-item', [
+                                'href' => route('farmer.applications.index').'#application-'.$decision->id,
+                                'attachmentHref' => route('loans.decision-attachment', $decision),
+                                'itemIcon' => $icon,
+                                'title' => ($decision->benefit?->name ?? 'Agricultural Loan').' · '.ucfirst($decision->status).' by MAO',
+                                'description' => $decision->remarks,
+                                'action' => 'View application',
                             ])
                         @endforeach
                     @elseif ($key === 'pcic')

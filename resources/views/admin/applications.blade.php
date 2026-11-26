@@ -169,13 +169,13 @@
                                     <div class="d-flex justify-content-center gap-1 mt-2">
 
                                         @php
-                                            $isPcic = $application->program?->isPcicCropInsurance();
+                                            $requiresAttachment = $application->requiresDecisionAttachment();
                                         @endphp
-                                        @if($isPcic)
+                                        @if($requiresAttachment)
                                             <button type="button" class="btn btn-sm btn-success" title="Approve" aria-label="Approve application"
                                                 data-bs-toggle="modal" data-bs-target="#rejectApplicationModal"
                                                 data-review-url="{{ route('admin.applications.approve', $application) }}"
-                                                data-review-action="approve" data-pcic="1"
+                                                data-review-action="approve" data-requires-attachment="1"
                                                 data-application-id="{{ $application->id }}"
                                                 data-farmer-name="{{ $application->farmer?->full_name }}">
                                                 <i class="bi bi-check-lg" aria-hidden="true"></i>
@@ -200,7 +200,7 @@
 
                                         <button type="button" class="btn btn-sm btn-danger" title="Reject" aria-label="Reject application"
                                             data-bs-toggle="modal" data-bs-target="#rejectApplicationModal"
-                                            data-review-action="reject" data-pcic="{{ (int) $isPcic }}"
+                                            data-review-action="reject" data-requires-attachment="{{ (int) $requiresAttachment }}"
                                             data-review-url="{{ route('admin.applications.reject', $application) }}"
                                             data-application-id="{{ $application->id }}"
                                             data-farmer-name="{{ $application->farmer?->full_name }}">
@@ -386,13 +386,13 @@
                         <p class="small text-danger mt-2 mb-0" id="applicationRejectionError" hidden>{{ $message }}</p>
                     @enderror
                 </div>
-                <div id="pcicDecisionAttachmentFields" class="mt-3" hidden>
-                    <label class="form-label" for="pcicDecisionAttachment">Decision document or photo <span class="text-danger">*</span></label>
-                    <input type="file" class="form-control" id="pcicDecisionAttachment" name="decision_attachment"
-                        accept=".pdf,.jpg,.jpeg,.png,.webp" aria-describedby="pcicDecisionAttachmentHelp">
-                    <span id="pcicDecisionAttachmentHelp" class="form-text">Attach the document or photo explaining the decision. PDF, JPG, PNG or WebP, up to 5 MB.</span>
+                <div id="reviewDecisionAttachmentFields" class="mt-3" hidden>
+                    <label class="form-label" for="reviewDecisionAttachment">Decision document or photo <span class="text-danger">*</span></label>
+                    <input type="file" class="form-control" id="reviewDecisionAttachment" name="decision_attachment"
+                        accept=".pdf,.jpg,.jpeg,.png,.webp" aria-describedby="reviewDecisionAttachmentHelp">
+                    <span id="reviewDecisionAttachmentHelp" class="form-text">Attach the document or photo explaining the decision. PDF, JPG, PNG or WebP, up to 5 MB.</span>
                     @error('decision_attachment', 'applicationRejection')
-                        <p class="small text-danger mt-2 mb-0" id="pcicDecisionAttachmentError" hidden>{{ $message }}</p>
+                        <p class="small text-danger mt-2 mb-0" id="reviewDecisionAttachmentError" hidden>{{ $message }}</p>
                     @enderror
                 </div>
             </div>
@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const reason = form.elements.remarks;
     const error = document.getElementById('applicationRejectionError');
     const attachment = form.elements.decision_attachment;
-    const attachmentError = document.getElementById('pcicDecisionAttachmentError');
+    const attachmentError = document.getElementById('reviewDecisionAttachmentError');
     const submit = form.querySelector('[type="submit"]');
     const oldAction = {{ Js::from((string) old('review_action', 'reject')) }};
     const oldId = {{ Js::from((string) old('rejection_application', '')) }};
@@ -426,20 +426,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const action = button.dataset.reviewAction;
         const rejecting = action === 'reject';
-        const isPcic = button.dataset.pcic === '1';
+        const requiresAttachment = button.dataset.requiresAttachment === '1';
         const failed = button.dataset.applicationId === oldId && action === oldAction;
         form.action = button.dataset.reviewUrl;
         form.elements.review_action.value = action;
         document.getElementById('rejectApplicationTitle').textContent = rejecting ? 'Reject application' : 'Approve application';
         document.getElementById('applicationRejectionFields').hidden = !rejecting;
-        document.getElementById('pcicDecisionAttachmentFields').hidden = !isPcic;
+        document.getElementById('reviewDecisionAttachmentFields').hidden = !requiresAttachment;
         submit.textContent = rejecting ? 'Reject Application' : 'Approve Application';
         submit.classList.toggle('btn-danger', rejecting);
         submit.classList.toggle('btn-success', !rejecting);
         reason.required = rejecting;
         reason.disabled = !rejecting;
-        attachment.required = isPcic;
-        attachment.disabled = !isPcic;
+        attachment.required = requiresAttachment;
+        attachment.disabled = !requiresAttachment;
         attachment.value = '';
         attachment.classList.toggle('is-invalid', Boolean(attachmentError && failed));
         if (attachmentError) attachmentError.hidden = !failed;

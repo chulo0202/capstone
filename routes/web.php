@@ -70,6 +70,8 @@ Route::post('/admin/register', [AuthAdminRegistrationController::class, 'store']
 Route::middleware(['auth'])->group(function () {
     Route::get('/pcic/decision-attachments/{update}', \App\Http\Controllers\PcicDecisionAttachmentController::class)
         ->name('pcic.decision-attachment');
+    Route::get('/loans/decision-attachments/{application}', [\App\Http\Controllers\PcicDecisionAttachmentController::class, 'loan'])
+        ->name('loans.decision-attachment');
 
     Route::get('/dashboard', function () {
         return Auth::user()->isAdmin()

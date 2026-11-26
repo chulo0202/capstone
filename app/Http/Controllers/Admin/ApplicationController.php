@@ -108,10 +108,10 @@ class ApplicationController extends Controller
     ): RedirectResponse {
         $approving = $eligibilityService !== null;
         $status = $approving ? 'approved' : 'rejected';
-        $isPcic = $application->program?->isPcicCropInsurance();
+        $requiresAttachment = $application->requiresDecisionAttachment();
         $rules = $approving ? [] : ['remarks' => ['required', 'string', 'max:2000']];
 
-        if ($isPcic) {
+        if ($requiresAttachment) {
             $rules['decision_attachment'] = ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:5120'];
         }
         $validated = $request->validateWithBag('applicationRejection', $rules);
@@ -120,7 +120,7 @@ class ApplicationController extends Controller
         try {
             $result = DB::transaction(function () use (
                 $application, $request, $auditLogService, $eligibilityService,
-                $approving, $status, $isPcic, $validated, &$path
+                $approving, $status, $validated, &$path
             ) {
                 $locked = Application::with(['farmer', 'program', 'benefit'])
                     ->lockForUpdate()
@@ -141,14 +141,17 @@ class ApplicationController extends Controller
                     return 'The farmer does not currently meet the application eligibility rules.';
                 }
 
-                if ($isPcic) {
-                    $path = $validated['decision_attachment']->store("pcic-decisions/{$locked->id}", 'private');
+                $isPcic = $locked->program?->isPcicCropInsurance();
+                if ($locked->requiresDecisionAttachment()) {
+                    $directory = $isPcic ? 'pcic-decisions' : 'loan-decisions';
+                    $path = $validated['decision_attachment']->store("{$directory}/{$locked->id}", 'private');
                     if (! $path) {
                         return 'The decision attachment could not be saved. Please try again.';
                     }
                 }
 
                 $locked->update([
+                    'loan_decision_attachment_path' => $locked->isAgriculturalLoan() ? $path : null,
                     'status' => $status,
                     'reviewed_at' => now(),
                     'remarks' => $validated['remarks'] ?? 'Application approved by admin.',

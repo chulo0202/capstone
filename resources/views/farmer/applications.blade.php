@@ -421,7 +421,9 @@ APPLICATION HISTORY
                             >
 
                                 {{ $application->remarks ?? 'No remarks provided.' }}
-                                @if ($decision = $application->pcicDecisionAttachment)
+                                @if ($application->loan_decision_attachment_path)
+                                    <a class="d-block mt-1" href="{{ route('loans.decision-attachment', $application) }}">Download decision attachment</a>
+                                @elseif ($decision = $application->pcicDecisionAttachment)
                                     <a class="d-block mt-1" href="{{ route('pcic.decision-attachment', $decision) }}">Download decision attachment</a>
                                 @endif
                                 @if ($update = $application->latestPcicTrackingUpdate)
@@ -464,6 +466,9 @@ APPLICATION HISTORY
                                         Benefit already released
 
                                     </span>
+
+                                @elseif ($application->isAgriculturalLoan())
+                                    <span class="small text-muted">Review the MAO decision document</span>
 
                                 @elseif ($application->isPcicClaim() && !$application->hasOfficialPcicApproval())
                                     <span class="small text-muted">Awaiting PCIC approval</span>

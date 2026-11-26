@@ -216,7 +216,9 @@
                     <div class="fw-semibold text-break">
                         {{ $application->remarks ?: 'No remarks' }}
                     </div>
-                    @if ($decision = $application->pcicDecisionAttachment)
+                    @if ($application->loan_decision_attachment_path)
+                        <a class="d-block mt-1" href="{{ route('loans.decision-attachment', $application) }}">Download decision attachment</a>
+                    @elseif ($decision = $application->pcicDecisionAttachment)
                         <a class="d-inline-block mt-2" href="{{ route('pcic.decision-attachment', $decision) }}">Download decision attachment</a>
                     @endif
                 </div>
