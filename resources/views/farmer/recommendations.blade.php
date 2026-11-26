@@ -591,7 +591,9 @@
                                         $applicationStatus = $applicationStatuses["{$rec->program->id}:{$rec->benefit->id}"] ?? null;
                                     @endphp
 
-                                    @if ($applicationStatus === 'rejected')
+                                    @if ($rec->program->name === 'Training and Technology Demonstrations')
+                                        <a class="btn btn-sm btn-fams" href="{{ route('farmer.trainings.index') }}">View Training Sessions</a>
+                                    @elseif ($applicationStatus === 'rejected')
 
                                         <button type="button" class="btn btn-sm btn-outline-danger px-3" disabled>
                                             <i class="bi bi-x-circle me-1"></i>

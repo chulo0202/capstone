@@ -8,6 +8,7 @@ use App\Models\DistributionAssignment;
 use App\Models\Farmer;
 use App\Models\PcicTrackingUpdate;
 use App\Models\SmsNotification;
+use App\Models\TrainingRegistration;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
@@ -40,6 +41,7 @@ class FarmerNotifications
                     'distributions' => ['Benefit received', $item->benefit?->name ?? $item->program->name],
                     'pcicUpdates' => ['PCIC update', PcicTrackingUpdate::STATUSES[$item->status]],
                     'notifications' => ['SMS', $item->message],
+                    'trainingUpdates' => ['Training '.ucfirst($item->status), $item->trainingSession->title],
                 };
             }
         }
@@ -96,6 +98,11 @@ class FarmerNotifications
             'distributions' => [
                 Distribution::with(['program', 'benefit'])->where('farmer_id', $farmer->id),
                 'distributed_at', 5,
+            ],
+            'trainingUpdates' => [
+                TrainingRegistration::with('trainingSession')->where('farmer_id', $farmer->id)
+                    ->whereIn('status', ['confirmed', 'rejected']),
+                'updated_at', 10,
             ],
             'pcicUpdates' => [
                 PcicTrackingUpdate::whereHas('application', fn ($query) => $query->where('farmer_id', $farmer->id))

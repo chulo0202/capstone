@@ -17,6 +17,10 @@
     <i class="bi bi-qr-code"></i> My QR Code
 </a>
 
+<a class="fams-nav-link {{ request()->routeIs('farmer.trainings.*') ? 'active' : '' }}" href="{{ route('farmer.trainings.index') }}">
+    <i class="bi bi-calendar-event"></i> Training Sessions
+</a>
+
 <div class="fams-nav-label">Updates</div>
 <a class="fams-nav-link {{ request()->routeIs('farmer.notifications.*') ? 'active' : '' }}" href="{{ route('farmer.notifications.index') }}">
     <i class="bi bi-bell-fill"></i> Notifications

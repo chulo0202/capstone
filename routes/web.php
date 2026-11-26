@@ -220,6 +220,14 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/eligibility/{eligibilityRule}', [EligibilityRuleController::class, 'destroy'])
             ->name('eligibility.destroy');
 
+        Route::view('/schedule-options', 'admin.distribution-batches.options')->name('schedules.options');
+        Route::resource('trainings', \App\Http\Controllers\Admin\TrainingScheduleController::class)
+            ->only(['create', 'store', 'show']);
+        Route::post('/trainings/{training}/publish', [\App\Http\Controllers\Admin\TrainingScheduleController::class, 'publish'])
+            ->name('trainings.publish');
+        Route::post('/trainings/{training}/registrations/{registration}', [\App\Http\Controllers\Admin\TrainingScheduleController::class, 'review'])
+            ->name('trainings.review');
+
         Route::resource('distribution-batches', DistributionBatchController::class)
             ->only(['index', 'create', 'store', 'show', 'edit', 'update'])
             ->parameters(['distribution-batches' => 'batch']);
@@ -316,6 +324,11 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/applications', [ApplicationController::class, 'index'])
             ->name('applications.index');
+
+        Route::get('/trainings', [\App\Http\Controllers\Farmer\TrainingController::class, 'index'])->name('trainings.index');
+        Route::get('/training-registrations/{registration}', [\App\Http\Controllers\Farmer\TrainingController::class, 'show'])
+            ->name('trainings.registration');
+        Route::post('/trainings/{training}/register', [\App\Http\Controllers\Farmer\TrainingController::class, 'store'])->name('trainings.store');
 
         Route::get('/notifications', [NotificationController::class, 'index'])
             ->name('notifications.index');

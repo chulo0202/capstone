@@ -696,12 +696,12 @@ class BenefitSpecificWorkflowTest extends TestCase
         [, $farmer] = $this->createFarmer();
         $fertilizer = $this->createProgram('Fertilizer Subsidies');
         $urea = $this->createBenefit($fertilizer, 'Urea');
-        $infrastructure = $this->createProgram('Infrastructure Support');
-        $irrigation = $this->createBenefit($infrastructure, 'Irrigation Repair');
-        $legacy = $this->createBenefit($infrastructure, 'Legacy Infrastructure Grant');
+        $seed = $this->createProgram('Seed Subsidies');
+        $certified = $this->createBenefit($seed, 'Certified Seeds');
+        $legacy = $this->createBenefit($seed, 'Legacy Seed Grant');
         $legacy->forceFill(['archived_at' => now()])->save();
-        $this->makeBenefitApplication($farmer, $infrastructure, $legacy, 'approved');
-        $application = $this->makeBenefitApplication($farmer, $infrastructure, $irrigation, 'approved');
+        $this->makeBenefitApplication($farmer, $seed, $legacy, 'approved');
+        $application = $this->makeBenefitApplication($farmer, $seed, $certified, 'approved');
         $this->actingAs($this->createAdmin());
 
         $this->get(route('admin.distribution-batches.create'))
@@ -709,43 +709,125 @@ class BenefitSpecificWorkflowTest extends TestCase
             ->assertSee('Select a program first');
 
         $this->get(route('admin.distribution-batches.create', [
-            'program' => $infrastructure->id,
+            'program' => $seed->id,
             'benefit' => $urea->id,
         ]))->assertOk()
-            ->assertSee('Irrigation Repair')
+            ->assertSee('Certified Seeds')
             ->assertViewHas('benefit', null)
             ->assertViewHas('beneficiaries', fn ($rows) => $rows->isEmpty());
 
         $this->get(route('admin.distribution-batches.create', [
-            'program' => $infrastructure->id,
+            'program' => $seed->id,
             'benefit' => $legacy->id,
         ]))->assertOk()
-            ->assertSee('Irrigation Repair')
-            ->assertDontSee('Legacy Infrastructure Grant')
+            ->assertSee('Certified Seeds')
+            ->assertDontSee('Legacy Seed Grant')
             ->assertViewHas('benefit', null);
 
         $this->get(route('admin.distribution-batches.create', [
-            'program' => $infrastructure->id,
-            'benefit' => $irrigation->id,
+            'program' => $seed->id,
+            'benefit' => $certified->id,
         ]))->assertOk()
-            ->assertViewHas('benefit', fn ($selected) => $selected->is($irrigation))
+            ->assertViewHas('benefit', fn ($selected) => $selected->is($certified))
             ->assertSee('Create Draft');
 
         $this->getJson(route('admin.distribution-batches.create', [
-            'program' => $infrastructure->id,
-            'benefit' => $irrigation->id,
+            'program' => $seed->id,
+            'benefit' => $certified->id,
         ]))->assertOk()->assertJsonCount(1)->assertJsonPath('0.id', $application->id);
 
         $this->getJson(route('admin.distribution-batches.create', [
-            'program' => $infrastructure->id,
+            'program' => $seed->id,
             'benefit' => $urea->id,
         ]))->assertUnprocessable();
+    }
+
+    public function test_training_uses_the_shared_schedules_page_and_confirms_only_available_slots(): void
+    {
+        $admin = $this->createAdmin();
+        [$first, $firstFarmer] = $this->createFarmer();
+        [$second, $secondFarmer] = $this->createFarmer();
+        $title = 'Rice field demonstration';
+
+        $this->actingAs($admin)->get(route('admin.schedules.options'))
+            ->assertOk()->assertSee('Seed Subsidies')->assertSee('Fertilizer Subsidies')
+            ->assertSee('Training and Technology Demonstrations')->assertDontSee('PCIC Crop Insurance');
+        $this->get(route('admin.trainings.create'))->assertOk()->assertSee('Save Training Draft');
+        $this->post(route('admin.trainings.store'), [
+            'title' => $title,
+            'topic' => 'Rice planting',
+            'objectives' => 'Demonstrate correct spacing.',
+            'scheduled_date' => today('Asia/Manila')->addDay()->toDateString(),
+            'start_time' => '09:00',
+            'end_time' => '11:30',
+            'venue' => 'Municipal Demonstration Farm',
+            'trainer' => 'Municipal Agriculture Office',
+            'slots' => 1,
+            'instructions' => 'Bring a notebook.',
+        ])->assertSessionHas('success');
+
+        $training = \App\Models\TrainingSession::sole();
+        $register = route('farmer.trainings.store', $training);
+        $this->actingAs($first)->get(route('farmer.trainings.index'))->assertOk()->assertDontSee($title);
+        $this->post($register)->assertNotFound();
+
+        $this->actingAs($admin)->post(route('admin.trainings.publish', $training))->assertSessionHas('success');
+        $this->get(route('admin.distribution-batches.index'))->assertOk()->assertSee($title);
+        $this->get(route('admin.distribution-batches.index', ['type' => 'distribution']))->assertOk()->assertDontSee($title);
+
+        $this->actingAs($first)->get(route('farmer.trainings.index'))->assertOk()->assertSee('Register for Training');
+        $this->post($register)->assertSessionHas('success');
+        $this->post($register)->assertSessionHas('success', 'You already registered for this training.');
+        $this->actingAs($second)->post($register)->assertSessionHas('success');
+        $this->assertDatabaseCount('training_registrations', 2);
+
+        $firstEntry = $training->registrations()->where('farmer_id', $firstFarmer->id)->sole();
+        $secondEntry = $training->registrations()->where('farmer_id', $secondFarmer->id)->sole();
+        $this->actingAs($admin)->get(route('admin.trainings.show', $training))->assertOk()->assertSee('Confirm Slot');
+        $this->post(route('admin.trainings.review', [$training, $firstEntry]), ['status' => 'confirmed'])
+            ->assertSessionHas('success');
+        $this->post(route('admin.trainings.review', [$training, $secondEntry]), ['status' => 'confirmed'])
+            ->assertSessionHasErrors('status');
+        $this->post(route('admin.trainings.review', [$training, $secondEntry]), ['status' => 'rejected', 'reason' => 'All slots filled.'])
+            ->assertSessionHas('success');
+
+        $this->actingAs($first)->get(route('farmer.notifications.index'))->assertOk()->assertSee($title)->assertSee('Confirmed');
+        $this->get(route('farmer.trainings.registration', $firstEntry))->assertOk()->assertSee('Bring a notebook.');
+        $this->get(route('farmer.trainings.registration', $secondEntry))->assertNotFound();
+        $this->actingAs($second)->get(route('farmer.notifications.index'))->assertOk()->assertSee('All slots filled.');
+        $this->assertDatabaseCount('distribution_batches', 0);
+        $this->assertDatabaseCount('distributions', 0);
+    }
+
+    public function test_non_distribution_programs_are_excluded_from_new_schedules(): void
+    {
+        [, $farmer] = $this->createFarmer();
+        $seed = $this->createProgram('Seed Subsidies');
+        $fertilizer = $this->createProgram('Fertilizer Subsidies');
+        $this->createBenefit($seed, 'Seed benefit');
+        $this->createBenefit($fertilizer, 'Fertilizer benefit');
+        $this->actingAs($this->createAdmin());
+
+        foreach (['Agricultural Loans', 'Training and Technology Demonstrations', Program::PCIC_NAME] as $name) {
+            $program = $this->createProgram($name);
+            $benefit = $this->createBenefit($program, 'Excluded benefit');
+            $application = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
+
+            $this->getJson(route('admin.distribution-batches.create', ['program' => $program->id, 'benefit' => $benefit->id]))
+                ->assertUnprocessable();
+            $this->post(route('admin.distribution-batches.store'), $this->distributionBatchData($application))
+                ->assertSessionHasErrors('program_id');
+        }
+
+        $this->get(route('admin.distribution-batches.create'))->assertOk()
+            ->assertViewHas('programs', fn ($programs) => $programs->pluck('id')->sort()->values()->all() === [$seed->id, $fertilizer->id]);
+        $this->assertDatabaseCount('distribution_batches', 0);
     }
 
     public function test_distribution_draft_restores_wizard_inputs_and_redirects_after_success(): void
     {
         [, $farmer] = $this->createFarmer();
-        $program = $this->createProgram();
+        $program = $this->createProgram('Seed Subsidies');
         $benefit = $this->createBenefit($program, 'Schedule benefit');
         $application = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
         $this->actingAs($this->createAdmin());
@@ -796,7 +878,7 @@ class BenefitSpecificWorkflowTest extends TestCase
         $unverified->forceFill(['email_verified_at' => null])->save();
         [, $otherFarmer] = $this->createFarmer();
 
-        $program = $this->createProgram();
+        $program = $this->createProgram('Seed Subsidies');
         $benefit = $this->createBenefit($program, 'Email test benefit');
         $application = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
         $other = $this->makeBenefitApplication($unverifiedFarmer, $program, $benefit, 'approved');
@@ -841,7 +923,7 @@ class BenefitSpecificWorkflowTest extends TestCase
         config(['services.distribution_sms.enabled' => true]);
         [, $farmer] = $this->createFarmer();
         [, $otherFarmer] = $this->createFarmer();
-        $program = $this->createProgram();
+        $program = $this->createProgram('Seed Subsidies');
         $benefit = $this->createBenefit($program, 'Batch benefit');
         $application = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
         $this->makeBenefitApplication($otherFarmer, $program, $benefit, 'approved');
@@ -878,7 +960,7 @@ class BenefitSpecificWorkflowTest extends TestCase
         $this->travelTo(now()->setTime(10, 0));
         [, $farmer] = $this->createFarmer();
         [, $otherFarmer] = $this->createFarmer();
-        $program = $this->createProgram();
+        $program = $this->createProgram('Seed Subsidies');
         $benefit = $this->createBenefit($program, 'Batch benefit');
         $application = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
         $other = $this->makeBenefitApplication($otherFarmer, $program, $benefit, 'approved');
@@ -935,7 +1017,7 @@ class BenefitSpecificWorkflowTest extends TestCase
     public function test_distribution_preparation_rejects_invalid_schedule_and_beneficiaries_without_creating_records(): void
     {
         [, $farmer] = $this->createFarmer();
-        $program = $this->createProgram();
+        $program = $this->createProgram('Seed Subsidies');
         $benefit = $this->createBenefit($program, 'Batch benefit');
         $application = $this->makeBenefitApplication($farmer, $program, $benefit);
         $data = $this->distributionBatchData($application);
@@ -990,7 +1072,7 @@ class BenefitSpecificWorkflowTest extends TestCase
     {
         $this->travelTo(now()->setTime(10, 0));
         [$farmerUser, $farmer] = $this->createFarmer();
-        $program = $this->createProgram();
+        $program = $this->createProgram('Seed Subsidies');
         $benefit = $this->createBenefit($program, 'Historical benefit');
         $application = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
         $benefit->forceFill(['archived_at' => now()])->save();
@@ -1016,7 +1098,7 @@ class BenefitSpecificWorkflowTest extends TestCase
     {
         $this->travelTo(now()->setTime(10, 0));
         [, $farmer] = $this->createFarmer();
-        $program = $this->createProgram();
+        $program = $this->createProgram('Seed Subsidies');
         $benefit = $this->createBenefit($program, 'Batch benefit');
         $application = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
         $admin = $this->createAdmin();
@@ -1051,7 +1133,7 @@ class BenefitSpecificWorkflowTest extends TestCase
         [$owner, $farmer] = $this->createFarmer();
         [$other] = $this->createFarmer();
         $admin = $this->createAdmin();
-        $program = $this->createProgram();
+        $program = $this->createProgram('Seed Subsidies');
         $benefit = $this->createBenefit($program, 'Distribution notification benefit');
         $application = $this->makeBenefitApplication($farmer, $program, $benefit, 'approved');
         $this->actingAs($admin);

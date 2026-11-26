@@ -41,9 +41,9 @@
 
 <div class="fams-nav-label">Operations</div>
 
-<a class="fams-nav-link {{ request()->routeIs('admin.distribution-batches.*', 'admin.distributions.*') ? 'active' : '' }}"
+<a class="fams-nav-link {{ request()->routeIs('admin.distribution-batches.*', 'admin.trainings.*', 'admin.schedules.*', 'admin.distributions.*') ? 'active' : '' }}"
    href="{{ route('admin.distribution-batches.index') }}">
-    <i class="bi bi-box-seam"></i> Distributions
+    <i class="bi bi-box-seam"></i> Schedules
 </a>
 
 <a class="fams-nav-link {{ request()->routeIs('admin.announcements.*') ? 'active' : '' }}"

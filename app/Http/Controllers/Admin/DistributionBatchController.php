@@ -24,21 +24,41 @@ use function Illuminate\Support\defer;
 
 class DistributionBatchController extends Controller
 {
-    public function index(): View
+    private const DISTRIBUTION_PROGRAMS = ['Seed Subsidies', 'Fertilizer Subsidies'];
+
+    private const NON_DISTRIBUTION_MESSAGE = 'This program does not use distribution scheduling.';
+
+    public function index(Request $request): View
     {
-        return view('admin.distribution-batches.index', [
-            'batches' => DistributionBatch::with(['program', 'benefit'])->latest('id')->paginate(15),
-        ]);
+        $distributions = DB::table('distribution_batches as batches')
+            ->join('programs', 'programs.id', '=', 'batches.program_id')
+            ->join('program_benefits as benefits', 'benefits.id', '=', 'batches.program_benefit_id')
+            ->whereIn('programs.name', self::DISTRIBUTION_PROGRAMS)
+            ->select('batches.id', 'batches.name as title', 'batches.scheduled_date', 'batches.status', 'programs.name as program', 'benefits.name as detail')
+            ->selectRaw("'distribution' as type");
+        $trainings = DB::table('training_sessions')
+            ->select('id', 'title', 'scheduled_date', 'status')
+            ->selectRaw('? as program, topic as detail, ? as type', ['Training and Technology Demonstrations', 'training']);
+        $type = $request->query('type');
+        $schedules = DB::query()->fromSub($distributions->unionAll($trainings), 'schedules')
+            ->when(in_array($type, ['distribution', 'training'], true), fn ($query) => $query->where('type', $type))
+            ->orderByDesc('scheduled_date')->orderBy('type')->orderByDesc('id')->paginate(15)->withQueryString();
+
+        return view('admin.distribution-batches.index', compact('schedules', 'type'));
     }
 
     public function create(Request $request, DistributionReleaseService $releases): View|JsonResponse
     {
         $programs = Program::with('activeBenefits')
             ->whereNull('archived_at')
+            ->whereIn('name', self::DISTRIBUTION_PROGRAMS)
             ->whereHas('activeBenefits')
             ->orderBy('name')
             ->get();
         $programId = $request->integer('program', (int) $request->old('program_id'));
+        if (! $programId && $request->filled('program_name')) {
+            $programId = (int) $programs->firstWhere('name', $request->query('program_name'))?->id;
+        }
         $benefitId = $request->integer('benefit', (int) $request->old('program_benefit_id'));
         $program = $programs->find($programId);
         $benefit = $program?->activeBenefits->firstWhere('id', $benefitId);
@@ -106,6 +126,11 @@ class DistributionBatchController extends Controller
         unset($data['application_ids']);
 
         $batch = DB::transaction(function () use ($ids, $data, $request, $releases, $audit) {
+            $program = Program::lockForUpdate()->findOrFail($data['program_id']);
+            if (! in_array($program->name, self::DISTRIBUTION_PROGRAMS, true)) {
+                $this->reject('program_id', self::NON_DISTRIBUTION_MESSAGE);
+            }
+
             $applications = Application::with(['program', 'benefit', 'farmer'])
                 ->whereIn('id', $ids)->orderBy('id')->lockForUpdate()->get();
             $scopes = [];
@@ -179,6 +204,10 @@ class DistributionBatchController extends Controller
         [$notifications, $emails] = DB::transaction(function () use ($batch, $releases, $audit, $sms, $mailer) {
             $locked = DistributionBatch::lockForUpdate()->findOrFail($batch->id);
             abort_unless($locked->status === 'draft', 409, 'Only draft batches can be published.');
+
+            if (! in_array($locked->program->name, self::DISTRIBUTION_PROGRAMS, true)) {
+                $this->reject('program_id', self::NON_DISTRIBUTION_MESSAGE);
+            }
 
             if ($locked->scheduled_date->lt(today())) {
                 $this->reject('scheduled_date', 'The distribution date cannot be in the past.');

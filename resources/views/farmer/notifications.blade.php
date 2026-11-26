@@ -7,6 +7,7 @@
 @php
     $categories = [
         'distribution' => ['Distribution Updates', 'bi-box-seam', $schedules->count() + $distributions->count()],
+        'training' => ['Training Updates', 'bi-calendar-event', $trainingUpdates->count()],
         'pcic' => ['PCIC Updates', 'bi-shield-check', $pcicUpdates->count()],
         'announcement' => ['Announcements', 'bi-megaphone', $announcements->count()],
         'sms' => ['SMS History', 'bi-chat-left-text', $notifications->count()],
@@ -95,6 +96,18 @@
                         @if ($count)
                             <p class="text-muted small mb-0" data-distribution-empty role="status" hidden></p>
                         @endif
+                    @elseif ($key === 'training')
+                        @foreach ($trainingUpdates as $registration)
+                            @include('farmer.partials.notification-item', [
+                                'href' => route('farmer.trainings.registration', $registration),
+                                'itemIcon' => $icon,
+                                'title' => $registration->trainingSession->title,
+                                'badge' => ucfirst($registration->status),
+                                'badgeStyle' => $registration->status === 'confirmed' ? 'text-bg-success' : 'text-bg-danger',
+                                'description' => $registration->reason ?? ($registration->trainingSession->scheduled_date->format('M j, Y').' · '.$registration->trainingSession->venue),
+                                'action' => 'View training details',
+                            ])
+                        @endforeach
                     @elseif ($key === 'pcic')
                         @foreach ($pcicUpdates as $update)
                             @include('farmer.partials.notification-item', [
