@@ -17,7 +17,7 @@
         @if ($training->status === 'draft' && $training->isUpcoming())
             <form method="POST" action="{{ route('admin.trainings.publish', $training) }}" class="mt-3">
                 @csrf
-                <button class="btn btn-fams">Publish Training and Open Registration</button>
+                <button class="btn btn-fams">Publish Training</button>
             </form>
         @endif
     </div>

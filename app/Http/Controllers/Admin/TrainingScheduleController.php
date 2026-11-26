@@ -56,7 +56,7 @@ class TrainingScheduleController extends Controller
 
             unset($data['farmer_ids']);
             $training = TrainingSession::create($data);
-            $training->registrations()->createMany($farmers->map(fn ($id) => ['farmer_id' => $id])->all());
+            $training->registrations()->createMany($farmers->map(fn ($id) => ['farmer_id' => $id, 'selected_by_admin' => true])->all());
 
             return $training;
         });
@@ -90,7 +90,7 @@ class TrainingScheduleController extends Controller
             $session->forceFill(['status' => 'published'])->save();
         });
 
-        return back()->with('success', 'Training published. Registration is open.');
+        return back()->with('success', 'Training published for the selected farmers.');
     }
 
     public function review(Request $request, TrainingSession $training, TrainingRegistration $registration): RedirectResponse

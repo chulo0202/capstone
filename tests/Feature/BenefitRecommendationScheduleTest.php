@@ -32,6 +32,71 @@ class BenefitRecommendationScheduleTest extends TestCase
             ->assertSeeText(now()->subDay()->format('M j, Y').' – '.now()->addDay()->format('M j, Y'));
     }
 
+    public function test_creating_one_schedule_does_not_reopen_a_legacy_sibling(): void
+    {
+        [$user, $selected] = $this->createScenario();
+        $program = $selected->program;
+        $program->update(['start_at' => now()->subDays(3), 'end_at' => now()->subDay()]);
+        $sibling = $program->benefits()->create(['name' => 'Legacy Sibling Benefit']);
+        $sibling->forceFill(['eligibility_configured_at' => now()->subDays(3)])->save();
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'admin_registration_status' => 'approved',
+        ]);
+
+        $this->actingAs($admin)->post(route('admin.programs.store'), [
+            'program_id' => $program->id,
+            'program_benefit_id' => $selected->id,
+            'description' => 'Selected benefit schedule',
+            'start_at' => now()->subHour()->toDateTimeString(),
+            'end_at' => now()->addDay()->toDateTimeString(),
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('benefit_configurations', 1);
+        $this->assertDatabaseMissing('recommendations', ['program_benefit_id' => $sibling->id]);
+
+        $this->actingAs($user)->get(route('farmer.recommendations'))
+            ->assertOk()
+            ->assertSeeText($selected->name)
+            ->assertDontSeeText($sibling->name);
+    }
+
+    public function test_training_benefit_application_requires_full_eligibility(): void
+    {
+        [$user, $benefit] = $this->createScenario();
+        $program = $benefit->program;
+        $program->update(['name' => 'Training and Technology Demonstrations']);
+        $benefit->eligibilityRules()->create([
+            'program_id' => $program->id,
+            'crop_types' => ['Rice'],
+            'requires_association' => true,
+        ]);
+        $application = [
+            'program_benefit_id' => $benefit->id,
+            'service_description' => 'I want to learn how to space rice seedlings.',
+            'preferred_service_date' => today()->addDay()->toDateString(),
+        ];
+
+        $this->actingAs($user)->get(route('farmer.recommendations'))->assertOk()
+            ->assertSeeText('Complete missing requirements to apply.')
+            ->assertDontSee('data-benefit-id="'.$benefit->id.'"', false);
+        $this->postJson(route('farmer.applications.store', $program), $application)
+            ->assertUnprocessable();
+        $this->assertDatabaseCount('applications', 0);
+
+        $user->farmer->update(['association_membership' => true]);
+        $this->get(route('farmer.recommendations'))->assertOk()
+            ->assertSeeText('Apply Now')
+            ->assertSee('data-benefit-id="'.$benefit->id.'"', false);
+        $this->postJson(route('farmer.applications.store', $program), $application)->assertOk();
+
+        $this->assertDatabaseHas('applications', [
+            'farmer_id' => $user->farmer->id,
+            'program_benefit_id' => $benefit->id,
+            'status' => 'pending',
+        ]);
+    }
+
     public function test_upcoming_benefit_is_hidden_from_recommendations(): void
     {
         [$user, $benefit] = $this->createScenario();

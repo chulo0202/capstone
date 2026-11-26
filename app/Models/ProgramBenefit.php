@@ -112,8 +112,14 @@ class ProgramBenefit extends Model
             return $this->configurations->contains(fn ($configuration) => $configuration->isCurrentAt($now));
         }
 
-        // Legacy benefits used the parent schedule before configurations were introduced.
-        return $this->always_active || ($program->start_at?->lte($now) && $program->end_at?->gte($now));
+        if ($this->always_active) {
+            return true;
+        }
+
+        // After the program adopts individual schedules, its dates cannot open sibling benefits.
+        return $program->start_at?->lte($now)
+            && $program->end_at?->gte($now)
+            && ! $program->benefits()->whereHas('configurations')->exists();
     }
 
     public function configurations(): HasMany

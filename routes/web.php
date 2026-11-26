@@ -338,7 +338,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/trainings', [\App\Http\Controllers\Farmer\TrainingController::class, 'index'])->name('trainings.index');
         Route::get('/training-registrations/{registration}', [\App\Http\Controllers\Farmer\TrainingController::class, 'show'])
             ->name('trainings.registration');
-        Route::post('/trainings/{training}/register', [\App\Http\Controllers\Farmer\TrainingController::class, 'store'])->name('trainings.store');
 
         Route::get('/notifications', [NotificationController::class, 'index'])
             ->name('notifications.index');

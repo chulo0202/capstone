@@ -827,7 +827,7 @@ class BenefitSpecificWorkflowTest extends TestCase
         $this->post($store, $schedule)->assertSessionHas('success');
 
         $training = \App\Models\TrainingSession::sole();
-        $register = route('farmer.trainings.store', $training);
+        $register = '/farmer/trainings/'.$training->id.'/register';
         $this->actingAs($first)->get(route('farmer.trainings.index'))->assertOk()->assertDontSee($title);
         $this->post($register)->assertNotFound();
 
@@ -835,14 +835,19 @@ class BenefitSpecificWorkflowTest extends TestCase
         $this->get(route('admin.distribution-batches.index'))->assertOk()->assertSee($title);
         $this->get(route('admin.distribution-batches.index', ['type' => 'distribution']))->assertOk()->assertDontSee($title);
 
-        $this->actingAs($first)->get(route('farmer.trainings.index'))->assertOk()->assertSee('Pending');
-        $this->post($register)->assertSessionHas('success');
-        $this->post($register)->assertSessionHas('success', 'You already registered for this training.');
-        $this->actingAs($second)->post($register)->assertSessionHas('success');
-        $this->assertDatabaseCount('training_registrations', 2);
-
         $firstEntry = $training->registrations()->where('farmer_id', $firstFarmer->id)->sole();
-        $secondEntry = $training->registrations()->where('farmer_id', $secondFarmer->id)->sole();
+        $view = route('farmer.trainings.registration', $firstEntry);
+        $this->actingAs($first)->get(route('farmer.trainings.index', ['status' => 'pending']))
+            ->assertOk()->assertSee($title)->assertSee($view)->assertDontSee('Bring a notebook.');
+        $this->get(route('farmer.trainings.index', ['status' => 'confirmed']))
+            ->assertOk()->assertDontSee($title);
+
+        $this->actingAs($second)->post($register)->assertNotFound();
+        $this->assertDatabaseCount('training_registrations', 1);
+        $secondEntry = $training->registrations()->create(['farmer_id' => $secondFarmer->id]);
+        $this->get(route('farmer.trainings.index'))->assertOk()->assertDontSee($title);
+        $this->get($view)->assertNotFound();
+
         $this->actingAs($admin)->get(route('admin.trainings.show', $training))->assertOk()->assertSee('Confirm Slot');
         $this->post(route('admin.trainings.review', [$training, $firstEntry]), ['status' => 'confirmed'])
             ->assertSessionHas('success');

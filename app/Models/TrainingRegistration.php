@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TrainingRegistration extends Model
 {
-    protected $fillable = ['farmer_id'];
+    protected $fillable = ['farmer_id', 'selected_by_admin'];
+
+    protected $casts = ['selected_by_admin' => 'boolean'];
 
     public function trainingSession(): BelongsTo
     {

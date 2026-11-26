@@ -8,7 +8,7 @@
 <div class="row g-3">
     @foreach ([
         ['Distribution', 'Schedule a distribution for Seed Subsidies or Fertilizer Subsidies.', 'bi-box-seam', 'admin.distribution-batches.create', 'Create Distribution'],
-        ['Training and Technology Demonstrations', 'Publish a training session and review farmer registrations.', 'bi-calendar-event', 'admin.trainings.create', 'Create Training'],
+        ['Training and Technology Demonstrations', 'Schedule a training session for selected farmers.', 'bi-calendar-event', 'admin.trainings.create', 'Create Training'],
     ] as [$name, $description, $icon, $routeName, $buttonLabel])
         <div class="col-md-6">
             <div class="card h-100 shadow-sm">

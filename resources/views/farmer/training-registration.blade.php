@@ -4,7 +4,7 @@
 @section('page-subtitle', 'Training Registration')
 
 @section('main')
-<a href="{{ route('farmer.notifications.index') }}" class="btn btn-fams-back mb-3">Back to Notifications</a>
+<a href="{{ route('farmer.trainings.index') }}" class="btn btn-fams-back mb-3">Back to Training Sessions</a>
 <section class="card shadow-sm">
     <div class="card-body p-4">
         <h2 class="h5 mb-2">Registration {{ ucfirst($registration->status) }}</h2>
