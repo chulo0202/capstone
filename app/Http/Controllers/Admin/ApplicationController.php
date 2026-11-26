@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Application;
 use App\Services\AuditLogService;
 use App\Services\EligibilityService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class ApplicationController extends Controller
@@ -62,11 +65,22 @@ class ApplicationController extends Controller
             'benefit',
             'detail',
             'pcicDamageIncident',
+            'pcicDecisionAttachment',
         ]);
 
         return view('admin.applications.show', [
             'application' => $application,
         ]);
+    }
+
+    public function downloadSubmittedForm(Application $application): Response
+    {
+        $application->load(['farmer', 'program', 'benefit', 'detail', 'pcicDamageIncident']);
+        abort_unless($application->hasPcicSubmittedForm(), 404);
+
+        return Pdf::loadView('admin.applications.pcic-submitted-form', ['application' => $application])
+            ->setPaper('a4')
+            ->download("pcic-application-{$application->id}.pdf");
     }
 
     public function approve(
@@ -75,63 +89,7 @@ class ApplicationController extends Controller
         EligibilityService $eligibilityService,
         AuditLogService $auditLogService
     ): RedirectResponse {
-        $result = DB::transaction(function () use ($application, $request, $eligibilityService, $auditLogService) {
-            $locked = Application::query()
-                ->with(['farmer', 'program', 'benefit'])
-                ->whereKey($application->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if ($locked->status !== 'pending') {
-                return 'not_pending';
-            }
-
-            if (! $locked->farmer || ! $locked->program) {
-                return 'missing_history';
-            }
-
-            $isPcicClaim = $locked->isPcicClaim();
-
-            if (! $isPcicClaim && $eligibilityService->evaluate(
-                $locked->farmer, $locked->program, $locked->benefit
-            )['status'] !== 'eligible') {
-                return 'ineligible';
-            }
-
-            $locked->update([
-                'status' => 'approved',
-                'reviewed_at' => now(),
-                'remarks' => 'Application approved by admin.',
-            ]);
-
-            if ($locked->program?->isPcicCropInsurance()) {
-                $locked->pcicTrackingUpdates()->create([
-                    'user_id' => $request->user()->id,
-                    'status' => $isPcicClaim ? 'claim_approved_by_fams' : 'application_approved',
-                    'remarks' => $locked->remarks,
-                ]);
-            }
-
-            $auditLogService->log(
-                'APPLICATION_APPROVED',
-                $locked,
-                'Application approved for benefit: ' . ($locked->benefit?->name ?? 'Legacy program-level application')
-            );
-
-            return 'approved';
-        });
-
-        if ($result !== 'approved') {
-            $message = match ($result) {
-                'not_pending' => 'Only pending applications can be approved.',
-                'missing_history' => 'The application is missing its farmer or program record.',
-                default => 'The farmer does not currently meet the application eligibility rules.',
-            };
-
-            return back()->with('error', $message);
-        }
-
-        return back()->with('success', 'Farmer application approved successfully.');
+        return $this->review($application, $request, $auditLogService, $eligibilityService);
     }
 
     public function reject(
@@ -139,51 +97,93 @@ class ApplicationController extends Controller
         Request $request,
         AuditLogService $auditLogService
     ): RedirectResponse {
-        $validated = $request->validateWithBag('applicationRejection', [
-            'remarks' => ['required', 'string', 'max:2000'],
-        ]);
+        return $this->review($application, $request, $auditLogService);
+    }
 
-        $rejected = DB::transaction(function () use (
-            $application,
-            $request,
-            $validated,
-            $auditLogService
-        ) {
-            $locked = Application::query()
-                ->with(['program', 'benefit'])
-                ->whereKey($application->id)
-                ->lockForUpdate()
-                ->firstOrFail();
+    private function review(
+        Application $application,
+        Request $request,
+        AuditLogService $auditLogService,
+        ?EligibilityService $eligibilityService = null
+    ): RedirectResponse {
+        $approving = $eligibilityService !== null;
+        $status = $approving ? 'approved' : 'rejected';
+        $isPcic = $application->program?->isPcicCropInsurance();
+        $rules = $approving ? [] : ['remarks' => ['required', 'string', 'max:2000']];
 
-            if ($locked->status !== 'pending') {
-                return false;
-            }
+        if ($isPcic) {
+            $rules['decision_attachment'] = ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:5120'];
+        }
+        $validated = $request->validateWithBag('applicationRejection', $rules);
+        $path = null;
 
-            $locked->update([
-                'status' => 'rejected',
-                'reviewed_at' => now(),
-                'remarks' => $validated['remarks'],
-            ]);
+        try {
+            $result = DB::transaction(function () use (
+                $application, $request, $auditLogService, $eligibilityService,
+                $approving, $status, $isPcic, $validated, &$path
+            ) {
+                $locked = Application::with(['farmer', 'program', 'benefit'])
+                    ->lockForUpdate()
+                    ->findOrFail($application->id);
 
-            if ($locked->program?->isPcicCropInsurance()) {
-                $locked->pcicTrackingUpdates()->create([
-                    'user_id' => $request->user()->id,
-                    'status' => 'application_rejected',
-                    'remarks' => $locked->remarks,
+                if ($locked->status !== 'pending') {
+                    return "Only pending applications can be {$status}.";
+                }
+
+                if ($approving && (! $locked->farmer || ! $locked->program)) {
+                    return 'The application is missing its farmer or program record.';
+                }
+
+                $isPcicClaim = $locked->isPcicClaim();
+                if ($eligibilityService && ! $isPcicClaim && $eligibilityService->evaluate(
+                    $locked->farmer, $locked->program, $locked->benefit
+                )['status'] !== 'eligible') {
+                    return 'The farmer does not currently meet the application eligibility rules.';
+                }
+
+                if ($isPcic) {
+                    $path = $validated['decision_attachment']->store("pcic-decisions/{$locked->id}", 'private');
+                    if (! $path) {
+                        return 'The decision attachment could not be saved. Please try again.';
+                    }
+                }
+
+                $locked->update([
+                    'status' => $status,
+                    'reviewed_at' => now(),
+                    'remarks' => $validated['remarks'] ?? 'Application approved by admin.',
                 ]);
+
+                if ($isPcic) {
+                    $locked->pcicTrackingUpdates()->create([
+                        'user_id' => $request->user()->id,
+                        'status' => match (true) {
+                            ! $approving => 'application_rejected',
+                            $isPcicClaim => 'claim_approved_by_fams',
+                            default => 'application_approved',
+                        },
+                        'remarks' => $locked->remarks,
+                        'attachment_path' => $path,
+                    ]);
+                }
+
+                $auditLogService->log(
+                    'APPLICATION_' . strtoupper($status),
+                    $locked,
+                    'Application ' . $status . ' for benefit: ' . ($locked->benefit?->name ?? 'Legacy program-level application')
+                );
+
+                return null;
+            });
+        } catch (\Throwable $exception) {
+            if ($path) {
+                Storage::disk('private')->delete($path);
             }
+            throw $exception;
+        }
 
-            $auditLogService->log(
-                'APPLICATION_REJECTED',
-                $locked,
-                'Application rejected for benefit: ' . ($locked->benefit?->name ?? 'Legacy program-level application')
-            );
-
-            return true;
-        });
-
-        return $rejected
-            ? back()->with('success', 'Farmer application rejected successfully.')
-            : back()->with('error', 'Only pending applications can be rejected.');
+        return $result
+            ? back()->with('error', $result)
+            : back()->with('success', "Farmer application {$status} successfully.");
     }
 }

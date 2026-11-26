@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use App\Models\PcicInsuranceCoverage;
 use App\Models\PcicDamageIncident;
@@ -26,7 +27,7 @@ class ApplicationController extends Controller
         $farmer = Auth::user()->farmer;
 
         $applications = $farmer
-            ? Application::with(['program', 'benefit', 'latestPcicTrackingUpdate'])
+            ? Application::with(['program', 'benefit', 'latestPcicTrackingUpdate', 'pcicDecisionAttachment'])
                 ->where(fn ($query) => $query->withCurrentBenefit()->orWhereHas(
                     'program',
                     fn ($program) => $program->where('name', 'PCIC Crop Insurance')
@@ -92,6 +93,12 @@ class ApplicationController extends Controller
 
                 $isPcic = $lockedProgram->isPcicCropInsurance();
                 $isPcicClaim = $isPcic && $benefit->name === 'Claim for Indemnity';
+
+                if ($isPcicClaim && ! Application::hasApprovedPcicNewApplication($lockedFarmer->id, $lockedProgram->id)) {
+                    throw ValidationException::withMessages([
+                        'program_benefit_id' => 'An approved PCIC New Application is required before filing a Claim for Indemnity.',
+                    ]);
+                }
 
                 $areaField = match (true) {
                     $isPcicClaim => 'area_damaged',
@@ -336,6 +343,8 @@ class ApplicationController extends Controller
                 ];
             });
 
+        } catch (ValidationException $exception) {
+            throw $exception;
         } catch (\Throwable $exception) {
             foreach ($newDamagePhotoPaths as $path) {
                 try {

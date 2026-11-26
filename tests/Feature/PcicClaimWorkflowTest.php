@@ -18,7 +18,7 @@ class PcicClaimWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function setupClaim(string $verificationStatus = 'verified'): array
+    private function setupClaim(string $verificationStatus = 'verified', bool $approvedApplication = true): array
     {
         Storage::fake('private');
 
@@ -77,12 +77,23 @@ class PcicClaimWorkflowTest extends TestCase
             'verification_notes' => 'Verified test evidence',
         ]);
 
+        if ($approvedApplication) {
+            $newApplication = $program->benefits()->create(['name' => 'New Application']);
+            Application::create([
+                'farmer_id' => $farmer->id,
+                'program_id' => $program->id,
+                'program_benefit_id' => $newApplication->id,
+                'status' => 'approved',
+                'applied_at' => now(),
+            ]);
+        }
+
         return [$user, $farmer, $program, $benefit, $coverage];
     }
 
     public function test_pcic_new_application_enforces_the_combined_lot_area_limit(): void
     {
-        [$user, $farmer, $program] = $this->setupClaim();
+        [$user, $farmer, $program] = $this->setupClaim(approvedApplication: false);
         $farmer->update(['land_size' => 2.25]);
         $program->update(['is_active' => true, 'end_at' => now()->addDay()]);
 
@@ -126,7 +137,43 @@ class PcicClaimWorkflowTest extends TestCase
             ->assertSessionHas('success');
 
         $this->assertDatabaseCount('applications', 1);
-        $this->assertEquals([$lot, $secondLot], \App\Models\Application::sole()->detail->details['lots']);
+        $application = Application::sole();
+        $this->assertEquals([$lot, $secondLot], $application->detail->details['lots']);
+
+        $download = route('admin.applications.submitted-form', $application);
+        $this->get($download)->assertForbidden();
+        $this->actingAs($this->makeAdmin())->get(route('admin.applications.show', $application))
+            ->assertOk()->assertSee($download, false);
+        $this->get($download)->assertDownload("pcic-application-{$application->id}.pdf");
+        $this->view('admin.applications.pcic-submitted-form', ['application' => $application])
+            ->assertSee('Lot 2')->assertSee('1.75 hectares')->assertSee($lot['adjacent_north']);
+    }
+
+    public function test_claim_requires_an_approved_new_application(): void
+    {
+        [$user, $farmer, $program, $claim] = $this->setupClaim(approvedApplication: false);
+        $newBenefit = $program->benefits()->create(['name' => 'New Application']);
+        $newApplication = Application::create([
+            'farmer_id' => $farmer->id,
+            'program_id' => $program->id,
+            'program_benefit_id' => $newBenefit->id,
+            'status' => 'pending',
+            'applied_at' => now(),
+        ]);
+
+        $this->actingAs($user);
+        foreach (['pending', 'rejected'] as $status) {
+            $newApplication->update(['status' => $status]);
+            $this->get(route('farmer.recommendations'))->assertSeeText('An approved PCIC New Application is required');
+            $this->post(route('farmer.applications.store', $program), $this->claimData($claim), ['Accept' => 'application/json'])
+                ->assertUnprocessable()->assertJsonValidationErrors('program_benefit_id');
+        }
+        $this->assertDatabaseMissing('applications', ['program_benefit_id' => $claim->id]);
+
+        $newApplication->update(['status' => 'approved']);
+        $this->get(route('farmer.recommendations'))->assertSeeText('File Claim');
+        $this->post(route('farmer.applications.store', $program), $this->claimData($claim))
+            ->assertSessionHas('success');
     }
 
     public function test_claim_date_of_loss_must_be_within_seven_days(): void
@@ -141,11 +188,11 @@ class PcicClaimWorkflowTest extends TestCase
             $this->post($route, array_replace($data, ['date_of_loss' => $invalidDate->toDateString()]))
                 ->assertSessionHasErrors('date_of_loss');
         }
-        $this->assertDatabaseCount('applications', 0);
+        $this->assertDatabaseMissing('applications', ['program_benefit_id' => $benefit->id]);
 
         $this->post($route, array_replace($data, ['date_of_loss' => $today->subDays(7)->toDateString()]))
             ->assertSessionHas('success');
-        $this->assertDatabaseCount('applications', 1);
+        $this->assertDatabaseHas('applications', ['program_benefit_id' => $benefit->id]);
     }
 
     public function test_indemnity_claim_rejects_damaged_area_above_profile_land_size(): void
@@ -162,7 +209,7 @@ class PcicClaimWorkflowTest extends TestCase
             ),
         ], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors('area_damaged');
 
-        $this->assertDatabaseCount('applications', 0);
+        $this->assertDatabaseMissing('applications', ['program_benefit_id' => $benefit->id]);
     }
 
     private function claimData($benefit): array
@@ -206,6 +253,14 @@ class PcicClaimWorkflowTest extends TestCase
         ]);
 
         $this->assertSame(1, PcicDamageIncident::count());
+
+        $incident = PcicDamageIncident::sole();
+        $application = $incident->application;
+        $this->actingAs($this->makeAdmin())->get(route('admin.applications.submitted-form', $application))
+            ->assertDownload("pcic-application-{$application->id}.pdf");
+        $this->view('admin.applications.pcic-submitted-form', ['application' => $application])
+            ->assertSee('Flood')->assertSee('View Damage Photo 1 in FAMS')
+            ->assertDontSee($incident->damagePhotoPaths()[0]);
     }
 
     public function test_claim_form_omits_removed_fields_and_rejects_ambiguous_coverage(): void
@@ -267,7 +322,7 @@ class PcicClaimWorkflowTest extends TestCase
         $this->post(route('farmer.applications.store', $program), $this->claimData($benefit))
             ->assertSessionHas('error');
 
-        $this->assertSame(1, Application::count());
+        $this->assertSame(1, Application::where('program_benefit_id', $benefit->id)->count());
         $this->assertSame(1, PcicDamageIncident::count());
     }
 
@@ -282,7 +337,7 @@ class PcicClaimWorkflowTest extends TestCase
             ->post(route('farmer.applications.store', $program), $data)
             ->assertSessionHasErrors('damage_photo');
 
-        $this->assertSame(0, Application::count());
+        $this->assertDatabaseMissing('applications', ['program_benefit_id' => $benefit->id]);
     }
     private function submitClaimAndGetIncident(): array
     {
@@ -435,7 +490,7 @@ class PcicClaimWorkflowTest extends TestCase
         $this->actingAs($user)->post($route, array_replace($data, [
             'damage_photo' => array_fill(0, 4, $photo),
         ]))->assertSessionHasErrors('damage_photo');
-        $this->assertDatabaseCount('applications', 0);
+        $this->assertDatabaseMissing('applications', ['program_benefit_id' => $benefit->id]);
 
         $this->post($route, array_replace($data, [
             'damage_photo' => array_fill(0, 3, $photo),

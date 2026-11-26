@@ -19,11 +19,18 @@
             </p>
         </div>
 
-        <a href="{{ route('admin.applications.index') }}"
-           class="btn btn-fams-back">
-            <i class="bi bi-arrow-left me-1"></i>
-            Back to Applications
-        </a>
+        <div class="d-flex flex-wrap gap-2">
+            @if ($application->hasPcicSubmittedForm())
+                <a href="{{ route('admin.applications.submitted-form', $application) }}" class="btn btn-fams">
+                    <i class="bi bi-download me-1" aria-hidden="true"></i>
+                    Download Submitted Form (PDF)
+                </a>
+            @endif
+            <a href="{{ route('admin.applications.index') }}" class="btn btn-fams-back">
+                <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>
+                Back to Applications
+            </a>
+        </div>
     </div>
 
     {{-- FARMER INFORMATION --}}
@@ -209,6 +216,9 @@
                     <div class="fw-semibold text-break">
                         {{ $application->remarks ?: 'No remarks' }}
                     </div>
+                    @if ($decision = $application->pcicDecisionAttachment)
+                        <a class="d-inline-block mt-2" href="{{ route('pcic.decision-attachment', $decision) }}">Download decision attachment</a>
+                    @endif
                 </div>
             </div>
         </div>

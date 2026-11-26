@@ -38,6 +38,8 @@ class RecommendationController extends Controller
                             return (object) [
                                 'program' => $program,
                                 'benefit' => $benefit,
+                                'claim_locked' => $program->isPcicCropInsurance() && $benefit->name === 'Claim for Indemnity'
+                                    && ! Application::hasApprovedPcicNewApplication($farmer->id, $program->id),
                                 'always_open' => $benefit->isOpenYearRound($program),
                                 'start_at' => $configuration?->start_at ?? $program->start_at,
                                 'end_at' => $configuration?->end_at ?? $program->end_at,

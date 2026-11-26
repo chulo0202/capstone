@@ -99,6 +99,7 @@
                         @foreach ($pcicUpdates as $update)
                             @include('farmer.partials.notification-item', [
                                 'href' => route('farmer.applications.index').'#application-'.$update->application_id,
+                                'attachmentHref' => $update->attachment_path ? route('pcic.decision-attachment', $update) : null,
                                 'itemIcon' => $icon,
                                 'title' => ($update->application->benefit?->name ?? 'PCIC application').' · '.\App\Models\PcicTrackingUpdate::STATUSES[$update->status],
                                 'description' => collect([

@@ -10,3 +10,9 @@
     </span>
     @isset($href)<i class="bi bi-chevron-right text-muted align-self-center" aria-hidden="true"></i>@endisset
 </{{ $tag }}>
+
+@isset($attachmentHref)
+    <a href="{{ $attachmentHref }}" class="btn btn-sm btn-outline-success align-self-start">
+        <i class="bi bi-download me-1" aria-hidden="true"></i> Download decision attachment
+    </a>
+@endisset

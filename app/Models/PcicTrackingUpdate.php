@@ -27,7 +27,7 @@ class PcicTrackingUpdate extends Model
 
     public const OFFICIAL_STATUSES = ['approved', 'rejected', 'release_scheduled', 'released'];
 
-    protected $fillable = ['user_id', 'status', 'remarks', 'pcic_reference', 'expected_release_date'];
+    protected $fillable = ['user_id', 'status', 'remarks', 'pcic_reference', 'expected_release_date', 'attachment_path'];
 
     protected $casts = ['expected_release_date' => 'date'];
 

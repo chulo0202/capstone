@@ -68,6 +68,8 @@ Route::post('/admin/register', [AuthAdminRegistrationController::class, 'store']
     ->middleware('throttle:5,1');
 
 Route::middleware(['auth'])->group(function () {
+    Route::get('/pcic/decision-attachments/{update}', \App\Http\Controllers\PcicDecisionAttachmentController::class)
+        ->name('pcic.decision-attachment');
 
     Route::get('/dashboard', function () {
         return Auth::user()->isAdmin()
@@ -109,6 +111,10 @@ Route::middleware(['auth'])->group(function () {
             '/applications/{application}',
             [\App\Http\Controllers\Admin\ApplicationController::class, 'show']
         )->name('applications.show');
+
+        Route::get('/applications/{application}/submitted-form', [
+            \App\Http\Controllers\Admin\ApplicationController::class, 'downloadSubmittedForm',
+        ])->name('applications.submitted-form');
 
         Route::post('/farmers/rsbsa-lookup', \App\Http\Controllers\Admin\RsbsaFarmerLookupController::class)
             ->middleware('throttle:20,1')

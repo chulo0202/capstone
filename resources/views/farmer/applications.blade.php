@@ -421,6 +421,9 @@ APPLICATION HISTORY
                             >
 
                                 {{ $application->remarks ?? 'No remarks provided.' }}
+                                @if ($decision = $application->pcicDecisionAttachment)
+                                    <a class="d-block mt-1" href="{{ route('pcic.decision-attachment', $decision) }}">Download decision attachment</a>
+                                @endif
                                 @if ($update = $application->latestPcicTrackingUpdate)
                                     <div class="mt-2">
                                         <strong>{{ \App\Models\PcicTrackingUpdate::STATUSES[$update->status] }}</strong>

@@ -168,26 +168,40 @@
 
                                     <div class="d-flex justify-content-center gap-1 mt-2">
 
-                                        {{-- Approve --}}
-                                        <form
-                                            method="POST"
-                                            action="{{ route('admin.applications.approve', $application) }}"
-                                        >
-                                            @csrf
-                                            @method('PATCH')
-
-                                            <button
-                                                type="submit"
-                                                class="btn btn-sm btn-success"
-                                                title="Approve" aria-label="Approve application"
-                                            >
-                                                <i class="bi bi-check-lg"></i>
+                                        @php
+                                            $isPcic = $application->program?->isPcicCropInsurance();
+                                        @endphp
+                                        @if($isPcic)
+                                            <button type="button" class="btn btn-sm btn-success" title="Approve" aria-label="Approve application"
+                                                data-bs-toggle="modal" data-bs-target="#rejectApplicationModal"
+                                                data-review-url="{{ route('admin.applications.approve', $application) }}"
+                                                data-review-action="approve" data-pcic="1"
+                                                data-application-id="{{ $application->id }}"
+                                                data-farmer-name="{{ $application->farmer?->full_name }}">
+                                                <i class="bi bi-check-lg" aria-hidden="true"></i>
                                             </button>
-                                        </form>
+                                        @else
+                                            <form
+                                                method="POST"
+                                                action="{{ route('admin.applications.approve', $application) }}"
+                                            >
+                                                @csrf
+                                                @method('PATCH')
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-sm btn-success"
+                                                    title="Approve" aria-label="Approve application"
+                                                >
+                                                    <i class="bi bi-check-lg"></i>
+                                                </button>
+                                            </form>
+                                        @endif
 
                                         <button type="button" class="btn btn-sm btn-danger" title="Reject" aria-label="Reject application"
                                             data-bs-toggle="modal" data-bs-target="#rejectApplicationModal"
-                                            data-reject-url="{{ route('admin.applications.reject', $application) }}"
+                                            data-review-action="reject" data-pcic="{{ (int) $isPcic }}"
+                                            data-review-url="{{ route('admin.applications.reject', $application) }}"
                                             data-application-id="{{ $application->id }}"
                                             data-farmer-name="{{ $application->farmer?->full_name }}">
                                             <i class="bi bi-x-lg" aria-hidden="true"></i>
@@ -353,22 +367,34 @@
 
 <div class="modal fade" id="rejectApplicationModal" tabindex="-1" aria-labelledby="rejectApplicationTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <form class="modal-content" id="rejectApplicationForm" method="POST">
+        <form class="modal-content" id="rejectApplicationForm" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PATCH')
             <input type="hidden" name="rejection_application" value="">
+            <input type="hidden" name="review_action" value="">
             <div class="modal-header">
                 <h2 class="modal-title h5" id="rejectApplicationTitle">Reject application</h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <p class="text-muted" id="rejectApplicationFarmer"></p>
-                <label class="form-label" for="applicationRejectionReason">Reason for rejection <span class="text-danger">*</span></label>
-                <textarea class="form-control" name="remarks" id="applicationRejectionReason"
-                    rows="4" maxlength="2000" required></textarea>
-                @error('remarks', 'applicationRejection')
-                    <p class="small text-danger mt-2 mb-0" id="applicationRejectionError" hidden>{{ $message }}</p>
-                @enderror
+                <div id="applicationRejectionFields">
+                    <label class="form-label" for="applicationRejectionReason">Reason for rejection <span class="text-danger">*</span></label>
+                    <textarea class="form-control" name="remarks" id="applicationRejectionReason"
+                        rows="4" maxlength="2000" required></textarea>
+                    @error('remarks', 'applicationRejection')
+                        <p class="small text-danger mt-2 mb-0" id="applicationRejectionError" hidden>{{ $message }}</p>
+                    @enderror
+                </div>
+                <div id="pcicDecisionAttachmentFields" class="mt-3" hidden>
+                    <label class="form-label" for="pcicDecisionAttachment">Decision document or photo <span class="text-danger">*</span></label>
+                    <input type="file" class="form-control" id="pcicDecisionAttachment" name="decision_attachment"
+                        accept=".pdf,.jpg,.jpeg,.png,.webp" aria-describedby="pcicDecisionAttachmentHelp">
+                    <span id="pcicDecisionAttachmentHelp" class="form-text">Attach the document or photo explaining the decision. PDF, JPG, PNG or WebP, up to 5 MB.</span>
+                    @error('decision_attachment', 'applicationRejection')
+                        <p class="small text-danger mt-2 mb-0" id="pcicDecisionAttachmentError" hidden>{{ $message }}</p>
+                    @enderror
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -384,36 +410,57 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('rejectApplicationForm');
     const reason = form.elements.remarks;
     const error = document.getElementById('applicationRejectionError');
+    const attachment = form.elements.decision_attachment;
+    const attachmentError = document.getElementById('pcicDecisionAttachmentError');
+    const submit = form.querySelector('[type="submit"]');
+    const oldAction = {{ Js::from((string) old('review_action', 'reject')) }};
     const oldId = {{ Js::from((string) old('rejection_application', '')) }};
     const oldReason = {{ Js::from((string) old('remarks', '')) }};
 
     modal.addEventListener('show.bs.modal', event => {
         const button = event.relatedTarget;
-        if (!button?.dataset.rejectUrl) {
+        if (!button?.dataset.reviewUrl) {
             event.preventDefault();
             return;
         }
 
-        const failed = Boolean(error && button.dataset.applicationId === oldId);
-        form.action = button.dataset.rejectUrl;
+        const action = button.dataset.reviewAction;
+        const rejecting = action === 'reject';
+        const isPcic = button.dataset.pcic === '1';
+        const failed = button.dataset.applicationId === oldId && action === oldAction;
+        form.action = button.dataset.reviewUrl;
+        form.elements.review_action.value = action;
+        document.getElementById('rejectApplicationTitle').textContent = rejecting ? 'Reject application' : 'Approve application';
+        document.getElementById('applicationRejectionFields').hidden = !rejecting;
+        document.getElementById('pcicDecisionAttachmentFields').hidden = !isPcic;
+        submit.textContent = rejecting ? 'Reject Application' : 'Approve Application';
+        submit.classList.toggle('btn-danger', rejecting);
+        submit.classList.toggle('btn-success', !rejecting);
+        reason.required = rejecting;
+        reason.disabled = !rejecting;
+        attachment.required = isPcic;
+        attachment.disabled = !isPcic;
+        attachment.value = '';
+        attachment.classList.toggle('is-invalid', Boolean(attachmentError && failed));
+        if (attachmentError) attachmentError.hidden = !failed;
         form.elements.rejection_application.value = button.dataset.applicationId;
         document.getElementById('rejectApplicationFarmer').textContent = button.dataset.farmerName;
         reason.value = failed ? oldReason : '';
         reason.setCustomValidity('');
-        reason.classList.toggle('is-invalid', failed);
+        reason.classList.toggle('is-invalid', Boolean(error && failed));
         if (error) error.hidden = !failed;
     });
 
-    modal.addEventListener('shown.bs.modal', () => reason.focus());
+    modal.addEventListener('shown.bs.modal', () => (reason.disabled ? attachment : reason).focus());
     reason.addEventListener('input', () => {
         reason.setCustomValidity(reason.value && !reason.value.trim() ? 'Enter a reason for rejection.' : '');
         reason.classList.remove('is-invalid');
         if (error) error.hidden = true;
     });
 
-    if (error && oldId) {
-        const trigger = [...document.querySelectorAll('[data-reject-url]')]
-            .find(button => button.dataset.applicationId === oldId);
+    if ((error || attachmentError) && oldId) {
+        const trigger = [...document.querySelectorAll('[data-review-url]')]
+            .find(button => button.dataset.applicationId === oldId && button.dataset.reviewAction === oldAction);
         if (trigger) bootstrap.Modal.getOrCreateInstance(modal).show(trigger);
     }
 });

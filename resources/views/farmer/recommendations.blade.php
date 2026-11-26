@@ -605,6 +605,10 @@
                                             Already applied
                                         </button>
 
+                                    @elseif ($rec->claim_locked)
+
+                                        <span class="small text-muted">An approved PCIC New Application is required before filing a claim.</span>
+
                                     @elseif ($rec->eligibility_status !== 'eligible')
 
                                         <span class="small fw-semibold text-warning-emphasis">

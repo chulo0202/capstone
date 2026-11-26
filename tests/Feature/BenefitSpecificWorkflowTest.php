@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -214,20 +216,61 @@ class BenefitSpecificWorkflowTest extends TestCase
 
     public function test_admin_can_approve_pcic_claim_in_fams_before_official_pcic_approval(): void
     {
-        [, $farmer] = $this->createFarmer();
+        Storage::fake('private');
+        [$user, $farmer] = $this->createFarmer();
         $program = $this->createProgram(Program::PCIC_NAME);
         $benefit = $this->createBenefit($program, 'Claim for Indemnity');
         $claim = $this->makeBenefitApplication($farmer, $program, $benefit);
 
         $this->actingAs($this->createAdmin())
             ->patch(route('admin.applications.approve', $claim))
-            ->assertSessionHas('success');
+            ->assertSessionHasErrorsIn('applicationRejection', 'decision_attachment');
+        $this->assertSame('pending', $claim->fresh()->status);
+
+        $this->patch(route('admin.applications.approve', $claim), [
+            'decision_attachment' => UploadedFile::fake()->create('decision.pdf', 12, 'application/pdf'),
+        ])->assertSessionHas('success');
         $this->assertSame('approved', $claim->fresh()->status);
         $this->assertSame('claim_approved_by_fams', $claim->latestPcicTrackingUpdate()->firstOrFail()->status);
 
         $this->post(route('admin.distributions.release'), ['application_id' => $claim->id])
             ->assertSessionHas('error', 'Official PCIC approval is required before release.');
         $this->assertDatabaseCount('distributions', 0);
+
+        $update = $claim->latestPcicTrackingUpdate()->firstOrFail();
+        Storage::disk('private')->assertExists($update->attachment_path);
+        $download = route('pcic.decision-attachment', $update);
+        $this->get(route('admin.applications.show', $claim))->assertOk()->assertSee($download, false);
+        $this->actingAs($user)->get(route('farmer.notifications.index'))
+            ->assertOk()->assertSee($download, false);
+        $this->get(route('farmer.applications.index'))->assertOk()->assertSee($download, false);
+        $this->get($download)->assertDownload('PCIC-decision.pdf');
+        [$otherFarmer] = $this->createFarmer();
+        $this->actingAs($otherFarmer)->get($download)->assertNotFound();
+    }
+
+    public function test_pcic_new_application_rejection_requires_an_attachment_and_notifies_the_farmer(): void
+    {
+        Storage::fake('private');
+        [$user, $farmer] = $this->createFarmer();
+        $program = $this->createProgram(Program::PCIC_NAME);
+        $benefit = $this->createBenefit($program, 'New Application');
+        $application = $this->makeBenefitApplication($farmer, $program, $benefit);
+        $route = route('admin.applications.reject', $application);
+        $data = ['remarks' => 'The insured area could not be verified.'];
+
+        $this->actingAs($this->createAdmin())->patch($route, $data)
+            ->assertSessionHasErrorsIn('applicationRejection', 'decision_attachment');
+        $this->assertSame('pending', $application->fresh()->status);
+
+        $this->patch($route, $data + [
+            'decision_attachment' => UploadedFile::fake()->create('decision.pdf', 10, 'application/pdf'),
+        ])->assertSessionHas('success');
+        $update = $application->latestPcicTrackingUpdate()->firstOrFail();
+        $this->assertSame('rejected', $application->fresh()->status);
+        $this->actingAs($user)->get(route('farmer.notifications.index'))->assertOk()
+            ->assertSeeText('The insured area could not be verified.')
+            ->assertSee(route('pcic.decision-attachment', $update), false);
     }
 
     public function test_web_distribution_releases_exact_approved_benefit_application_once(): void

@@ -70,6 +70,23 @@ class Application extends Model
         return $this->hasMany(PcicTrackingUpdate::class);
     }
 
+    public static function hasApprovedPcicNewApplication(int $farmerId, int $programId): bool
+    {
+        return static::where('farmer_id', $farmerId)
+            ->where('program_id', $programId)
+            ->where('status', 'approved')
+            ->whereHas('benefit', fn ($query) => $query->where('name', 'New Application'))
+            ->exists();
+    }
+
+    public function hasPcicSubmittedForm(): bool
+    {
+        return $this->program?->isPcicCropInsurance() && (
+            in_array($this->detail?->form_type, ['pcic_new_application', 'pcic_claim'], true)
+            || in_array($this->benefit?->name, ['New Application', 'Claim for Indemnity'], true)
+        );
+    }
+
     public function isPcicClaim(): bool
     {
         return $this->program?->isPcicCropInsurance() && $this->benefit?->name === 'Claim for Indemnity';
@@ -86,6 +103,12 @@ class Application extends Model
     public function latestPcicTrackingUpdate(): HasOne
     {
         return $this->hasOne(PcicTrackingUpdate::class)->latestOfMany();
+    }
+
+    public function pcicDecisionAttachment(): HasOne
+    {
+        return $this->hasOne(PcicTrackingUpdate::class)
+            ->ofMany(['id' => 'max'], fn ($query) => $query->whereNotNull('attachment_path'));
     }
 
     public function detail(): HasOne
