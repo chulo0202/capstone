@@ -143,10 +143,8 @@ class ProgramController extends Controller
         {
         $program->load([
             'eligibilityRule',
-            'benefits',
-            'benefits.eligibilityRules',
-            'benefits.configurations',
             'activeBenefits.eligibilityRules',
+            'activeBenefits.configurations',
         ]);
 
         $this->ensureEligibilityRulesAreUnambiguous($program);
@@ -256,7 +254,7 @@ class ProgramController extends Controller
 
             if ($program->isPcicCropInsurance()) {
                 throw ValidationException::withMessages([
-                    'program_id' => 'PCIC Crop Insurance is permanently available and cannot be configured through Create Program.',
+                    'program_id' => 'Philippine Crop Insurance Corporation (PCIC) is permanently available and cannot be configured through Create Program.',
                 ]);
             }
 

@@ -137,17 +137,18 @@ class ProfileController extends Controller
         return view('farmer.qr-code', compact('farmer'));
     }
 
-    public function downloadQr(): StreamedResponse|RedirectResponse
+    public function downloadQr(QrCodeService $qrCodeService): StreamedResponse|RedirectResponse
     {
         $farmer = Auth::user()->farmer;
 
-        if (! $farmer?->qr_code_path || ! Storage::disk('public')->exists($farmer->qr_code_path)) {
+        if (! $farmer?->qr_code_path || ! $farmer->qr_code_token || ! Storage::disk('public')->exists($farmer->qr_code_path)) {
             return back()->with('error', 'QR code not available.');
         }
 
-        return Storage::disk('public')->download(
-            $farmer->qr_code_path,
-            'fams-qr-'.$farmer->id.'.png'
+        return response()->streamDownload(
+            fn () => $qrCodeService->outputDownloadPng($farmer->qr_code_token),
+            'fams-qr-'.$farmer->id.'.png',
+            ['Content-Type' => 'image/png']
         );
     }
 }

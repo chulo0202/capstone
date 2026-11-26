@@ -46,7 +46,7 @@ class PcicClaimWorkflowTest extends TestCase
         ]);
 
         $program = Program::create([
-            'name' => 'PCIC Crop Insurance',
+            'name' => 'Philippine Crop Insurance Corporation (PCIC)',
             'description' => 'PCIC test program',
             'is_active' => false,
             'start_at' => now()->subDays(30),

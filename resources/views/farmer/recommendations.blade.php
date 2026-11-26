@@ -663,11 +663,11 @@
                                             $programName === 'Agricultural Loans'
                                                 => 'agricultural_loan',
 
-                                            $programName === 'PCIC Crop Insurance'
+                                            $rec->program->isPcicCropInsurance()
                                                 && $benefitName === 'Claim for Indemnity'
                                                 => 'pcic_claim',
 
-                                            $programName === 'PCIC Crop Insurance'
+                                            $rec->program->isPcicCropInsurance()
                                                 => 'pcic_new_application',
 
                                             in_array($programName, [

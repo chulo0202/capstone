@@ -865,7 +865,7 @@ Antonio Reyes QR
        ↓
 Farmer Verified
        ↓
-PCIC Crop Insurance
+Philippine Crop Insurance Corporation (PCIC)
        ↓
 Approved
        ↓
@@ -877,7 +877,7 @@ Database Distribution created
 
 Then kapag bumalik ka sa My Applications:
 
-PCIC Crop Insurance
+Philippine Crop Insurance Corporation (PCIC)
 Approved
 Benefit already released
 Important: Hindi mo kailangang gamitin ang flutter run every time

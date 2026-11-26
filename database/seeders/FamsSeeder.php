@@ -82,7 +82,7 @@ class FamsSeeder extends Seeder
             ],
 
             [
-                'name' => 'PCIC Crop Insurance',
+                'name' => Program::PCIC_NAME,
                 'description' => 'Crop insurance assistance and financial protection for eligible agricultural producers.',
                 'eligibility_criteria' => 'Eligibility is determined based on crop type, farmer registration, and applicable insurance requirements.',
                 'rules' => [
@@ -119,7 +119,7 @@ class FamsSeeder extends Seeder
                     'Young Agripreneurs Program (YAP)',
                 ],
 
-                'PCIC Crop Insurance' => [
+                Program::PCIC_NAME => [
                     'New Application',
                     'Claim for Indemnity',
                 ],
@@ -159,7 +159,7 @@ class FamsSeeder extends Seeder
                     [
                         'description' => null,
                         'always_active' => (
-                            $program->name === 'PCIC Crop Insurance'
+                            $program->name === Program::PCIC_NAME
                             && $benefitName === 'Claim for Indemnity'
                         ),
                     ]

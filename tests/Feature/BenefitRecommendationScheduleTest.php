@@ -97,7 +97,7 @@ class BenefitRecommendationScheduleTest extends TestCase
         [$user] = $this->createScenario();
 
         $pcic = Program::create([
-            'name' => 'PCIC Crop Insurance',
+            'name' => 'Philippine Crop Insurance Corporation (PCIC)',
             'description' => 'PCIC benefits',
             'is_active' => false,
         ]);
@@ -115,10 +115,10 @@ class BenefitRecommendationScheduleTest extends TestCase
 
         $admin = User::factory()->create(['role' => 'admin', 'admin_registration_status' => 'approved']);
         $this->actingAs($admin)->get(route('admin.programs.index', ['status' => 'active']))->assertOk()
-            ->assertSeeText('PCIC Crop Insurance')->assertSeeText('Currently Active')
+            ->assertSeeText('Philippine Crop Insurance Corporation (PCIC)')->assertSeeText('Currently Active')
             ->assertSeeText('Open year-round')->assertSeeText('No end date');
         $this->get(route('admin.programs.index', ['status' => 'inactive']))->assertOk()
-            ->assertDontSeeText('PCIC Crop Insurance');
+            ->assertDontSeeText('Philippine Crop Insurance Corporation (PCIC)');
         $response->assertDontSeeText($legacy->name);
     }
 
@@ -170,8 +170,8 @@ class BenefitRecommendationScheduleTest extends TestCase
     public function test_all_benefit_form_types_return_field_errors_for_the_modal(): void
     {
         foreach ([
-            ['PCIC Crop Insurance', 'Claim for Indemnity', ['date_of_loss', 'cause_of_loss', 'area_damaged', 'damage_photo']],
-            ['PCIC Crop Insurance', 'New Application', ['variety_planted', 'area_to_insure', 'expected_harvest_date']],
+            ['Philippine Crop Insurance Corporation (PCIC)', 'Claim for Indemnity', ['date_of_loss', 'cause_of_loss', 'area_damaged', 'damage_photo']],
+            ['Philippine Crop Insurance Corporation (PCIC)', 'New Application', ['variety_planted', 'area_to_insure', 'expected_harvest_date']],
             ['Agricultural Loans', 'Loan', ['loan_amount', 'project_description', 'privacy_consent']],
             ['Seed Subsidies', 'Seeds', ['confirm_intent']],
             ['Fertilizer Subsidies', 'Fertilizer', ['confirm_intent']],

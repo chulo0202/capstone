@@ -98,6 +98,18 @@ class ProgramBenefitReconciliationTest extends TestCase
         $this->assertDatabaseHas('recommendations', $records + ['id' => $recommendation]);
         $this->assertDatabaseHas('benefit_configurations', ['id' => $configuration->id, 'program_benefit_id' => $road->id]);
 
+        $rename = require database_path('migrations/2026_11_26_000005_rename_pcic_program.php');
+        $rename->up();
+        $this->assertTrue($pcic->refresh()->isPcicCropInsurance());
+        $this->assertDatabaseHas('applications', $records + ['id' => $application]);
+        $this->assertDatabaseHas('distributions', $records + ['id' => $distribution]);
+
+        $this->actingAs($admin)->get(route('admin.programs.show', $pcic))
+            ->assertOk()
+            ->assertSee('New Application')
+            ->assertSee('Claim for Indemnity')
+            ->assertDontSee('Legacy PCIC Benefit');
+
         $index = $this->actingAs($admin)->get(route('admin.programs.index'));
         $index->assertOk()->assertSeeTextInOrder([$road->name, 'Active'])->assertSeeText('Communal Irrigation Canal');
 

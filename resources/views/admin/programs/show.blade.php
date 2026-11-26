@@ -264,9 +264,9 @@
 
                 <span class="benefit-total">
 
-                    {{ $program->benefits->count() }}
+                    {{ $program->activeBenefits->count() }}
 
-                    {{ $program->benefits->count() === 1 ? 'Benefit' : 'Benefits' }}
+                    {{ $program->activeBenefits->count() === 1 ? 'Benefit' : 'Benefits' }}
 
                 </span>
 
@@ -286,13 +286,12 @@
                         'Expired / Inactive' => collect(),
                     ];
 
-                    foreach ($program->benefits as $benefit) {
+                    foreach ($program->activeBenefits as $benefit) {
                         $configurations = $benefit->configurations
                             ->sortByDesc('created_at');
 
                         $isInactive = $program->archived_at !== null
-                            || ! $program->is_active
-                            || $benefit->archived_at !== null;
+                            || ! $program->is_active;
 
                         if ($isInactive) {
                         $group = 'Expired / Inactive';
@@ -336,7 +335,7 @@
                     }
                 @endphp
 
-                @if($program->benefits->isNotEmpty())
+                @if($program->activeBenefits->isNotEmpty())
 
                     @foreach($benefitGroups as $groupName => $groupBenefits)
 

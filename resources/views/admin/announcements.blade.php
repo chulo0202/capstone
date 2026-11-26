@@ -13,7 +13,6 @@
           <div class="mb-2"><label class="form-label">Title</label><input type="text" name="title" class="form-control" required></div>
           <div class="mb-2"><label class="form-label">Content</label><textarea name="content" class="form-control" rows="4" required></textarea></div>
           <div class="mb-2"><label class="form-label">Publish Date</label><input type="datetime-local" name="publish_date" class="form-control" required></div>
-          <div class="form-check mb-2"><input type="checkbox" name="sms_enabled" value="1" class="form-check-input" id="sms"><label class="form-check-label" for="sms">SMS Enabled</label></div>
           <div class="form-check mb-3"><input type="checkbox" name="is_published" value="1" class="form-check-input" id="pub"><label class="form-check-label" for="pub">Publish Now</label></div>
           <button class="btn btn-fams w-100">Create</button>
         </form>
@@ -30,7 +29,6 @@
             <div>
               <strong>{{ $announcement->title }}</strong>
               <span class="badge bg-{{ $announcement->is_published ? 'success' : 'secondary' }} ms-1">{{ $announcement->is_published ? 'Published' : 'Draft' }}</span>
-              @if($announcement->sms_enabled)<span class="badge bg-info ms-1">SMS</span>@endif
               <p class="mb-1 small">{{ Str::limit($announcement->content, 100) }}</p>
               <small class="text-muted">{{ $announcement->publish_date->format('M d, Y h:i A') }}</small>
             </div>
@@ -53,7 +51,6 @@
                 <div class="mb-2"><label class="form-label">Title</label><input type="text" name="title" class="form-control" value="{{ $announcement->title }}" required></div>
                 <div class="mb-2"><label class="form-label">Content</label><textarea name="content" class="form-control" rows="4" required>{{ $announcement->content }}</textarea></div>
                 <div class="mb-2"><label class="form-label">Publish Date</label><input type="datetime-local" name="publish_date" class="form-control" value="{{ $announcement->publish_date->format('Y-m-d\TH:i') }}" required></div>
-                <div class="form-check mb-2"><input type="checkbox" name="sms_enabled" value="1" class="form-check-input" {{ $announcement->sms_enabled ? 'checked' : '' }}><label class="form-check-label">SMS Enabled</label></div>
                 <div class="form-check"><input type="checkbox" name="is_published" value="1" class="form-check-input" {{ $announcement->is_published ? 'checked' : '' }}><label class="form-check-label">Published</label></div>
               </div>
               <div class="modal-footer"><button class="btn btn-fams">Save</button></div>

@@ -30,7 +30,7 @@ class ApplicationController extends Controller
             ? Application::with(['program', 'benefit', 'latestPcicTrackingUpdate', 'pcicDecisionAttachment'])
                 ->where(fn ($query) => $query->withCurrentBenefit()->orWhereHas(
                     'program',
-                    fn ($program) => $program->where('name', 'PCIC Crop Insurance')
+                    fn ($program) => $program->where('name', Program::PCIC_NAME)
                 ))
                 ->where('farmer_id', $farmer->id)
                 ->latest('applied_at')

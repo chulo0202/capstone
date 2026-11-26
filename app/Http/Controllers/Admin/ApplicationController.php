@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Application;
+use App\Models\Program;
 use App\Services\AuditLogService;
 use App\Services\EligibilityService;
 use App\Services\FarmerDecisionMailer;
@@ -23,7 +24,7 @@ class ApplicationController extends Controller
     {
         $query = Application::where(fn ($query) => $query->withCurrentBenefit()->orWhereHas(
             'program',
-            fn ($program) => $program->where('name', 'PCIC Crop Insurance')
+            fn ($program) => $program->where('name', Program::PCIC_NAME)
         ))->with([
             'farmer.user',
             'program',

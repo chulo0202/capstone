@@ -292,8 +292,7 @@ APPLICATION HISTORY
                         $alreadyReleased = false;
 
                         if ($application->status === 'approved') {
-                            $isPcicClaim = $application->program?->name === 'PCIC Crop Insurance'
-                                && $application->benefit?->name === 'Claim for Indemnity';
+                            $isPcicClaim = $application->isPcicClaim();
 
                             $distributionQuery = Distribution::query()
                                 ->where('farmer_id', $application->farmer_id)

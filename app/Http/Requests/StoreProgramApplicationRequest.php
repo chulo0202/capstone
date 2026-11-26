@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Program;
 use App\Models\ProgramBenefit;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -52,7 +53,7 @@ class StoreProgramApplicationRequest extends FormRequest
         $programName = $benefit->program->name;
         $benefitName = $benefit->name;
 
-        if ($programName === 'PCIC Crop Insurance') {
+        if ($programName === Program::PCIC_NAME) {
             $rules = array_merge(
                 $rules,
                 $this->pcicRules($benefitName)

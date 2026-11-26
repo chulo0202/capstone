@@ -797,7 +797,7 @@ class BenefitSpecificWorkflowTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.schedules.options'))
             ->assertOk()->assertSee('Seed Subsidies')->assertSee('Fertilizer Subsidies')
-            ->assertSee('Training and Technology Demonstrations')->assertDontSee('PCIC Crop Insurance');
+            ->assertSee('Training and Technology Demonstrations')->assertDontSee('Philippine Crop Insurance Corporation (PCIC)');
         $this->get(route('admin.trainings.create'))->assertOk()->assertSee('Save Training Draft');
         $this->post(route('admin.trainings.store'), [
             'title' => $title,

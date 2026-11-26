@@ -25,7 +25,7 @@
             ?? ($application->detail?->form_type === 'pcic_claim' ? 'Claim for Indemnity' : 'New Application');
     @endphp
 
-    <h1>PCIC Crop Insurance</h1>
+    <h1>Philippine Crop Insurance Corporation (PCIC)</h1>
     <p><strong>{{ $benefitName }}</strong> · FAMS application #{{ $application->id }}</p>
     <p>Farmer: {{ $application->farmer?->full_name ?? 'Not available' }}</p>
     <p>Submitted: {{ $application->applied_at?->format('F d, Y h:i A') ?? 'Not available' }}</p>

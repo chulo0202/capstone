@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Program extends Model
 {
-    public const PCIC_NAME = 'PCIC Crop Insurance';
+    public const PCIC_NAME = 'Philippine Crop Insurance Corporation (PCIC)';
 
     use HasFactory;
 
