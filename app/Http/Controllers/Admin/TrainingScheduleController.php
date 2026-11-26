@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Farmer;
 use App\Models\TrainingRegistration;
 use App\Models\TrainingSession;
 use App\Services\FarmerDecisionMailer;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,12 +20,16 @@ class TrainingScheduleController extends Controller
 {
     public function create(): View
     {
-        return view('admin.training.create');
+        $farmers = $this->approvedTrainingFarmers()->orderBy('full_name')->get(['id', 'full_name', 'barangay']);
+
+        return view('admin.training.create', compact('farmers'));
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $training = TrainingSession::create($request->validate([
+        $data = $request->validate([
+            'farmer_ids' => ['required', 'array', 'list', 'max:10000'],
+            'farmer_ids.*' => ['required', 'integer', 'distinct'],
             'title' => ['required', 'string', 'max:150'],
             'topic' => ['required', 'string', 'max:150'],
             'objectives' => ['required', 'string', 'max:3000'],
@@ -34,9 +40,38 @@ class TrainingScheduleController extends Controller
             'trainer' => ['required', 'string', 'max:255'],
             'slots' => ['required', 'integer', 'min:1', 'max:10000'],
             'instructions' => ['nullable', 'string', 'max:3000'],
-        ]));
+        ]);
+
+        $training = DB::transaction(function () use ($data) {
+            $farmerIds = $data['farmer_ids'];
+            $farmers = $this->approvedTrainingFarmers()->whereKey($farmerIds)->pluck('id');
+
+            if ($farmers->count() !== count($farmerIds)) {
+                throw ValidationException::withMessages(['farmer_ids' => 'Select farmers with approved training applications.']);
+            }
+
+            if ($farmers->count() > $data['slots']) {
+                throw ValidationException::withMessages(['slots' => 'Enter enough slots for the selected farmers.']);
+            }
+
+            unset($data['farmer_ids']);
+            $training = TrainingSession::create($data);
+            $training->registrations()->createMany($farmers->map(fn ($id) => ['farmer_id' => $id])->all());
+
+            return $training;
+        });
 
         return to_route('admin.trainings.show', $training)->with('success', 'Training draft created.');
+    }
+
+    private function approvedTrainingFarmers(): Builder
+    {
+        return Farmer::query()->where('is_active', true)
+            ->whereHas('applications', fn (Builder $application) => $application
+                ->withCurrentBenefit()
+                ->where('status', 'approved')
+                ->whereHas('program', fn (Builder $program) => $program
+                    ->where('name', 'Training and Technology Demonstrations')));
     }
 
     public function show(TrainingSession $training): View

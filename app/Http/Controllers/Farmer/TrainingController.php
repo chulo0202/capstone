@@ -28,8 +28,11 @@ class TrainingController extends Controller
     {
         abort_unless((int) $registration->farmer_id === (int) $request->user()->farmer?->id, 404);
 
+        $training = $registration->trainingSession;
+        abort_if($training->status === 'draft', 404);
+
         return view('farmer.training-registration', [
-            'training' => $registration->trainingSession,
+            'training' => $training,
             'registration' => $registration,
         ]);
     }

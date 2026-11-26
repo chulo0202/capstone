@@ -794,12 +794,21 @@ class BenefitSpecificWorkflowTest extends TestCase
         [$second, $secondFarmer] = $this->createFarmer();
         $title = 'Rice field demonstration';
         $this->fakeDecisionGmail();
+        $program = $this->createProgram('Training and Technology Demonstrations');
+        $benefit = $this->createBenefit($program, 'Field Demonstration');
+        $this->makeBenefitApplication($firstFarmer, $program, $benefit, 'approved');
+        $secondApplication = $this->makeBenefitApplication($secondFarmer, $program, $benefit);
+
 
         $this->actingAs($admin)->get(route('admin.schedules.options'))
             ->assertOk()->assertSee('Seed Subsidies')->assertSee('Fertilizer Subsidies')
             ->assertSee('Training and Technology Demonstrations')->assertDontSee('Philippine Crop Insurance Corporation (PCIC)');
-        $this->get(route('admin.trainings.create'))->assertOk()->assertSee('Save Training Draft');
-        $this->post(route('admin.trainings.store'), [
+        $this->get(route('admin.trainings.create'))->assertOk()
+            ->assertSee('Save Training Draft')
+            ->assertSee('training-farmer-'.$firstFarmer->id)
+            ->assertDontSee('training-farmer-'.$secondFarmer->id);
+        $schedule = [
+            'farmer_ids' => [$firstFarmer->id],
             'title' => $title,
             'topic' => 'Rice planting',
             'objectives' => 'Demonstrate correct spacing.',
@@ -810,7 +819,12 @@ class BenefitSpecificWorkflowTest extends TestCase
             'trainer' => 'Municipal Agriculture Office',
             'slots' => 1,
             'instructions' => 'Bring a notebook.',
-        ])->assertSessionHas('success');
+        ];
+        $store = route('admin.trainings.store');
+        $bothFarmers = [$firstFarmer->id, $secondFarmer->id];
+        $this->post($store, array_replace($schedule, ['farmer_ids' => $bothFarmers]))
+            ->assertSessionHasErrors('farmer_ids');
+        $this->post($store, $schedule)->assertSessionHas('success');
 
         $training = \App\Models\TrainingSession::sole();
         $register = route('farmer.trainings.store', $training);
@@ -821,7 +835,7 @@ class BenefitSpecificWorkflowTest extends TestCase
         $this->get(route('admin.distribution-batches.index'))->assertOk()->assertSee($title);
         $this->get(route('admin.distribution-batches.index', ['type' => 'distribution']))->assertOk()->assertDontSee($title);
 
-        $this->actingAs($first)->get(route('farmer.trainings.index'))->assertOk()->assertSee('Register for Training');
+        $this->actingAs($first)->get(route('farmer.trainings.index'))->assertOk()->assertSee('Pending');
         $this->post($register)->assertSessionHas('success');
         $this->post($register)->assertSessionHas('success', 'You already registered for this training.');
         $this->actingAs($second)->post($register)->assertSessionHas('success');
@@ -848,6 +862,15 @@ class BenefitSpecificWorkflowTest extends TestCase
             ['Training registration Confirmed', $first->email, 'Municipal Demonstration Farm'],
             ['Training registration Rejected', $second->email, $title],
         ]);
+
+        $secondApplication->update(['status' => 'approved']);
+        $this->actingAs($admin)->post($store, array_replace($schedule, ['farmer_ids' => $bothFarmers]))
+            ->assertSessionHasErrors('slots');
+        $this->post($store, array_replace($schedule, ['farmer_ids' => $bothFarmers, 'slots' => 2]))
+            ->assertSessionHas('success');
+
+        $draft = \App\Models\TrainingSession::where('status', 'draft')->sole();
+        $this->assertEqualsCanonicalizing($bothFarmers, $draft->registrations()->pluck('farmer_id')->all());
     }
 
     public function test_non_distribution_programs_are_excluded_from_new_schedules(): void
