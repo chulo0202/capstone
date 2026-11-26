@@ -1260,6 +1260,18 @@ class BenefitSpecificWorkflowTest extends TestCase
         } finally {
             unlink($path);
         }
+
+        $benefit->forceFill(['archived_at' => now()])->save();
+
+        $this->get(route('admin.analytics.index', $filters))->assertOk()
+            ->assertViewHas('totalDistributions', 0)
+            ->assertViewHas('distributionLogs', fn ($logs) => $logs->isEmpty())
+            ->assertSee($program->name);
+
+        $program->forceFill(['archived_at' => now()])->save();
+
+        $this->get(route('admin.analytics.index', $filters))->assertOk()
+            ->assertDontSee($program->name);
     }
 
     private function createDistributionBatch(Application $application): \App\Models\DistributionBatch

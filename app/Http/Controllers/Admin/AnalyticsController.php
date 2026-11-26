@@ -8,6 +8,7 @@ use App\Models\Farmer;
 use App\Models\Program;
 use App\Models\Recommendation;
 use App\Services\ReportingPeriod;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -126,7 +127,14 @@ class AnalyticsController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $totalPrograms = Program::count();
+        $programQuery = Program::query()->whereNull('archived_at');
+        $totalPrograms = (clone $programQuery)->count();
+
+        $excludeArchivedBenefits = fn (Builder $query) => $query
+            ->whereDoesntHave('benefit', fn (Builder $benefit) => $benefit->whereNotNull('archived_at'));
+
+        $periodRecords = fn (Builder $query) => $excludeArchivedBenefits($query)
+            ->whereBetween('created_at', [$periodStart, $periodEnd]);
 
         $now = now();
 
@@ -136,19 +144,19 @@ class AnalyticsController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $activePrograms = Program::query()
+        $activePrograms = (clone $programQuery)
             ->whereNotNull('start_at')
             ->whereNotNull('end_at')
             ->where('start_at', '<=', $now)
             ->where('end_at', '>=', $now)
             ->count();
 
-        $upcomingPrograms = Program::query()
+        $upcomingPrograms = (clone $programQuery)
             ->whereNotNull('start_at')
             ->where('start_at', '>', $now)
             ->count();
 
-        $inactivePrograms = Program::query()
+        $inactivePrograms = (clone $programQuery)
             ->where(function ($query) use ($now) {
                 $query
                     ->where(function ($query) use ($now) {
@@ -167,15 +175,8 @@ class AnalyticsController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $programEnrollments = Program::query()
-            ->withCount([
-                'applications' => function ($query) use ($periodStart, $periodEnd) {
-                    $query->whereBetween(
-                        'created_at',
-                        [$periodStart, $periodEnd]
-                    );
-                },
-            ])
+        $programEnrollments = (clone $programQuery)
+            ->withCount(['applications' => $periodRecords])
             ->orderByDesc('applications_count')
             ->get();
 
@@ -191,20 +192,21 @@ class AnalyticsController extends Controller
         $periodFarmerIds = (clone $farmerQuery)
             ->pluck('id');
 
-        $eligibleFarmers = Recommendation::query()
-            ->whereIn('farmer_id', $periodFarmerIds)
+        $recommendationQuery = $excludeArchivedBenefits(Recommendation::query())
+            ->whereHas('program', fn (Builder $program) => $program->whereNull('archived_at'))
+            ->whereIn('farmer_id', $periodFarmerIds);
+
+        $eligibleFarmers = (clone $recommendationQuery)
             ->where('eligibility_status', 'eligible')
             ->distinct('farmer_id')
             ->count('farmer_id');
 
-        $partiallyEligibleFarmers = Recommendation::query()
-            ->whereIn('farmer_id', $periodFarmerIds)
+        $partiallyEligibleFarmers = (clone $recommendationQuery)
             ->where('eligibility_status', 'partially_eligible')
             ->distinct('farmer_id')
             ->count('farmer_id');
 
-        $notEligibleFarmers = Recommendation::query()
-            ->whereIn('farmer_id', $periodFarmerIds)
+        $notEligibleFarmers = (clone $recommendationQuery)
             ->where('eligibility_status', 'not_eligible')
             ->distinct('farmer_id')
             ->count('farmer_id');
@@ -251,13 +253,12 @@ class AnalyticsController extends Controller
         |
         */
 
-        $programRecommendationOverview = Program::query()
+        $programRecommendationOverview = (clone $programQuery)
             ->get()
-            ->map(function ($program) use ($periodFarmerIds) {
+            ->map(function ($program) use ($recommendationQuery) {
 
-                $recommendations = Recommendation::query()
+                $recommendations = (clone $recommendationQuery)
                     ->where('program_id', $program->id)
-                    ->whereIn('farmer_id', $periodFarmerIds)
                     ->get();
 
                 return (object) [
@@ -285,12 +286,11 @@ class AnalyticsController extends Controller
         |
         */
 
-        $smartEligibilityReminders = Recommendation::query()
+        $smartEligibilityReminders = (clone $recommendationQuery)
             ->with([
                 'farmer',
                 'program',
             ])
-            ->whereIn('farmer_id', $periodFarmerIds)
             ->where('eligibility_status', 'partially_eligible')
             ->latest()
             ->get()
@@ -302,8 +302,7 @@ class AnalyticsController extends Controller
             ->take(10)
             ->values();
 
-        $smartEligibilityReminderCount = Recommendation::query()
-            ->whereIn('farmer_id', $periodFarmerIds)
+        $smartEligibilityReminderCount = (clone $recommendationQuery)
             ->where('eligibility_status', 'partially_eligible')
             ->get()
             ->filter(function ($recommendation) {
@@ -319,11 +318,8 @@ class AnalyticsController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $distributionQuery = Distribution::query()
-            ->whereBetween(
-                'created_at',
-                [$periodStart, $periodEnd]
-            );
+        $distributionQuery = $periodRecords(Distribution::query())
+            ->whereHas('program', fn (Builder $program) => $program->whereNull('archived_at'));
 
         $totalDistributions = (clone $distributionQuery)->count();
 
@@ -354,18 +350,8 @@ class AnalyticsController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $distributionsPerProgram = Program::query()
-            ->withCount([
-                'distributions' => function ($query) use (
-                    $periodStart,
-                    $periodEnd
-                ) {
-                    $query->whereBetween(
-                        'created_at',
-                        [$periodStart, $periodEnd]
-                    );
-                },
-            ])
+        $distributionsPerProgram = (clone $programQuery)
+            ->withCount(['distributions' => $periodRecords])
             ->orderByDesc('distributions_count')
             ->get();
 
@@ -390,36 +376,19 @@ class AnalyticsController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $programPerformanceSummary = Program::query()
+        $programPerformanceSummary = (clone $programQuery)
             ->withCount([
-                'applications' => function ($query) use (
-                    $periodStart,
-                    $periodEnd
-                ) {
-                    $query->whereBetween(
-                        'created_at',
-                        [$periodStart, $periodEnd]
-                    );
-                },
-
-                'distributions' => function ($query) use (
-                    $periodStart,
-                    $periodEnd
-                ) {
-                    $query->whereBetween(
-                        'created_at',
-                        [$periodStart, $periodEnd]
-                    );
-                },
+                'applications' => $periodRecords,
+                'distributions' => $periodRecords,
             ])
             ->get()
-            ->map(function ($program) use ($periodFarmerIds) {
+            ->map(function ($program) use ($recommendationQuery) {
 
-                $eligible = Recommendation::query()
+                $eligible = (clone $recommendationQuery)
                     ->where('program_id', $program->id)
-                    ->whereIn('farmer_id', $periodFarmerIds)
                     ->where('eligibility_status', 'eligible')
-                    ->count();
+                    ->distinct()
+                    ->count('farmer_id');
 
                 return (object) [
                     'program' => $program,
