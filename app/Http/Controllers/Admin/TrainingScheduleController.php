@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\TrainingRegistration;
 use App\Models\TrainingSession;
+use App\Services\FarmerDecisionMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+
+use function Illuminate\Support\defer;
 
 class TrainingScheduleController extends Controller
 {
@@ -63,7 +66,7 @@ class TrainingScheduleController extends Controller
             'reason' => ['exclude_unless:status,rejected', 'required', 'string', 'max:1000'],
         ]);
 
-        DB::transaction(function () use ($training, $registration, $data) {
+        $entry = DB::transaction(function () use ($training, $registration, $data) {
             $session = TrainingSession::lockForUpdate()->findOrFail($training->id);
             $entry = $session->registrations()->lockForUpdate()->findOrFail($registration->id);
             abort_unless($session->status === 'published' && $session->isUpcoming() && $entry->status === 'pending', 409);
@@ -73,7 +76,11 @@ class TrainingScheduleController extends Controller
             }
 
             $entry->forceFill($data)->save();
+
+            return $entry;
         }, 3);
+
+        defer(fn () => app(FarmerDecisionMailer::class)->training($entry));
 
         return back()->with('success', 'Training registration '.$data['status'].'.');
     }

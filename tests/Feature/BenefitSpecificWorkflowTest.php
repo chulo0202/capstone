@@ -181,7 +181,8 @@ class BenefitSpecificWorkflowTest extends TestCase
     public function test_admin_review_approves_and_rejects_benefit_applications_with_audit_events(): void
     {
         $admin = $this->createAdmin();
-        [, $farmer] = $this->createFarmer();
+        [$user, $farmer] = $this->createFarmer();
+        $this->fakeDecisionGmail();
         $program = $this->createProgram();
         $approvedBenefit = $this->createBenefit($program, 'Approved benefit');
         $rejectedBenefit = $this->createBenefit($program, 'Rejected benefit');
@@ -212,6 +213,17 @@ class BenefitSpecificWorkflowTest extends TestCase
             'APPLICATION_APPROVED',
             'APPLICATION_REJECTED',
         ])->count());
+
+        $this->patch(route('admin.applications.approve', $approved))->assertSessionHas('error');
+        [$unverifiedUser, $unverifiedFarmer] = $this->createFarmer();
+        $unverifiedUser->forceFill(['email_verified_at' => null])->save();
+        $unverifiedApplication = $this->makeBenefitApplication($unverifiedFarmer, $program, $approvedBenefit);
+        $this->patch(route('admin.applications.approve', $unverifiedApplication))->assertSessionHas('success');
+
+        $this->assertGmailDecisions([
+            ['Application Approved', $user->email, 'Approved benefit'],
+            ['Application Rejected', $user->email, 'Rejected benefit'],
+        ]);
     }
 
     public function test_admin_can_approve_pcic_claim_in_fams_before_official_pcic_approval(): void
@@ -781,6 +793,7 @@ class BenefitSpecificWorkflowTest extends TestCase
         [$first, $firstFarmer] = $this->createFarmer();
         [$second, $secondFarmer] = $this->createFarmer();
         $title = 'Rice field demonstration';
+        $this->fakeDecisionGmail();
 
         $this->actingAs($admin)->get(route('admin.schedules.options'))
             ->assertOk()->assertSee('Seed Subsidies')->assertSee('Fertilizer Subsidies')
@@ -830,6 +843,11 @@ class BenefitSpecificWorkflowTest extends TestCase
         $this->actingAs($second)->get(route('farmer.notifications.index'))->assertOk()->assertSee('All slots filled.');
         $this->assertDatabaseCount('distribution_batches', 0);
         $this->assertDatabaseCount('distributions', 0);
+
+        $this->assertGmailDecisions([
+            ['Training registration Confirmed', $first->email, 'Municipal Demonstration Farm'],
+            ['Training registration Rejected', $second->email, $title],
+        ]);
     }
 
     public function test_non_distribution_programs_are_excluded_from_new_schedules(): void
@@ -1339,4 +1357,35 @@ class BenefitSpecificWorkflowTest extends TestCase
             'applied_at' => now(),
         ]);
     }
+    private function fakeDecisionGmail(): void
+    {
+        config([
+            'mail.default' => 'gmail-api',
+            'services.distribution_gmail.sender' => 'fams@example.com',
+            'services.distribution_gmail.client_id' => 'test-client',
+            'services.distribution_gmail.client_secret' => 'test-secret',
+            'services.distribution_gmail.refresh_token' => 'test-refresh',
+        ]);
+
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://oauth2.googleapis.com/token' => Http::response(['access_token' => 'test-access']),
+            'https://gmail.googleapis.com/gmail/v1/users/me/messages/send' => Http::response(['id' => 'test-message']),
+        ]);
+    }
+
+    private function assertGmailDecisions(array $expected): void
+    {
+        $requests = Http::recorded(fn ($request) => str_ends_with($request->url(), '/messages/send'))->values();
+        $this->assertCount(count($expected), $requests);
+
+        foreach ($expected as $index => [$subject, $email, $body]) {
+            $raw = $requests[$index][0]['raw'];
+            $message = quoted_printable_decode(base64_decode(strtr($raw, '-_', '+/')));
+            $this->assertStringContainsString("Subject: FAMS | {$subject}", $message);
+            $this->assertStringContainsString("To: {$email}", $message);
+            $this->assertStringContainsString($body, $message);
+        }
+    }
+
 }

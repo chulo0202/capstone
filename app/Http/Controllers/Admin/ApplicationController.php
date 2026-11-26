@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Application;
 use App\Services\AuditLogService;
 use App\Services\EligibilityService;
+use App\Services\FarmerDecisionMailer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,8 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+
+use function Illuminate\Support\defer;
 
 class ApplicationController extends Controller
 {
@@ -176,7 +179,7 @@ class ApplicationController extends Controller
                     'Application ' . $status . ' for benefit: ' . ($locked->benefit?->name ?? 'Legacy program-level application')
                 );
 
-                return null;
+                return $locked;
             });
         } catch (\Throwable $exception) {
             if ($path) {
@@ -185,8 +188,12 @@ class ApplicationController extends Controller
             throw $exception;
         }
 
-        return $result
-            ? back()->with('error', $result)
-            : back()->with('success', "Farmer application {$status} successfully.");
+        if (is_string($result)) {
+            return back()->with('error', $result);
+        }
+
+        defer(fn () => app(FarmerDecisionMailer::class)->application($result));
+
+        return back()->with('success', "Farmer application {$status} successfully.");
     }
 }
