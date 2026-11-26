@@ -44,6 +44,42 @@
         background: #084a27;
     }
     .recommendations-table [hidden] { display: none !important; }
+
+    @media (max-width: 575.98px) {
+        #programApplicationModal {
+            --bs-modal-margin: .75rem;
+        }
+
+        #programApplicationModal .modal-dialog {
+            width: calc(100% - 2 * var(--bs-modal-margin));
+            max-width: none;
+            margin-inline: auto;
+            height: calc(100dvh - 2 * var(--bs-modal-margin));
+            min-height: 0;
+        }
+
+        #programApplicationModal .modal-header,
+        #programApplicationModal .modal-body,
+        #programApplicationModal .modal-footer {
+            padding: .875rem;
+        }
+
+        #programApplicationModal .modal-body {
+            overscroll-behavior-y: contain;
+        }
+
+        #programApplicationModal .modal-footer {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: .5rem;
+        }
+
+        #programApplicationModal .modal-footer > .btn {
+            width: 100%;
+            margin: 0;
+            white-space: normal;
+        }
+    }
 </style>
 
 @if ($errors->any())
