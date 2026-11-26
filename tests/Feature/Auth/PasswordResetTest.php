@@ -57,7 +57,7 @@ class PasswordResetTest extends TestCase
 
             $message = base64_decode(strtr($request['raw'], '-_', '+/'));
 
-            return str_contains($message, 'From: fams@example.com')
+            return str_contains($message, 'From: FAMS <fams@example.com>')
                 && str_contains($message, $recipient->email)
                 && str_contains($message, '/reset-password/');
         });

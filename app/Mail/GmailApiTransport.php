@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Http;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\AbstractTransport;
+use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 
 class GmailApiTransport extends AbstractTransport
@@ -31,7 +32,7 @@ class GmailApiTransport extends AbstractTransport
         }
 
         $email = clone $email;
-        $email->from($config['sender']);
+        $email->from(new Address($config['sender'], 'FAMS'));
         $raw = rtrim(strtr(base64_encode($email->toString()), '+/', '-_'), '=');
 
         try {

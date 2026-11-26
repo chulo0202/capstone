@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
@@ -20,6 +21,18 @@ class EmailVerificationTest extends TestCase
         $response = $this->actingAs($user)->get('/verify-email');
 
         $response->assertStatus(200);
+    }
+
+    public function test_verification_email_identifies_fams_and_includes_the_signed_link(): void
+    {
+        $user = User::factory()->unverified()->create();
+        $message = (new VerifyEmail())->toMail($user);
+        $html = (string) $message->render();
+
+        $this->assertSame('FAMS | Verify your email address', $message->subject);
+        $this->assertStringContainsString('Farmer Assistance Management System', $html);
+        $this->assertStringContainsString(e($message->data()['verificationUrl']), $html);
+        $this->assertStringContainsString('signature=', $message->data()['verificationUrl']);
     }
 
     public function test_email_can_be_verified(): void

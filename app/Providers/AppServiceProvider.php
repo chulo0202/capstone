@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Mail\GmailApiTransport;
 use Aws\Sns\SnsClient;
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
 
@@ -28,6 +30,13 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Mail::extend('gmail-api', fn () => new GmailApiTransport());
+
+        VerifyEmail::toMailUsing(fn ($user, string $url) => (new MailMessage())
+            ->subject('FAMS | Verify your email address')
+            ->markdown('emails.verify-email', [
+                'verificationUrl' => $url,
+                'expirationMinutes' => config('auth.verification.expire', 60),
+            ]));
 
         \Illuminate\Pagination\Paginator::useBootstrapFive();
     }
