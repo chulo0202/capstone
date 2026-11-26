@@ -37,6 +37,8 @@ $isComplete = isset($farmer)
 
 // Reopen the edit form automatically if validation failed on submit,
 // if the profile isn't complete yet, or if ?edit=1 was requested.
+$emailVerified = auth()->user()->hasVerifiedEmail();
+$changingEmail = request()->boolean('change_email') || $errors->farmerEmail->any();
 $startInEdit = $errors->any() || $errors->farmerEmail->any()
     || in_array(session('status'), ['verification-link-sent', 'verification-delivery-failed', 'email-unchanged'], true)
     || request()->boolean('edit') || ! $isComplete;
@@ -192,6 +194,30 @@ $startInEdit = $errors->any() || $errors->farmerEmail->any()
         color: #262b27;
         word-break: break-word;
     }
+    .profile-email-status {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .3rem .65rem;
+        border-radius: 999px;
+        font-size: .78rem;
+        line-height: 1.3;
+        font-weight: 700;
+    }
+    .profile-email-status.is-verified { background: #e5f4ea; color: #205b3c; }
+    .profile-email-status.needs-verification { background: #fce9e9; color: #a2222b; }
+    .profile-email-panel {
+        background: #f5f9f6;
+        border: 1px solid #dce9df;
+        border-radius: .875rem;
+        padding: clamp(1rem, 2vw, 1.5rem);
+    }
+    .profile-email-address { overflow-wrap: anywhere; }
+    .profile-email-change { max-width: 34rem; }
+    @media (max-width: 575.98px) {
+        .profile-email-actions > *, .profile-email-actions .btn { width: 100%; }
+    }
+
     .fams-info-value.text-muted-value { color: #a5aca7; font-weight: 500; font-style: italic; }
 
     /* Documents section */
@@ -354,12 +380,13 @@ READ-ONLY VIEW
                 </div>
                 <div class="col-md-6 fams-info-item">
                     <span class="fams-info-label">Email</span>
-                    <span class="fams-info-value">{{ auth()->user()->email }}</span>
-                    @if (auth()->user()->hasVerifiedEmail())
-                        <div><span class="badge text-bg-success">Already Verified</span></div>
-                    @else
-                        <div><span class="badge text-bg-danger">Needs Verification</span></div>
-                    @endif
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span class="fams-info-value profile-email-address">{{ auth()->user()->email }}</span>
+                        <span class="profile-email-status {{ $emailVerified ? 'is-verified' : 'needs-verification' }}">
+                            <i class="bi {{ $emailVerified ? 'bi-check-circle' : 'bi-exclamation-circle' }}" aria-hidden="true"></i>
+                            {{ $emailVerified ? 'Already Verified' : 'Needs Verification' }}
+                        </span>
+                    </div>
                 </div>
                 <div class="col-md-6 fams-info-item">
                     <span class="fams-info-label">Birthdate</span>
@@ -461,36 +488,59 @@ EDIT MODE
             <h6><i class="bi bi-person-badge me-2 text-fams"></i>Farmer Profile</h6>
         </div>
         <div class="fams-card-body">
-            <section class="mb-4 pb-3 border-bottom" aria-labelledby="profile-email-heading">
-                <h6 id="profile-email-heading">Email</h6>
-                <p class="mb-2 text-break">{{ auth()->user()->email }}</p>
-                @unless (auth()->user()->hasVerifiedEmail())
-                    <form method="POST" action="{{ route('verification.send') }}" class="d-inline-block me-2">
-                        @csrf
-                        <button type="submit" class="btn btn-sm btn-outline-success">Verify Email</button>
-                    </form>
-                @endunless
-                @if (request()->boolean('change_email') || $errors->farmerEmail->any())
-                    <form method="POST" action="{{ route('farmer.profile.email.update') }}" class="mt-3">
+            <section class="profile-email-panel mb-4" aria-labelledby="profile-email-heading">
+                <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                    <div>
+                        <h6 id="profile-email-heading" class="fw-bold text-fams mb-2">
+                            <i class="bi bi-envelope me-2" aria-hidden="true"></i>Email
+                        </h6>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <span class="profile-email-address fw-semibold">{{ auth()->user()->email }}</span>
+                            <span class="profile-email-status {{ $emailVerified ? 'is-verified' : 'needs-verification' }}">
+                                <i class="bi {{ $emailVerified ? 'bi-check-circle' : 'bi-exclamation-circle' }}" aria-hidden="true"></i>
+                                {{ $emailVerified ? 'Already Verified' : 'Needs Verification' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="profile-email-actions d-flex flex-wrap gap-2">
+                        @unless ($emailVerified)
+                            <form method="POST" action="{{ route('verification.send') }}">
+                                @csrf
+                                <button type="submit" class="btn btn-fams">Verify Email</button>
+                            </form>
+                        @endunless
+                        @unless ($changingEmail)
+                            <a class="btn btn-outline-secondary" href="{{ route('farmer.profile.email.edit') }}">Change Email</a>
+                        @endunless
+                    </div>
+                </div>
+                @if ($changingEmail)
+                    <form method="POST" action="{{ route('farmer.profile.email.update') }}" class="profile-email-change mt-3">
                         @csrf
                         @method('PATCH')
-                        <label for="new-farmer-email" class="form-label">New Gmail address</label>
-                        <input id="new-farmer-email" name="email" type="email" class="form-control" value="{{ old('email') }}" required>
-                        @error('email', 'farmerEmail')<p class="text-danger small">{{ $message }}</p>@enderror
-                        <button type="submit" class="btn btn-sm btn-fams mt-2">Save and Verify Email</button>
+                        <label for="new-farmer-email" class="form-label fw-semibold">New Gmail address</label>
+                        <input id="new-farmer-email" name="email" type="email" autocomplete="email"
+                            class="form-control @error('email', 'farmerEmail') is-invalid @enderror"
+                            value="{{ old('email') }}" required
+                            @error('email', 'farmerEmail') aria-invalid="true" aria-describedby="new-farmer-email-error" @enderror>
+                        @error('email', 'farmerEmail')
+                            <div id="new-farmer-email-error" class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <div class="profile-email-actions d-flex flex-wrap gap-2 mt-3">
+                            <button type="submit" class="btn btn-fams">Save and Verify Email</button>
+                            <a class="btn btn-outline-secondary" href="{{ route('farmer.profile', ['edit' => 1]) }}">Cancel Email Change</a>
+                        </div>
                     </form>
-                @else
-                    <a class="btn btn-sm btn-outline-secondary" href="{{ route('farmer.profile.email.edit') }}">Change Email</a>
                 @endif
                 @switch(session('status'))
                     @case('verification-link-sent')
-                        <p class="small text-success mt-2" role="status">Verification link sent. Check your email.</p>
+                        <p class="small text-success mt-3 mb-0" role="status">Verification link sent. Check your email.</p>
                         @break
                     @case('verification-delivery-failed')
-                        <p class="small text-danger mt-2" role="alert">We could not send the verification email. Select Verify Email to try again.</p>
+                        <p class="small text-danger mt-3 mb-0" role="alert">We could not send the verification email. Select Verify Email to try again.</p>
                         @break
                     @case('email-unchanged')
-                        <p class="small text-muted mt-2" role="status">Your email address is unchanged.</p>
+                        <p class="small text-muted mt-3 mb-0" role="status">Your email address is unchanged.</p>
                         @break
                 @endswitch
 
