@@ -353,6 +353,42 @@ READ-ONLY VIEW
                 <div class="col-md-6 fams-info-item">
                     <span class="fams-info-label">Email</span>
                     <span class="fams-info-value">{{ auth()->user()->email }}</span>
+                    @if (auth()->user()->hasVerifiedEmail())
+                        <div><span class="badge text-bg-success">Verified</span></div>
+                    @else
+                        <div><span class="badge text-bg-warning">Unverified</span></div>
+                        <form method="POST" action="{{ route('verification.send') }}" class="mt-2">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-outline-success">Verify Email</button>
+                        </form>
+                    @endif
+
+                    @switch(session('status'))
+                        @case('verification-link-sent')
+                            <p class="small text-success mt-2" role="status">Verification link sent. Check your email.</p>
+                            @break
+                        @case('verification-delivery-failed')
+                            <p class="small text-danger mt-2" role="alert">We could not send the verification email. Select Verify Email to try again.</p>
+                            @break
+                        @case('email-unchanged')
+                            <p class="small text-muted mt-2" role="status">Your email address is unchanged.</p>
+                            @break
+                    @endswitch
+
+                    <details class="mt-2" @if ($errors->farmerEmail->any()) open @endif>
+                        <summary class="text-success">Change email</summary>
+                        <form method="POST" action="{{ route('farmer.profile.email.update') }}" class="mt-2">
+                            @csrf
+                            @method('PATCH')
+                            <label for="new-farmer-email" class="form-label">New Gmail address</label>
+                            <input id="new-farmer-email" name="email" type="email" class="form-control" value="{{ old('email') }}" required>
+                            @error('email', 'farmerEmail')<p class="text-danger small">{{ $message }}</p>@enderror
+                            <label for="farmer-email-password" class="form-label mt-2">Current password</label>
+                            <input id="farmer-email-password" name="current_password" type="password" autocomplete="current-password" class="form-control" required>
+                            @error('current_password', 'farmerEmail')<p class="text-danger small">{{ $message }}</p>@enderror
+                            <button type="submit" class="btn btn-sm btn-fams mt-2">Save and Verify Email</button>
+                        </form>
+                    </details>
                 </div>
                 <div class="col-md-6 fams-info-item">
                     <span class="fams-info-label">Birthdate</span>

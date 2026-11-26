@@ -36,6 +36,10 @@ return [
 
     'mailers' => [
 
+        'gmail-api' => [
+            'transport' => 'gmail-api',
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'url' => env('MAIL_URL'),
@@ -78,7 +82,6 @@ return [
             'transport' => 'failover',
             'mailers' => [
                 'smtp',
-                'log',
             ],
         ],
 

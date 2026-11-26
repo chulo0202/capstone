@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Farmer;
 use App\Models\RsbsaFarmer;
 use App\Models\User;
+use App\Services\FarmerEmailVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -45,7 +46,7 @@ class RegisteredUserController extends Controller
      *
      * @throws ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, FarmerEmailVerification $verification): RedirectResponse
     {
         $validated = $request->validate([
             'rsbsa_number' => [
@@ -124,6 +125,6 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect()->route('farmer.dashboard');
+        return to_route('verification.notice')->with('status', $verification->send($user));
     }
 }

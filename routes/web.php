@@ -303,6 +303,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/profile', [FarmerProfileController::class, 'show'])
             ->name('profile');
 
+        Route::patch('/profile/email', [FarmerProfileController::class, 'updateEmail'])
+            ->middleware('throttle:6,1')
+            ->name('profile.email.update');
+
         Route::get('/profile/valid-id', [FarmerProfileController::class, 'viewValidId'])
             ->name('profile.valid-id');
 

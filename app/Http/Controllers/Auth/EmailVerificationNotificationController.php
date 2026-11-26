@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\FarmerEmailVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -11,12 +12,13 @@ class EmailVerificationNotificationController extends Controller
     /**
      * Send a new email verification notification.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, FarmerEmailVerification $verification): RedirectResponse
     {
 
         if ($request->user()->isFarmer()) {
-            return redirect()->route('farmer.dashboard');
+            return back()->with('status', $verification->send($request->user()));
         }
+
         if ($request->user()->hasVerifiedEmail()) {
             if (
                 $request->user()->role === 'admin'

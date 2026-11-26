@@ -169,6 +169,53 @@ class PendingAdminEmailVerificationTest extends TestCase
             'role' => 'farmer',
             'admin_registration_status' => 'approved',
         ]);
+        $this->createFarmerProfile($farmer);
+
+        $loginResponse = $this->post('/login', [
+            'email' => $farmer->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticatedAs($farmer);
+        $loginResponse->assertRedirect(route('farmer.dashboard'));
+
+        Notification::fake();
+
+        $this->get(route('verification.notice'))->assertOk()->assertSee('Continue to My Profile');
+        $this->from(route('farmer.profile'))->post(route('verification.send'))
+            ->assertRedirect(route('farmer.profile'))
+            ->assertSessionHas('status', 'verification-link-sent');
+        Notification::assertSentTo($farmer, VerifyEmail::class);
+        $this->get(route('farmer.profile'))->assertOk()->assertSee('Verify Email');
+
+        $this->get(route('farmer.dashboard'))->assertOk();
+        $this->assertFalse($farmer->fresh()->hasVerifiedEmail());
+    }
+
+    public function test_farmer_email_change_requires_reverification_and_invalidates_the_old_link(): void
+    {
+        Notification::fake();
+        $farmer = User::factory()->create(['role' => 'farmer', 'email' => 'old-address@gmail.com']);
+        $this->createFarmerProfile($farmer);
+        $verificationLink = fn (string $email) => URL::temporarySignedRoute(
+            'verification.verify', now()->addHour(), ['id' => $farmer->id, 'hash' => sha1($email)]
+        );
+        $oldLink = $verificationLink($farmer->email);
+        $this->actingAs($farmer)->patch(route('farmer.profile.email.update'), [
+            'email' => 'new-address@gmail.com',
+            'current_password' => 'password',
+        ])->assertRedirect(route('farmer.profile'))->assertSessionHas('status', 'verification-link-sent');
+
+        $this->assertSame('new-address@gmail.com', $farmer->fresh()->email);
+        $this->assertFalse($farmer->fresh()->hasVerifiedEmail());
+        Notification::assertSentTo($farmer, VerifyEmail::class);
+        $this->get($oldLink)->assertForbidden();
+        $this->get($verificationLink('new-address@gmail.com'))->assertRedirect(route('farmer.profile'));
+        $this->assertTrue($farmer->fresh()->hasVerifiedEmail());
+    }
+
+    private function createFarmerProfile(User $farmer): void
+    {
         Farmer::create([
             'user_id' => $farmer->id,
             'full_name' => 'Test Farmer',
@@ -181,22 +228,5 @@ class PendingAdminEmailVerificationTest extends TestCase
             'rsbsa_number' => 'RSBSA-TEST-VERIFY-' . fake()->unique()->numerify('######'),
             'profile_completed' => true,
         ]);
-
-        $loginResponse = $this->post('/login', [
-            'email' => $farmer->email,
-            'password' => 'password',
-        ]);
-
-        $this->assertAuthenticatedAs($farmer);
-        $loginResponse->assertRedirect(route('farmer.dashboard'));
-
-        $this->get(route('verification.notice'))
-            ->assertRedirect(route('farmer.dashboard'));
-
-        $this->post(route('verification.send'))
-            ->assertRedirect(route('farmer.dashboard'));
-
-        $this->get(route('farmer.dashboard'))->assertOk();
-        $this->assertFalse($farmer->fresh()->hasVerifiedEmail());
     }
 }

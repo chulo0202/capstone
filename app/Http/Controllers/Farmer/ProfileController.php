@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Farmer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Farmer;
+use App\Models\User;
+use App\Services\FarmerEmailVerification;
 use App\Services\QrCodeService;
 use App\Services\RecommendationService;
 use Illuminate\Http\RedirectResponse;
@@ -22,6 +24,23 @@ class ProfileController extends Controller
         $farmer?->loadMissing('user');
 
         return view('farmer.profile', compact('farmer'));
+    }
+
+    public function updateEmail(Request $request, FarmerEmailVerification $verification): RedirectResponse
+    {
+        $user = $request->user();
+        $validated = $request->validateWithBag('farmerEmail', [
+            'email' => ['required', 'string', 'lowercase', 'email', 'regex:/^[a-z0-9._%+-]+@gmail\.com$/', 'max:255', Rule::unique(User::class)->ignore($user->id)],
+            'current_password' => ['required', 'current_password'],
+        ]);
+
+        if ($user->email === $validated['email']) {
+            return to_route('farmer.profile')->with('status', 'email-unchanged');
+        }
+
+        $user->forceFill(['email' => $validated['email'], 'email_verified_at' => null])->save();
+
+        return to_route('farmer.profile')->with('status', $verification->send($user));
     }
 
     public function viewValidId(): StreamedResponse

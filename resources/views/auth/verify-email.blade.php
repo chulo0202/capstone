@@ -107,6 +107,9 @@
                             @else
                                 Your email is verified. Administrator approval is still required before you can access admin pages.
                             @endif
+                        @elseif (auth()->user()->isFarmer())
+                            Verify {{ auth()->user()->email }} to receive distribution schedules by email.
+                            You can still use FAMS and view your in-app notifications.
                         @else
                             Thanks for signing up!
 
@@ -134,6 +137,14 @@
 
             @endif
 
+
+            @if (session('status') === 'verification-delivery-failed')
+                <div class="alert alert-warning" role="alert">We could not send the verification email. Please try again.</div>
+            @endif
+
+            @if (auth()->user()->isFarmer())
+                <a href="{{ route('farmer.profile') }}" class="btn btn-outline-success w-100 mb-3">Continue to My Profile</a>
+            @endif
 
             {{-- RESEND EMAIL --}}
             <form

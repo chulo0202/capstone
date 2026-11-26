@@ -59,7 +59,7 @@ class RegistrationTest extends TestCase
         $this->assertAuthenticated();
 
         $response->assertRedirect(
-            route('farmer.dashboard', absolute: false)
+            route('verification.notice')
         );
 
         $this->assertDatabaseHas('farmers', [
@@ -67,6 +67,9 @@ class RegistrationTest extends TestCase
             'full_name' => 'Nina Demo Valdez',
             'rsbsa_status' => true,
         ]);
+
+        Notification::assertSentTo(auth()->user(), \Illuminate\Auth\Notifications\VerifyEmail::class);
+        $this->assertFalse(auth()->user()->hasVerifiedEmail());
 
         auth()->logout();
 
@@ -86,6 +89,6 @@ class RegistrationTest extends TestCase
             'rsbsa_number' => 'This RSBSA Number Is Already Registered',
         ]);
 
-        Notification::assertNothingSent();
+        Notification::assertCount(1);
     }
 }

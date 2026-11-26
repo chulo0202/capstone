@@ -17,7 +17,7 @@ class EmailVerificationPromptController extends Controller
         $user = $request->user();
 
         if ($user->isFarmer()) {
-            return redirect()->route('farmer.dashboard');
+            return $user->hasVerifiedEmail() ? to_route('farmer.profile') : view('auth.verify-email');
         }
 
         if (
