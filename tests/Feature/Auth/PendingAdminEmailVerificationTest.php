@@ -201,10 +201,20 @@ class PendingAdminEmailVerificationTest extends TestCase
             'verification.verify', now()->addHour(), ['id' => $farmer->id, 'hash' => sha1($email)]
         );
         $oldLink = $verificationLink($farmer->email);
-        $this->actingAs($farmer)->patch(route('farmer.profile.email.update'), [
-            'email' => 'new-address@gmail.com',
-            'current_password' => 'password',
-        ])->assertRedirect(route('farmer.profile'))->assertSessionHas('status', 'verification-link-sent');
+        $updateUrl = route('farmer.profile.email.update');
+        $editUrl = route('farmer.profile.email.edit');
+        $editMode = route('farmer.profile', ['edit' => 1, 'change_email' => 1]);
+
+        $this->actingAs($farmer)->patch($updateUrl, ['email' => 'new-address@gmail.com'])
+            ->assertRedirect(route('password.confirm'));
+        $this->get($editUrl)->assertRedirect(route('password.confirm'));
+        $this->post(route('password.confirm'), ['password' => 'password'])->assertRedirect($editUrl);
+        $this->get($editUrl)->assertRedirect($editMode);
+        $this->get($editMode)->assertOk()->assertSee('New Gmail address')->assertDontSee('type="password"', false);
+
+        $this->patch($updateUrl, ['email' => 'new-address@gmail.com'])
+            ->assertRedirect(route('farmer.profile', ['edit' => 1]))
+            ->assertSessionHas('status', 'verification-link-sent');
 
         $this->assertSame('new-address@gmail.com', $farmer->fresh()->email);
         $this->assertFalse($farmer->fresh()->hasVerifiedEmail());
@@ -212,6 +222,7 @@ class PendingAdminEmailVerificationTest extends TestCase
         $this->get($oldLink)->assertForbidden();
         $this->get($verificationLink('new-address@gmail.com'))->assertRedirect(route('farmer.profile'));
         $this->assertTrue($farmer->fresh()->hasVerifiedEmail());
+        $this->get(route('farmer.profile'))->assertOk()->assertSee('Already Verified');
     }
 
     private function createFarmerProfile(User $farmer): void

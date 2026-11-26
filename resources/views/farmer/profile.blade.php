@@ -37,7 +37,9 @@ $isComplete = isset($farmer)
 
 // Reopen the edit form automatically if validation failed on submit,
 // if the profile isn't complete yet, or if ?edit=1 was requested.
-$startInEdit = $errors->any() || request()->boolean('edit') || ! $isComplete;
+$startInEdit = $errors->any() || $errors->farmerEmail->any()
+    || in_array(session('status'), ['verification-link-sent', 'verification-delivery-failed', 'email-unchanged'], true)
+    || request()->boolean('edit') || ! $isComplete;
 
 @endphp
 
@@ -354,41 +356,10 @@ READ-ONLY VIEW
                     <span class="fams-info-label">Email</span>
                     <span class="fams-info-value">{{ auth()->user()->email }}</span>
                     @if (auth()->user()->hasVerifiedEmail())
-                        <div><span class="badge text-bg-success">Verified</span></div>
+                        <div><span class="badge text-bg-success">Already Verified</span></div>
                     @else
-                        <div><span class="badge text-bg-warning">Unverified</span></div>
-                        <form method="POST" action="{{ route('verification.send') }}" class="mt-2">
-                            @csrf
-                            <button type="submit" class="btn btn-sm btn-outline-success">Verify Email</button>
-                        </form>
+                        <div><span class="badge text-bg-danger">Needs Verification</span></div>
                     @endif
-
-                    @switch(session('status'))
-                        @case('verification-link-sent')
-                            <p class="small text-success mt-2" role="status">Verification link sent. Check your email.</p>
-                            @break
-                        @case('verification-delivery-failed')
-                            <p class="small text-danger mt-2" role="alert">We could not send the verification email. Select Verify Email to try again.</p>
-                            @break
-                        @case('email-unchanged')
-                            <p class="small text-muted mt-2" role="status">Your email address is unchanged.</p>
-                            @break
-                    @endswitch
-
-                    <details class="mt-2" @if ($errors->farmerEmail->any()) open @endif>
-                        <summary class="text-success">Change email</summary>
-                        <form method="POST" action="{{ route('farmer.profile.email.update') }}" class="mt-2">
-                            @csrf
-                            @method('PATCH')
-                            <label for="new-farmer-email" class="form-label">New Gmail address</label>
-                            <input id="new-farmer-email" name="email" type="email" class="form-control" value="{{ old('email') }}" required>
-                            @error('email', 'farmerEmail')<p class="text-danger small">{{ $message }}</p>@enderror
-                            <label for="farmer-email-password" class="form-label mt-2">Current password</label>
-                            <input id="farmer-email-password" name="current_password" type="password" autocomplete="current-password" class="form-control" required>
-                            @error('current_password', 'farmerEmail')<p class="text-danger small">{{ $message }}</p>@enderror
-                            <button type="submit" class="btn btn-sm btn-fams mt-2">Save and Verify Email</button>
-                        </form>
-                    </details>
                 </div>
                 <div class="col-md-6 fams-info-item">
                     <span class="fams-info-label">Birthdate</span>
@@ -481,8 +452,7 @@ READ-ONLY VIEW
 </div>
 
 {{-- =========================================================
-EDIT MODE (existing form — fields, route, and validation
-preserved exactly as-is)
+EDIT MODE
 ========================================================= --}}
 
 <div id="profileEditMode" @unless($startInEdit) style="display:none;" @endunless>
@@ -491,16 +461,47 @@ preserved exactly as-is)
             <h6><i class="bi bi-person-badge me-2 text-fams"></i>Farmer Profile</h6>
         </div>
         <div class="fams-card-body">
+            <section class="mb-4 pb-3 border-bottom" aria-labelledby="profile-email-heading">
+                <h6 id="profile-email-heading">Email</h6>
+                <p class="mb-2 text-break">{{ auth()->user()->email }}</p>
+                @unless (auth()->user()->hasVerifiedEmail())
+                    <form method="POST" action="{{ route('verification.send') }}" class="d-inline-block me-2">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-outline-success">Verify Email</button>
+                    </form>
+                @endunless
+                @if (request()->boolean('change_email') || $errors->farmerEmail->any())
+                    <form method="POST" action="{{ route('farmer.profile.email.update') }}" class="mt-3">
+                        @csrf
+                        @method('PATCH')
+                        <label for="new-farmer-email" class="form-label">New Gmail address</label>
+                        <input id="new-farmer-email" name="email" type="email" class="form-control" value="{{ old('email') }}" required>
+                        @error('email', 'farmerEmail')<p class="text-danger small">{{ $message }}</p>@enderror
+                        <button type="submit" class="btn btn-sm btn-fams mt-2">Save and Verify Email</button>
+                    </form>
+                @else
+                    <a class="btn btn-sm btn-outline-secondary" href="{{ route('farmer.profile.email.edit') }}">Change Email</a>
+                @endif
+                @switch(session('status'))
+                    @case('verification-link-sent')
+                        <p class="small text-success mt-2" role="status">Verification link sent. Check your email.</p>
+                        @break
+                    @case('verification-delivery-failed')
+                        <p class="small text-danger mt-2" role="alert">We could not send the verification email. Select Verify Email to try again.</p>
+                        @break
+                    @case('email-unchanged')
+                        <p class="small text-muted mt-2" role="status">Your email address is unchanged.</p>
+                        @break
+                @endswitch
+
+            </section>
+
             <form method="POST" action="{{ route('farmer.profile.update') }}" enctype="multipart/form-data" id="famsProfileEditForm" class="fams-profile-edit-form">
                 @csrf @method('PUT')
                 <div class="row g-4 align-items-stretch">
                     <div class="col-md-6">
                         <label class="form-label" for="profile-full-name">Full Name</label>
                         <output id="profile-full-name" class="form-control bg-light" aria-readonly="true">{{ $farmerName }}</output>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" for="profile-email">Email</label>
-                        <output id="profile-email" class="form-control bg-light text-break" aria-readonly="true">{{ $farmer?->user?->email ?? auth()->user()->email }}</output>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="profile-contact-number">Contact Number <span class="text-danger">*</span></label>
@@ -707,29 +708,6 @@ preserved exactly as-is)
                         <small class="text-muted mt-1 d-block">Current file: <a href="{{ route('farmer.profile.valid-id') }}" target="_blank" class="auth-link">View uploaded ID</a></small>
                         @endif
                     </div>
-                <div class="col-12">
-                    <label class="form-label" for="profile-password">Change Password</label>
-                    <div class="row g-3">
-                        @foreach ([
-                            'password' => 'New password',
-                            'password_confirmation' => 'Confirm password',
-                        ] as $field => $placeholder)
-                            @php($inputId = 'profile-'.str_replace('_', '-', $field))
-                            <div class="col-md-6">
-                                <div class="input-group">
-                                    <input type="password" name="{{ $field }}" id="{{ $inputId }}"
-                                        class="form-control" placeholder="{{ $placeholder }}"
-                                        aria-label="{{ $placeholder }}" autocomplete="new-password">
-                                    @include('partials.password-visibility-button', [
-                                        'inputId' => $inputId,
-                                        'passwordLabel' => strtolower($placeholder),
-                                    ])
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                    @include('partials.farmer-password-help')
-                </div>
             </div>
             <div class="mt-4 pt-3 border-top d-flex gap-2">
                 <button type="submit" class="btn btn-fams"><i class="bi bi-check-lg me-1"></i>Save Profile</button>

@@ -303,8 +303,12 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/profile', [FarmerProfileController::class, 'show'])
             ->name('profile');
 
+        Route::get('/profile/email/edit', fn () => to_route('farmer.profile', ['edit' => 1, 'change_email' => 1]))
+            ->middleware('password.confirm')
+            ->name('profile.email.edit');
+
         Route::patch('/profile/email', [FarmerProfileController::class, 'updateEmail'])
-            ->middleware('throttle:6,1')
+            ->middleware(['password.confirm', 'throttle:6,1'])
             ->name('profile.email.update');
 
         Route::get('/profile/valid-id', [FarmerProfileController::class, 'viewValidId'])

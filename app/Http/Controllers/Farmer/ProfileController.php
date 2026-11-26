@@ -31,16 +31,15 @@ class ProfileController extends Controller
         $user = $request->user();
         $validated = $request->validateWithBag('farmerEmail', [
             'email' => ['required', 'string', 'lowercase', 'email', 'regex:/^[a-z0-9._%+-]+@gmail\.com$/', 'max:255', Rule::unique(User::class)->ignore($user->id)],
-            'current_password' => ['required', 'current_password'],
         ]);
 
         if ($user->email === $validated['email']) {
-            return to_route('farmer.profile')->with('status', 'email-unchanged');
+            return to_route('farmer.profile', ['edit' => 1])->with('status', 'email-unchanged');
         }
 
         $user->forceFill(['email' => $validated['email'], 'email_verified_at' => null])->save();
 
-        return to_route('farmer.profile')->with('status', $verification->send($user));
+        return to_route('farmer.profile', ['edit' => 1])->with('status', $verification->send($user));
     }
 
     public function viewValidId(): StreamedResponse
@@ -89,7 +88,6 @@ class ProfileController extends Controller
 
             'valid_id' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'farmer_photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
-            'password' => ['nullable', 'confirmed', \Illuminate\Validation\Rules\Password::min(8)->mixedCase()->numbers()->symbols()],
         ]);
 
         $validated['association_membership'] = $isAssociationMember;
@@ -108,15 +106,8 @@ class ProfileController extends Controller
             $validated['farmer_photo_path'] = $path;
         }
 
-        if (! empty($validated['password'])) {
-            $user->password = bcrypt($validated['password']);
-            $user->save();
-        }
-
         unset($validated['valid_id']);
         unset($validated['farmer_photo']);
-        unset($validated['password']);
-        unset($validated['password_confirmation']);
 
         $farmer = Farmer::updateOrCreate(
             ['user_id' => $user->id],
