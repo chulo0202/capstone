@@ -45,7 +45,7 @@
     }
     .recommendations-table [hidden] { display: none !important; }
 
-    @media (max-width: 575.98px) {
+    @media (max-width: 767.98px) {
         #programApplicationModal {
             --bs-modal-margin: .75rem;
         }
@@ -752,7 +752,9 @@
 
 
         {{-- Program-specific application modal --}}
-        @include('farmer.partials.application-modal')
+        @push('modals')
+            @include('farmer.partials.application-modal')
+        @endpush
 
 
         {{-- APPLICATION MODAL SCRIPT --}}

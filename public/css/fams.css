@@ -188,6 +188,7 @@ body {
 
 .fams-content {
     flex: 1;
+    min-width: 0;
     margin-left: 272px;
     min-height: 100vh;
     display: flex;
@@ -464,7 +465,7 @@ body.fams-sidebar-open {
 }
 
 /* ---- Forms ---- */
-.fams-main .form-label,
+:is(.fams-main, .fams-application-modal) .form-label,
 .auth-form .form-label {
     font-size: 0.82rem;
     font-weight: 600;
@@ -472,8 +473,8 @@ body.fams-sidebar-open {
     margin-bottom: 0.4rem;
 }
 
-.fams-main .form-control,
-.fams-main .form-select,
+:is(.fams-main, .fams-application-modal) .form-control,
+:is(.fams-main, .fams-application-modal) .form-select,
 .auth-form .form-control {
     border: 1.5px solid var(--fams-border);
     border-radius: var(--fams-radius-sm);
@@ -482,8 +483,8 @@ body.fams-sidebar-open {
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.fams-main .form-control:focus,
-.fams-main .form-select:focus,
+:is(.fams-main, .fams-application-modal) .form-control:focus,
+:is(.fams-main, .fams-application-modal) .form-select:focus,
 .auth-form .form-control:focus {
     border-color: var(--fams-accent);
     box-shadow: 0 0 0 3px rgba(64, 145, 108, 0.15);
@@ -529,7 +530,7 @@ body.fams-sidebar-open {
 .fams-alert-warning { background: #fffbeb; color: #92400e; border-left-color: #f59e0b; }
 .fams-alert-info { background: #eff6ff; color: #1e40af; border-left-color: #3b82f6; }
 
-.fams-main .alert { border-radius: var(--fams-radius-sm); border: none; border-left: 4px solid; font-size: 0.875rem; }
+:is(.fams-main, .fams-application-modal) .alert { border-radius: var(--fams-radius-sm); border: none; border-left: 4px solid; font-size: 0.875rem; }
 
 /* ---- List items ---- */
 .fams-list-item {
@@ -699,13 +700,13 @@ body.fams-sidebar-open {
 }
 
 /* ---- Modal ---- */
-.fams-main .modal-content {
+:is(.fams-main, .fams-application-modal) .modal-content {
     border: 1px solid var(--fams-border);
     border-radius: var(--fams-radius);
     box-shadow: var(--fams-shadow-lg);
 }
 
-.fams-main .modal-header {
+:is(.fams-main, .fams-application-modal) .modal-header {
     border-bottom: 1px solid var(--fams-border);
     padding: 1.15rem 1.35rem;
 }

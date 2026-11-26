@@ -2,7 +2,7 @@
 {{-- Farmer Program Application Modal --}}
 @php($profileHectares = (float) ($farmer?->land_size ?? 0))
 
-<div class="modal fade"
+<div class="modal fade fams-application-modal"
      id="programApplicationModal"
      tabindex="-1"
      aria-labelledby="programApplicationModalLabel"

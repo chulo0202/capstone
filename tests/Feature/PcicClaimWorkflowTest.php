@@ -270,12 +270,18 @@ class PcicClaimWorkflowTest extends TestCase
         $secondPolicy->policy_number = 'SECOND-POLICY';
         $secondPolicy->save();
 
-        $this->actingAs($user)->get(route('farmer.recommendations'))
+        $response = $this->actingAs($user)->get(route('farmer.recommendations'))
             ->assertOk()
             ->assertSee('File Claim')
             ->assertDontSee('Verified insurance coverage')
             ->assertDontSee('Coverage details')
             ->assertDontSee('Degree of Damage (%)');
+
+        $page = new \DOMDocument();
+        $page->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $modal = $page->getElementById('programApplicationModal');
+        $this->assertSame('body', $modal?->parentNode?->nodeName);
+        $this->assertStringContainsString('modal-dialog-centered modal-dialog-scrollable', $modal->firstElementChild->getAttribute('class'));
 
         $this->post(route('farmer.applications.store', $program), $this->claimData($benefit))
             ->assertSessionHas('error', 'More than one verified policy matches this claim. Please contact the administrator to confirm which policy applies.');
