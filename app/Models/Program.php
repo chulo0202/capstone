@@ -12,6 +12,8 @@ class Program extends Model
 {
     public const PCIC_NAME = 'Philippine Crop Insurance Corporation (PCIC)';
 
+    public const DISTRIBUTION_PROGRAMS = ['Seed Subsidies', 'Fertilizer Subsidies'];
+
     use HasFactory;
 
     protected $fillable = [

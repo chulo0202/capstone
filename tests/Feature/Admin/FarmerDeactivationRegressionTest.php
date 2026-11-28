@@ -175,7 +175,7 @@ class FarmerDeactivationRegressionTest extends TestCase
         $admin = $this->createAdmin();
         [, $farmer] = $this->createFarmer();
         $program = Program::create([
-            'name' => 'Regression Assistance Program',
+            'name' => 'Seed Subsidies',
             'description' => 'Program for deactivation regression coverage',
             'is_active' => true,
         ]);

@@ -365,11 +365,25 @@ class BenefitSpecificWorkflowTest extends TestCase
         $farmer->is_active = false;
         $farmer->save();
 
-        $program = $this->createProgram();
+        $program = $this->createProgram('Seed Subsidies');
         $firstBenefit = $this->createBenefit($program, 'Rice kit');
         $secondBenefit = $this->createBenefit($program, 'Tool kit');
         $firstApplication = $this->makeBenefitApplication($farmer, $program, $firstBenefit, 'approved');
         $secondApplication = $this->makeBenefitApplication($farmer, $program, $secondBenefit, 'approved');
+        $fertilizer = $this->createProgram('Fertilizer Subsidies');
+        $urea = $this->createBenefit($fertilizer, 'Urea');
+        $fertilizerApplication = $this->makeBenefitApplication($farmer, $fertilizer, $urea, 'approved');
+
+        foreach ([
+            'Agricultural Loans' => 'Loan Assistance',
+            Program::PCIC_NAME => 'Claim for Indemnity',
+            'Training and Technology Demonstrations' => 'Techno-Demo Farm Visit (Wet and Dry Season)',
+        ] as $name => $benefitName) {
+            $otherProgram = $this->createProgram($name);
+            $otherBenefit = $this->createBenefit($otherProgram, $benefitName);
+            $this->makeBenefitApplication($farmer, $otherProgram, $otherBenefit, 'approved');
+        }
+
         $token = $admin->createToken('benefit-qr-test')->plainTextToken;
 
         $this->withToken($token)
@@ -377,6 +391,8 @@ class BenefitSpecificWorkflowTest extends TestCase
             ->assertOk()
             ->assertJsonFragment(['application_id' => $firstApplication->id])
             ->assertJsonFragment(['application_id' => $secondApplication->id])
+            ->assertJsonFragment(['application_id' => $fertilizerApplication->id])
+            ->assertJsonCount(3, 'approved_applications')
             ->assertJsonStructure([
                 'success',
                 'message',

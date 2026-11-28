@@ -24,8 +24,6 @@ use function Illuminate\Support\defer;
 
 class DistributionBatchController extends Controller
 {
-    private const DISTRIBUTION_PROGRAMS = ['Seed Subsidies', 'Fertilizer Subsidies'];
-
     private const NON_DISTRIBUTION_MESSAGE = 'This program does not use distribution scheduling.';
 
     public function index(Request $request): View
@@ -33,7 +31,7 @@ class DistributionBatchController extends Controller
         $distributions = DB::table('distribution_batches as batches')
             ->join('programs', 'programs.id', '=', 'batches.program_id')
             ->join('program_benefits as benefits', 'benefits.id', '=', 'batches.program_benefit_id')
-            ->whereIn('programs.name', self::DISTRIBUTION_PROGRAMS)
+            ->whereIn('programs.name', Program::DISTRIBUTION_PROGRAMS)
             ->select('batches.id', 'batches.name as title', 'batches.scheduled_date', 'batches.status', 'programs.name as program', 'benefits.name as detail')
             ->selectRaw("'distribution' as type");
         $trainings = DB::table('training_sessions')
@@ -51,7 +49,7 @@ class DistributionBatchController extends Controller
     {
         $programs = Program::with('activeBenefits')
             ->whereNull('archived_at')
-            ->whereIn('name', self::DISTRIBUTION_PROGRAMS)
+            ->whereIn('name', Program::DISTRIBUTION_PROGRAMS)
             ->whereHas('activeBenefits')
             ->orderBy('name')
             ->get();
@@ -127,7 +125,7 @@ class DistributionBatchController extends Controller
 
         $batch = DB::transaction(function () use ($ids, $data, $request, $releases, $audit) {
             $program = Program::lockForUpdate()->findOrFail($data['program_id']);
-            if (! in_array($program->name, self::DISTRIBUTION_PROGRAMS, true)) {
+            if (! in_array($program->name, Program::DISTRIBUTION_PROGRAMS, true)) {
                 $this->reject('program_id', self::NON_DISTRIBUTION_MESSAGE);
             }
 
@@ -205,7 +203,7 @@ class DistributionBatchController extends Controller
             $locked = DistributionBatch::lockForUpdate()->findOrFail($batch->id);
             abort_unless($locked->status === 'draft', 409, 'Only draft batches can be published.');
 
-            if (! in_array($locked->program->name, self::DISTRIBUTION_PROGRAMS, true)) {
+            if (! in_array($locked->program->name, Program::DISTRIBUTION_PROGRAMS, true)) {
                 $this->reject('program_id', self::NON_DISTRIBUTION_MESSAGE);
             }
 

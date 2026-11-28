@@ -39,17 +39,19 @@ class NotificationBadgeTest extends TestCase
 
         $this->actingAs($farmer->user)->get(route('farmer.dashboard'))
             ->assertOk()
-            ->assertSee('aria-label="Notifications, 2 unread"', false);
+            ->assertSee('aria-label="Notifications, 1 unread"', false);
 
         $this->get(route('farmer.dashboard'))
             ->assertSeeInOrder(['Unread notifications', 'Welcome back'])
             ->assertSee('Open Notifications')
-            ->assertSee('aria-label="Notifications, 2 unread"', false);
+            ->assertSee('aria-label="Notifications, 1 unread"', false);
 
         $this->get(route('farmer.notifications.index'))
             ->assertOk()
             ->assertSee('Published update')
             ->assertDontSee('Scheduled update')
+            ->assertDontSee('SMS History')
+            ->assertDontSee('A farmer-specific update.')
             ->assertSee('aria-label="Notifications"', false);
 
         $this->get(route('farmer.dashboard'))
@@ -59,10 +61,11 @@ class NotificationBadgeTest extends TestCase
         $this->addSms($farmer);
 
         $this->get(route('farmer.dashboard'))
-            ->assertSee('aria-label="Notifications, 1 unread"', false);
+            ->assertSee('aria-label="Notifications"', false)
+            ->assertDontSee('A farmer-specific update.');
 
         $this->actingAs($otherFarmer->user)->get(route('farmer.dashboard'))
-            ->assertSee('aria-label="Notifications, 2 unread"', false);
+            ->assertSee('aria-label="Notifications, 1 unread"', false);
     }
 
     public function test_farmer_announcements_open_in_notifications_and_preserve_older_posts(): void

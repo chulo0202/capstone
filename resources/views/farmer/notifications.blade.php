@@ -11,7 +11,6 @@
         'loans' => ['Agricultural Loan Decisions', 'bi-file-earmark-text', $loanDecisions->count()],
         'pcic' => ['PCIC Updates', 'bi-shield-check', $pcicUpdates->count()],
         'announcement' => ['Announcements', 'bi-megaphone', $announcements->count()],
-        'sms' => ['SMS History', 'bi-chat-left-text', $notifications->count()],
     ];
     $activeCategory = $browseAnnouncements ? 'announcement' : 'all';
     $total = array_sum(array_column($categories, 2));
@@ -42,7 +41,7 @@
             @endif
             <button type="button" class="btn btn-sm rounded-pill px-3 {{ $key === $activeCategory ? 'btn-fams' : 'btn-outline-secondary' }}"
                 data-notification-filter="{{ $key }}" aria-pressed="{{ $key === $activeCategory ? 'true' : 'false' }}">
-                {{ $key === 'distribution' ? 'Distribution' : ($key === 'sms' ? 'SMS' : $label) }}
+                {{ $key === 'distribution' ? 'Distribution' : $label }}
                 <span class="badge text-bg-light ms-1">{{ $count }}</span>
             </button>
         @endforeach
@@ -144,13 +143,6 @@
                         @if ($browseAnnouncements)
                             {{ $announcements->links() }}
                         @endif
-                    @else
-                        @foreach ($notifications as $notification)
-                            @include('farmer.partials.notification-item', [
-                                'itemIcon' => $icon, 'title' => $notification->recipient,
-                                'description' => $notification->message,
-                            ])
-                        @endforeach
                     @endif
                     @unless ($count)
                         <p class="text-muted small mb-0">

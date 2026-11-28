@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Application;
 use App\Models\Distribution;
 use App\Models\Farmer;
+use App\Models\Program;
 use App\Services\DistributionReleaseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,6 +28,7 @@ class QRVerificationController extends Controller
         $applications = Application::with(['program', 'benefit'])
             ->where('farmer_id', $farmer->id)
             ->where('status', 'approved')
+            ->whereHas('program', fn ($program) => $program->whereIn('name', Program::DISTRIBUTION_PROGRAMS))
             ->latest('applied_at')
             ->get();
 
